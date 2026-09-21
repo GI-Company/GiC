@@ -677,11 +677,11 @@ export const RESEARCH_NODES: ResearchNode[] = [
       {
         provider: 'github',
         owner: 'GI-Company',
-        name: 'tinyCOHERENTScaling',
-        url: 'https://github.com/GI-Company/tinyCOHERENTScaling',
+        name: 'tinyCOHERENT',
+        url: 'https://github.com/GI-Company/tinyCOHERENT',
         visibility: 'public',
         relationship: 'primary-source',
-        description: 'Canonical public source repository: Pure C LLM training engine with Apple Silicon hardware acceleration, Byte-Pair Encoding subword tokenization, glass-box activation inspection, instruction tuning, and curated reasoning scratchpad datasets.',
+        description: 'Canonical public source repository: Pure C LLM training engine with Apple Silicon hardware acceleration, Byte-Pair Encoding subword tokenization, glass-box activation inspection, instruction tuning, attribution tests, scaling ledgers, and curated reasoning scratchpad datasets.',
         verificationStatus: 'verified',
       },
     ],
@@ -860,16 +860,16 @@ export const RESEARCH_NODES: ResearchNode[] = [
         id: 'source',
         title: 'Source Code',
         summary: 'Canonical open-source repository on GitHub.',
-        content: 'The designated public GitHub repository for TinyCoherent is https://github.com/GI-Company/tinyCOHERENTScaling. Claims regarding codebase architecture reflect documented design artifacts.',
+        content: 'The designated public GitHub repository for TinyCoherent is https://github.com/GI-Company/tinyCOHERENT. Source code artifacts, scaling ledgers (DEGRADE.md, SCALE_200k.md, SCALE_3M.md, SCALE_RUNG4.md, SCALE_RUNG6.md), and training logs are publicly accessible in the repository.',
         keyPoints: [
-          'Repository: https://github.com/GI-Company/tinyCOHERENTScaling',
-          'Classification: Open Research / Source Code Artifact',
-          'Epistemic Role: Source Code Verification Target',
+          'Repository: https://github.com/GI-Company/tinyCOHERENT (SOURCE-VERIFIED)',
+          'Documents hand-written forward/backward pass, gradient checks, faithfulness gates, and 300/300 attribution recovery (SOURCE-VERIFIED)',
+          'Tracks scaling stages to ~21.5M Rung 6 checkpoint with explicitly reported negative result: Rung 6 generation not yet coherent (SOURCE-VERIFIED / EXPERIMENT-VERIFIED)',
         ],
         highlights: [
-          'Canonical GitHub repository location',
-          'Public open research codebase',
-          'Source code verification reference',
+          'Canonical GitHub repository: GI-Company/tinyCOHERENT',
+          'Finite-difference gradient checks & faithfulness gates',
+          'Documented Rung 6 scaling milestone & negative generation results',
         ],
         isVerifiedFromSource: true,
         epistemicRole: 'SOURCE-VERIFIED',
@@ -1057,12 +1057,12 @@ export const RESEARCH_NODES: ResearchNode[] = [
     artifacts: [
       {
         id: 'tinycoherent-c-src',
-        name: 'tinyCOHERENTScaling (Pure C Source)',
+        name: 'tinyCOHERENT (Pure C Source)',
         type: 'C Source Codebase',
         size: '1.2 MB',
         hash: 'c8f42d109e3a7b52140',
-        description: 'Complete ANSI C Transformer training engine, BPE tokenizer, and glass-box REPL.',
-        provenance: 'https://github.com/GI-Company/tinyCOHERENTScaling',
+        description: 'Complete ANSI C Transformer training engine, BPE tokenizer, glass-box REPL, and scaling documentation.',
+        provenance: 'https://github.com/GI-Company/tinyCOHERENT',
         evidenceLevel: 'SOURCE-VERIFIED',
       },
     ],
@@ -1134,7 +1134,7 @@ export const RESEARCH_NODES: ResearchNode[] = [
         summary: 'Founder-authored engineering report documenting a custom C training engine targeting Apple Silicon hardware and Accelerate BLAS linear algebra.',
       },
     ],
-    sourceReference: 'https://github.com/GI-Company/tinyCOHERENTScaling',
+    sourceReference: 'https://github.com/GI-Company/tinyCOHERENT',
   },
 
   {
@@ -2784,6 +2784,7 @@ export interface LabManifestoData {
   location: string;
   githubOrg: string;
   githubReposUrl: string;
+  websiteRepoUrl?: string;
   thesis: string;
   epistemicTriad: {
     observed: string;
@@ -2813,6 +2814,7 @@ export const LAB_MANIFESTO: LabManifestoData = {
   location: 'Autonomous Laboratory / Distributed Research Nodes',
   githubOrg: 'https://github.com/GI-Company',
   githubReposUrl: 'https://github.com/GI-Company?tab=repositories',
+  websiteRepoUrl: 'https://github.com/GI-Company/GiC',
   thesis:
     'Global Intent Company explores computational architectures, scientific systems, and shipped applications designed around inspectability, evidence preservation, experimental validation, and reproducibility.',
   epistemicTriad: {

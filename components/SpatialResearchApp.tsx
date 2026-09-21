@@ -516,7 +516,7 @@ export default function SpatialResearchApp({
             <span className="text-slate-700">|</span>
             <span>Hierarchical 3D Mesh Navigation</span>
           </div>
-          <div className="flex items-center gap-4 text-slate-400">
+          <div className="flex flex-wrap items-center gap-4 text-slate-400">
             <a
               href="https://github.com/GI-Company"
               target="_blank"
@@ -524,10 +524,19 @@ export default function SpatialResearchApp({
               className="hover:text-white flex items-center gap-1 transition-colors"
             >
               <Code2 className="w-3.5 h-3.5 text-slate-400" />
-              <span>github.com/GI-Company</span>
+              <span>GI-Company</span>
             </a>
             <span className="text-slate-700">•</span>
-            <span>Founder: Gabe (gabriel@gi-company.com)</span>
+            <a
+              href="https://github.com/GI-Company/GiC"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white flex items-center gap-1 transition-colors text-emerald-400"
+            >
+              <span>Site Source: GI-Company/GiC</span>
+            </a>
+            <span className="text-slate-700">•</span>
+            <span>Founder: Cory Tortorici</span>
           </div>
         </div>
       </footer>
