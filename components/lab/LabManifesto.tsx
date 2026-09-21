@@ -135,7 +135,7 @@ export default function LabManifesto({ onSelectNode }: LabManifestoProps) {
         </div>
       </div>
 
-      {/* Chronological Research Lineage (2021 — 2026) */}
+      {/* Chronological Research Lineage */}
       <div className="bg-[#0b0e14] border border-[#1d2330] rounded-xl p-6">
         <h2 className="text-xs uppercase tracking-wider text-slate-400 font-bold mb-4">
           Research Lineage & Architecture Evolution

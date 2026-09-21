@@ -295,8 +295,12 @@ export default function ProjectsIndex({ selectedNodeId, onSelectNode, onOpenDoss
                   </div>
 
                   <div className="flex items-center gap-3 text-xs text-slate-400">
-                    <span className="font-mono text-slate-400 font-semibold">{node.timeline || '2024 — 2026'}</span>
-                    <span className="text-slate-600">|</span>
+                    {node.timeline && (
+                      <>
+                        <span className="font-mono text-slate-400 font-semibold">{node.timeline}</span>
+                        <span className="text-slate-600">|</span>
+                      </>
+                    )}
                     <span className="text-[11px] text-slate-500">{node.classification}</span>
                   </div>
                 </div>
