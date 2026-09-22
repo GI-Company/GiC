@@ -6,6 +6,7 @@ import NeuralGraphCanvas, { RenderTier, DossierTabType } from '@/components/neur
 import ResearchDossier, { DossierTab } from '@/components/research/ResearchDossier';
 import ProjectsIndex from '@/components/research/ProjectsIndex';
 import ResearchLogView from '@/components/research/ResearchLogView';
+import LatestFromTheLab from '@/components/research/LatestFromTheLab';
 import LabManifesto from '@/components/lab/LabManifesto';
 import CortexMSProbeSimulator from '@/components/simulators/CortexMSProbeSimulator';
 import VirtualLabIntegritySimulator from '@/components/simulators/VirtualLabIntegritySimulator';
@@ -39,6 +40,7 @@ import {
   ExternalLink,
   RotateCcw,
   Mail,
+  BookOpen,
 } from 'lucide-react';
 
 interface SpatialResearchAppProps {
@@ -201,72 +203,165 @@ export default function SpatialResearchApp({
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-10">
         {/* 1. Spatial Research Mesh View (Hierarchical 3D Navigation) */}
         {activeTab === 'spatial' && (
-          <div className="space-y-6">
-            {/* Top Spatial Canvas Section */}
-            <div className="w-full relative shadow-2xl">
-              <NeuralGraphCanvas
-                selectedNodeId={selectedNodeId}
-                onSelectNode={handleSelectNode}
-                activeDomain={activeDomain}
-                onSelectDomain={handleSelectDomain}
-                renderTier={renderTier}
-                onTierChange={setRenderTier}
-                activeDossierTab={activeDossierTab as DossierTabType}
-                onSelectDossierTab={handleSelectDossierTab}
-                onNavigateRoot={handleNavigateRoot}
-              />
-            </div>
+          <div className="space-y-10">
+            {/* Opening Hero: Research-First Clarity & Identity */}
+            <section id="hero-overview" className="p-6 sm:p-8 rounded-2xl bg-[#0b0e14] border border-[#1b212d] shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="relative z-10 space-y-4 max-w-4xl">
+                <div className="flex items-center gap-2 text-xs text-emerald-400 font-mono">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="tracking-widest uppercase font-semibold">Independent Research & Engineering Laboratory</span>
+                </div>
 
-            {/* Hierarchical Quick Navigation Bar */}
-            <div className="bg-[#0b0e14] p-3 rounded-xl border border-[#1b212d] flex items-center justify-between gap-3 text-xs flex-wrap">
-              <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
-                <span className="text-[10px] text-slate-500 uppercase font-bold shrink-0">
-                  Domains:
-                </span>
-                <button
-                  type="button"
-                  onClick={handleNavigateRoot}
-                  className={`px-2.5 py-1 rounded-md text-xs transition-all font-semibold shrink-0 ${
-                    !activeDomain && !selectedNodeId
-                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-500'
-                      : 'bg-[#121620] text-slate-400 hover:text-slate-200 border border-transparent'
-                  }`}
-                >
-                  Root Overview
-                </button>
-                {RESEARCH_DOMAINS.map(domain => {
-                  const isActive = activeDomain === domain.id;
-                  return (
-                    <button
-                      key={domain.id}
-                      type="button"
-                      onClick={() => handleSelectDomain(domain.id)}
-                      className={`px-2.5 py-1 rounded-md text-xs transition-all font-semibold flex items-center gap-1.5 shrink-0 ${
-                        isActive
-                          ? 'bg-[#142030] text-white border border-emerald-400 shadow-sm'
-                          : 'bg-[#121620] text-slate-400 hover:text-slate-200 border border-transparent'
-                      }`}
-                    >
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: domain.colorHex }} />
-                      <span>{domain.shortLabel}</span>
-                    </button>
-                  );
-                })}
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight font-mono">
+                  GLOBAL INTENT COMPANY
+                </h1>
+
+                <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-mono">
+                  Independent research and engineering across machine learning, scientific instrumentation, and computational systems.
+                </p>
+
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-mono">
+                  Developed independently by founder and researcher Cory Tortorici. Source code, controlled experiments, null results, architectural iterations, and public research logs are made inspectable across all project nodes.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById('explore-the-research');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono flex items-center gap-2 transition-all shadow-md hover:shadow-emerald-950/50"
+                  >
+                    <Compass className="w-4 h-4" />
+                    <span>EXPLORE RESEARCH</span>
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('research-log')}
+                    className="px-4 py-2 rounded-lg bg-[#121620] hover:bg-[#182130] text-slate-200 hover:text-white border border-[#222b3b] text-xs font-bold font-mono flex items-center gap-2 transition-colors"
+                  >
+                    <BookOpen className="w-4 h-4 text-emerald-400" />
+                    <span>VIEW RESEARCH LOG</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
+
+                  <a
+                    href="https://github.com/GI-Company"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-2 rounded-lg bg-[#0e121a] hover:bg-[#141b26] text-slate-400 hover:text-slate-200 border border-[#1d2535] text-xs font-mono flex items-center gap-2 transition-colors"
+                  >
+                    <Code2 className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Source Repositories</span>
+                    <ExternalLink className="w-3 h-3 text-slate-500" />
+                  </a>
+                </div>
+              </div>
+            </section>
+
+            {/* 2. Latest From The Lab (Surfacing empirical findings & lessons earlier) */}
+            <LatestFromTheLab
+              onSelectNode={(nodeId) => {
+                handleSelectNode(nodeId);
+                setTimeout(() => {
+                  const el = document.getElementById('research-dossier') || document.getElementById('explore-the-research');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }}
+              onViewAllLogs={() => setActiveTab('research-log')}
+            />
+
+            {/* 3. Explore The Research (3D Spatial Graph & Architecture) */}
+            <section id="explore-the-research" className="space-y-4 pt-4 border-t border-[#161c28]">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-mono text-cyan-400 mb-1">
+                    <Compass className="w-3.5 h-3.5" />
+                    <span className="tracking-wider uppercase font-semibold">Interactive Spatial Knowledge Graph</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-white tracking-wide font-mono">
+                    EXPLORE THE RESEARCH
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5 max-w-2xl font-mono">
+                    Navigate the connected network of research projects, architectural pipelines, and domain clusters in real-time 3D.
+                  </p>
+                </div>
+
+                <div className="text-[11px] text-slate-500 font-mono hidden sm:block">
+                  <span>Rotate • Zoom • Click Nodes to Unfold</span>
+                </div>
               </div>
 
-              {/* View Switcher CTA to 2D Index */}
-              <button
-                type="button"
-                onClick={() => setActiveTab('dossiers')}
-                className="text-[11px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 shrink-0 transition-colors"
-              >
-                <span>Switch to 2D Index View</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+              {/* Spatial Canvas Container */}
+              <div className="w-full relative shadow-2xl rounded-2xl overflow-hidden border border-[#1b212d]">
+                <NeuralGraphCanvas
+                  selectedNodeId={selectedNodeId}
+                  onSelectNode={handleSelectNode}
+                  activeDomain={activeDomain}
+                  onSelectDomain={handleSelectDomain}
+                  renderTier={renderTier}
+                  onTierChange={setRenderTier}
+                  activeDossierTab={activeDossierTab as DossierTabType}
+                  onSelectDossierTab={handleSelectDossierTab}
+                  onNavigateRoot={handleNavigateRoot}
+                />
+              </div>
+
+              {/* Hierarchical Quick Navigation Bar */}
+              <div className="bg-[#0b0e14] p-3 rounded-xl border border-[#1b212d] flex items-center justify-between gap-3 text-xs flex-wrap font-mono">
+                <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none">
+                  <span className="text-[10px] text-slate-500 uppercase font-bold shrink-0">
+                    Domains:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleNavigateRoot}
+                    className={`px-2.5 py-1 rounded-md text-xs transition-all font-semibold shrink-0 ${
+                      !activeDomain && !selectedNodeId
+                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-500'
+                        : 'bg-[#121620] text-slate-400 hover:text-slate-200 border border-transparent'
+                    }`}
+                  >
+                    Root Overview
+                  </button>
+                  {RESEARCH_DOMAINS.map(domain => {
+                    const isActive = activeDomain === domain.id;
+                    return (
+                      <button
+                        key={domain.id}
+                        type="button"
+                        onClick={() => handleSelectDomain(domain.id)}
+                        className={`px-2.5 py-1 rounded-md text-xs transition-all font-semibold flex items-center gap-1.5 shrink-0 ${
+                          isActive
+                            ? 'bg-[#142030] text-white border border-emerald-400 shadow-sm'
+                            : 'bg-[#121620] text-slate-400 hover:text-slate-200 border border-transparent'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: domain.colorHex }} />
+                        <span>{domain.shortLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* View Switcher CTA to 2D Index */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('dossiers')}
+                  className="text-[11px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 shrink-0 transition-colors"
+                >
+                  <span>Switch to 2D Index View</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </section>
 
             {/* 2D Research Dossier Section (Deliberate separation from 3D) */}
             <div id="research-dossier" className="pt-2">

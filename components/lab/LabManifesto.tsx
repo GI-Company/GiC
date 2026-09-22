@@ -12,6 +12,7 @@ export default function LabManifesto({ onSelectNode }: LabManifestoProps) {
   const [inquirySubject, setInquirySubject] = useState('Empirical Collaboration / Technical Inquiries');
   const [inquiryEmail, setInquiryEmail] = useState('');
   const [inquiryMessage, setInquiryMessage] = useState('');
+  const [websiteHp, setWebsiteHp] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -31,6 +32,7 @@ export default function LabManifesto({ onSelectNode }: LabManifestoProps) {
           subject: inquirySubject,
           email: inquiryEmail,
           message: inquiryMessage,
+          website_hp: websiteHp,
         }),
       });
 
@@ -221,14 +223,28 @@ export default function LabManifesto({ onSelectNode }: LabManifestoProps) {
           <div className="p-4 rounded-lg bg-emerald-950/40 border border-emerald-500/80 text-emerald-200 text-xs flex items-center gap-3">
             <Check className="w-5 h-5 text-emerald-400 shrink-0" />
             <div>
-              <div className="font-bold">Transmission Dispatched to Cory Tortorici</div>
+              <div className="font-bold">Transmission Accepted & Dispatched via Resend</div>
               <p className="text-[11px] opacity-90 mt-0.5">
-                Your message has been queued for review. Inquiries with technical or empirical depth receive priority response.
+                Your message has been processed and routed to Cory Tortorici at Global Intent Company. Technical and architectural inquiries receive priority response.
               </p>
             </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 max-w-xl text-xs">
+            {/* Honeypot field for bot mitigation */}
+            <div className="hidden" aria-hidden="true" style={{ display: 'none' }}>
+              <label htmlFor="website_hp">Website</label>
+              <input
+                id="website_hp"
+                name="website_hp"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={websiteHp}
+                onChange={e => setWebsiteHp(e.target.value)}
+              />
+            </div>
+
             <div>
               <label className="text-slate-400 block mb-1">Subject / Area of Interest</label>
               <input

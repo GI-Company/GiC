@@ -77,7 +77,7 @@ export default function HeaderNav({
             }`}
           >
             <Compass className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Spatial Mesh</span>
+            <span>Explore</span>
           </button>
 
           <button
@@ -90,7 +90,7 @@ export default function HeaderNav({
             }`}
           >
             <Layers className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Projects & Repositories</span>
+            <span>Projects</span>
           </button>
 
           <button
@@ -103,7 +103,7 @@ export default function HeaderNav({
             }`}
           >
             <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Research Logs & Timeline</span>
+            <span>Research Log</span>
           </button>
 
           <button
@@ -129,7 +129,7 @@ export default function HeaderNav({
             }`}
           >
             <FileText className="w-3.5 h-3.5 text-purple-400" />
-            <span>Company Manifesto</span>
+            <span>About</span>
           </button>
         </nav>
 
