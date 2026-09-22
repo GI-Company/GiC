@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { LAB_IDENTITY, FOUNDATIONAL_QUESTIONS, RESEARCH_NODES } from '@/lib/research-data';
-import { Terminal, Compass, Check, HelpCircle, Shield, AlertCircle, Layers } from 'lucide-react';
+import { Terminal, Compass, Check, HelpCircle, Shield, AlertCircle, Layers, Loader2, Send } from 'lucide-react';
 
 interface LabManifestoProps {
   onSelectNode?: (nodeId: string) => void;
@@ -12,11 +12,40 @@ export default function LabManifesto({ onSelectNode }: LabManifestoProps) {
   const [inquirySubject, setInquirySubject] = useState('Empirical Collaboration / Technical Inquiries');
   const [inquiryEmail, setInquiryEmail] = useState('');
   const [inquiryMessage, setInquiryMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setIsSending(true);
+    setErrorMsg(null);
+
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject: inquirySubject,
+          email: inquiryEmail,
+          message: inquiryMessage,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to dispatch email.');
+      }
+
+      setSubmitted(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to dispatch transmission.';
+      setErrorMsg(msg);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -235,11 +264,29 @@ export default function LabManifesto({ onSelectNode }: LabManifestoProps) {
               />
             </div>
 
+            {errorMsg && (
+              <div className="p-3 rounded bg-rose-950/60 border border-rose-800/80 text-rose-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
             <button
               type="submit"
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold flex items-center gap-2 transition-colors"
+              disabled={isSending}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded font-bold flex items-center gap-2 transition-colors"
             >
-              <span>Transmit Inquiry</span>
+              {isSending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Dispatching via Resend...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Transmit Inquiry</span>
+                </>
+              )}
             </button>
           </form>
         )}
