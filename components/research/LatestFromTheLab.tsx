@@ -21,6 +21,7 @@ import {
   Activity,
   Shield,
   HelpCircle,
+  Calendar,
 } from 'lucide-react';
 
 interface LatestFromTheLabProps {
@@ -32,30 +33,41 @@ export default function LatestFromTheLab({
   onSelectNode,
   onViewAllLogs,
 }: LatestFromTheLabProps) {
-  // Derive latest entries directly from existing structured timeline events
+  // Derive latest entries directly from existing structured research data
   const latestEntries = useMemo(() => {
     const all = getAllTimelineEvents();
 
-    // Select the key entries highlighting diverse lineage stages (failures/lessons, results, iterations)
-    // Priority: TinyCoherent token discard lesson, Physio-Model null result, and Virtual Lab cryptographic iteration
-    const preferredIds = [
-      'tc-iter-rung6', // Rung 6 V2 / Discarding 1.5M tokens
-      'physio-res-expansion-null', // Physiological Data Expansion Null Result Trial
-      'vlab-iter-crypto-platform', // Cryptographic Evidence Bundling & Platform Transition
-    ];
+    // Map each item with its original index for stable tie-breaking
+    const indexed = all.map((item, index) => ({ item, index }));
 
-    const selected = all.filter(item => preferredIds.includes(item.event.id));
+    // Extract items with a valid known date
+    const dated = indexed.filter(({ item }) => {
+      if (!item.event.date) return false;
+      const parsed = Date.parse(item.event.date);
+      return !isNaN(parsed);
+    });
 
-    // If any preferred IDs weren't matched, fill with other existing timeline items
-    if (selected.length < 3) {
-      all.forEach(item => {
-        if (!selected.some(s => s.event.id === item.event.id) && selected.length < 3) {
-          selected.push(item);
-        }
-      });
-    }
+    // Sort dated entries descending by actual date; use existing data order as stable tie-breaker
+    dated.sort((a, b) => {
+      const timeA = Date.parse(a.item.event.date!);
+      const timeB = Date.parse(b.item.event.date!);
+      if (timeB !== timeA) {
+        return timeB - timeA;
+      }
+      return a.index - b.index;
+    });
 
-    return selected;
+    // Extract items without valid dates, preserving original data order
+    const undated = indexed.filter(({ item }) => {
+      if (!item.event.date) return true;
+      return isNaN(Date.parse(item.event.date));
+    });
+
+    // Combined list: dated entries first (newest to oldest), then undated entries in existing data order
+    const combined = [...dated, ...undated];
+
+    // Select the three newest entries without fabricating dates
+    return combined.slice(0, 3).map(({ item }) => item);
   }, []);
 
   const getLineageBadge = (stage?: string) => {
@@ -181,10 +193,18 @@ export default function LatestFromTheLab({
                     <span>{lineage.label}</span>
                   </span>
 
-                  <span className="text-slate-400 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" />
-                    <span>{project.name}</span>
-                  </span>
+                  <div className="flex items-center gap-2 text-slate-400 font-semibold">
+                    {event.date && (
+                      <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                        <Calendar className="w-2.5 h-2.5 text-slate-500" />
+                        <span>{event.date}</span>
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" />
+                      <span>{project.name}</span>
+                    </span>
+                  </div>
                 </div>
 
                 {/* Event Title */}

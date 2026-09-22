@@ -213,7 +213,7 @@ export default function SpatialResearchApp({
               <div className="relative z-10 space-y-4 max-w-4xl">
                 <div className="flex items-center gap-2 text-xs text-emerald-400 font-mono">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="tracking-widest uppercase font-semibold">Independent Research & Engineering Laboratory</span>
+                  <span className="tracking-widest uppercase font-semibold">Independent Research & Engineering</span>
                 </div>
 
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight font-mono">
