@@ -57,17 +57,8 @@ export default function LatestFromTheLab({
       return a.index - b.index;
     });
 
-    // Extract items without valid dates, preserving original data order
-    const undated = indexed.filter(({ item }) => {
-      if (!item.event.date) return true;
-      return isNaN(Date.parse(item.event.date));
-    });
-
-    // Combined list: dated entries first (newest to oldest), then undated entries in existing data order
-    const combined = [...dated, ...undated];
-
-    // Select the three newest entries without fabricating dates
-    return combined.slice(0, 3).map(({ item }) => item);
+    // Select the three newest entries with known dates
+    return dated.slice(0, 3).map(({ item }) => item);
   }, []);
 
   const getLineageBadge = (stage?: string) => {
@@ -161,103 +152,102 @@ export default function LatestFromTheLab({
             Recent empirical findings, architectural iterations, and null results surfaced directly from active research logs.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={onViewAllLogs}
-          className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 transition-colors font-semibold shrink-0"
-        >
-          <span>View Complete Research Log</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
       </div>
 
       {/* 3 Featured Recent Research Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {latestEntries.map(({ project, event }) => {
-          const lineage = getLineageBadge(event.lineageStage);
-          const epistemic = getEpistemicBadge(event.epistemicStatus);
+      {latestEntries.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {latestEntries.map(({ project, event }) => {
+            const lineage = getLineageBadge(event.lineageStage);
+            const epistemic = getEpistemicBadge(event.epistemicStatus);
 
-          return (
-            <article
-              key={event.id}
-              className="p-5 rounded-xl bg-[#0b0e14] border border-[#1a212e] hover:border-[#2b384e] flex flex-col justify-between transition-all duration-200 group relative"
-            >
-              <div className="space-y-3">
-                {/* Header: Lineage Stage & Project Identification */}
-                <div className="flex items-center justify-between gap-2 flex-wrap text-[11px]">
-                  <span
-                    className={`px-2 py-0.5 rounded border text-[10px] font-bold flex items-center gap-1.5 tracking-wider uppercase ${lineage.bg}`}
-                  >
-                    {lineage.icon}
-                    <span>{lineage.label}</span>
-                  </span>
+            return (
+              <article
+                key={event.id}
+                className="p-5 rounded-xl bg-[#0b0e14] border border-[#1a212e] hover:border-[#2b384e] flex flex-col justify-between transition-all duration-200 group relative"
+              >
+                <div className="space-y-3">
+                  {/* Header: Lineage Stage & Project Identification */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap text-[11px]">
+                    <span
+                      className={`px-2 py-0.5 rounded border text-[10px] font-bold flex items-center gap-1.5 tracking-wider uppercase ${lineage.bg}`}
+                    >
+                      {lineage.icon}
+                      <span>{lineage.label}</span>
+                    </span>
 
-                  <div className="flex items-center gap-2 text-slate-400 font-semibold">
-                    {event.date && (
-                      <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
-                        <Calendar className="w-2.5 h-2.5 text-slate-500" />
-                        <span>{event.date}</span>
+                    <div className="flex items-center gap-2 text-slate-400 font-semibold">
+                      {event.date && (
+                        <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                          <Calendar className="w-2.5 h-2.5 text-slate-500" />
+                          <span>{event.date}</span>
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" />
+                        <span>{project.name}</span>
                       </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" />
-                      <span>{project.name}</span>
+                    </div>
+                  </div>
+
+                  {/* Event Title */}
+                  <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">
+                    {event.title}
+                  </h3>
+
+                  {/* Concise Existing Summary */}
+                  <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">
+                    {event.description}
+                  </p>
+
+                  {/* Epistemic Classification Badge */}
+                  <div className="pt-1">
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded border text-[10px] font-mono ${epistemic.bg}`}
+                    >
+                      {epistemic.label}
                     </span>
                   </div>
                 </div>
 
-                {/* Event Title */}
-                <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">
-                  {event.title}
-                </h3>
+                {/* Action Buttons: Separate Documentation from Evidence */}
+                <div className="mt-4 pt-3 border-t border-[#161c28] flex items-center justify-between gap-2 text-xs">
+                  {event.relatedArticleUrl ? (
+                    <a
+                      href={event.relatedArticleUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1.5 rounded bg-[#101520] hover:bg-[#182130] text-slate-300 hover:text-white border border-[#20293a] flex items-center gap-1.5 text-[11px] font-medium transition-colors"
+                      title="Read the author's public research log on LinkedIn"
+                    >
+                      <BookOpen className="w-3 h-3 text-purple-400" />
+                      <span>Read Log</span>
+                      <ExternalLink className="w-2.5 h-2.5 text-slate-500" />
+                    </a>
+                  ) : (
+                    <span className="text-[10px] text-slate-600 font-mono">LAB RECORD</span>
+                  )}
 
-                {/* Concise Existing Summary */}
-                <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">
-                  {event.description}
-                </p>
-
-                {/* Epistemic Classification Badge */}
-                <div className="pt-1">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded border text-[10px] font-mono ${epistemic.bg}`}
+                  <button
+                    type="button"
+                    onClick={() => onSelectNode(project.id)}
+                    className="px-3 py-1.5 rounded bg-emerald-950/70 hover:bg-emerald-900/90 text-emerald-300 hover:text-emerald-200 border border-emerald-700/80 flex items-center gap-1 text-[11px] font-bold transition-all ml-auto"
                   >
-                    {epistemic.label}
-                  </span>
+                    <span>{event.lineageStage === 'EXPERIMENT' ? 'Inspect Experiment' : 'Inspect Project'}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-              </div>
-
-              {/* Action Buttons: Separate Documentation from Evidence */}
-              <div className="mt-4 pt-3 border-t border-[#161c28] flex items-center justify-between gap-2 text-xs">
-                {event.relatedArticleUrl ? (
-                  <a
-                    href={event.relatedArticleUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 rounded bg-[#101520] hover:bg-[#182130] text-slate-300 hover:text-white border border-[#20293a] flex items-center gap-1.5 text-[11px] font-medium transition-colors"
-                    title="Read the author's public research log on LinkedIn"
-                  >
-                    <BookOpen className="w-3 h-3 text-purple-400" />
-                    <span>Read Log</span>
-                    <ExternalLink className="w-2.5 h-2.5 text-slate-500" />
-                  </a>
-                ) : (
-                  <span className="text-[10px] text-slate-600 font-mono">LAB RECORD</span>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => onSelectNode(project.id)}
-                  className="px-3 py-1.5 rounded bg-emerald-950/70 hover:bg-emerald-900/90 text-emerald-300 hover:text-emerald-200 border border-emerald-700/80 flex items-center gap-1 text-[11px] font-bold transition-all ml-auto"
-                >
-                  <span>{event.lineageStage === 'EXPERIMENT' ? 'Inspect Experiment' : 'Inspect Project'}</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="p-6 rounded-xl bg-[#0b0e14] border border-[#1a212e] text-center space-y-2">
+          <p className="text-xs text-slate-400 font-mono">
+            Active laboratory research log entries with timestamped records are available in the full research log.
+          </p>
+        </div>
+      )}
 
       {/* Restrained View Complete Log Bar */}
       <div className="pt-2 flex justify-end">
