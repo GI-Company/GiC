@@ -82,6 +82,7 @@ export default function ResearchDossier({
     operational_infrastructure: 'bg-purple-950/80 text-purple-300 border-purple-700/80',
     historical_prototype: 'bg-slate-900 text-slate-300 border-slate-700',
     shipped: 'bg-emerald-900/60 text-emerald-200 border-emerald-600/80',
+    paused: 'bg-zinc-900/90 text-zinc-300 border-zinc-700/80',
     pending_verification: 'bg-amber-950/80 text-amber-300 border-amber-600/80',
   };
 

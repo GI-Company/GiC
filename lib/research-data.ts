@@ -17,6 +17,7 @@ export type ResearchStatus =
   | 'operational_infrastructure'
   | 'historical_prototype'
   | 'shipped'
+  | 'paused'
   | 'pending_verification';
 
 export interface RepositoryArtifact {
@@ -2323,12 +2324,12 @@ export const RESEARCH_NODES: ResearchNode[] = [
     domain: 'shipped_software',
     domainLabel: 'Shipped Software',
     projectKind: 'software',
-    status: 'shipped',
-    statusLabel: 'Shipped Software',
+    status: 'paused',
+    statusLabel: 'Paused',
     classification: 'Metaphysical Alchemical Application & Multimodal AI Experience',
     operator: 'Cory Tortorici — Founder / Independent Developer & Researcher',
     position: [1.2, -2.2, -0.8],
-    timeline: '2026-Q1 / Shipped',
+    timeline: '2026-Q1 / Paused',
     summary:
       'An interactive metaphysical and alchemical web application ("Soul Audit") exploring quantum archetypes, esoteric consciousness models, and automated oracle synthesis. Built with React 19, Vite, Tailwind CSS, Supabase backend services, and multi-model AI synthesis via Google Gemini (Gemini 3 Pro, Gemini 2.5 Flash TTS audio, Gemini 2.5 Flash image generation) and Groq Llama 3.3 70B.',
     productPurpose:
@@ -2424,12 +2425,12 @@ export const RESEARCH_NODES: ResearchNode[] = [
     domain: 'shipped_software',
     domainLabel: 'Shipped Software',
     projectKind: 'software',
-    status: 'shipped',
-    statusLabel: 'Shipped Software',
+    status: 'paused',
+    statusLabel: 'Paused',
     classification: 'Transactional System & Multi-Game Casino Platform',
     operator: 'Cory Tortorici — Founder / Independent Developer & Researcher',
     position: [2.4, -2.8, -1.2],
-    timeline: '2026-Q1 / Shipped',
+    timeline: '2026-Q1 / Paused',
     summary:
       'A full-stack transactional casino and gaming platform featuring 6 distinct game engines (Slots, Blackjack, Poker, Plinko, Bingo, Scratch Cards), an ACID-compliant PostgreSQL balance ledger with row-level locking (SELECT ... FOR UPDATE) to prevent double-spending, CSPRNG Web Crypto randomness, and US state geolocation compliance checks.',
     productPurpose:
