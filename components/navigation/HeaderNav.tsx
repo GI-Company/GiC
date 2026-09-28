@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { RenderTier } from '@/components/neural-mesh/NeuralGraphCanvas';
 import {
   Compass,
@@ -45,10 +46,10 @@ export default function HeaderNav({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
         {/* Lab Brand & Founder */}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => { onTabChange('spatial'); onSelectNode(''); }}
+          <Link
+            href="/"
             className="flex items-center gap-2.5 text-left group"
+            title="Return to Global Intent Company Landing Page"
           >
             <div className="w-8 h-8 rounded-lg bg-[#0f141f] border border-[#212838] flex items-center justify-center text-emerald-400 group-hover:border-emerald-500/80 transition-colors">
               <span className="font-bold text-sm tracking-tighter text-white">GI</span>
@@ -62,11 +63,20 @@ export default function HeaderNav({
               </div>
               <p className="text-[10px] text-slate-400">Cory Tortorici • Independent Research</p>
             </div>
-          </button>
+          </Link>
         </div>
 
         {/* Primary View Switcher Tabs */}
         <nav className="flex items-center gap-1 bg-[#0d1017] p-1 rounded-lg border border-[#1b212d] overflow-x-auto">
+          <Link
+            href="/"
+            className="px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-[#18202d]/50"
+            title="Return to front-door company overview"
+          >
+            <span className="text-slate-400">←</span>
+            <span>Home</span>
+          </Link>
+
           <button
             type="button"
             onClick={() => onTabChange('spatial')}

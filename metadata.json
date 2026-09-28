@@ -1,6 +1,6 @@
 {
   "name": "Global Intent Company",
-  "description": "Independent software research and engineering company founded by Cory Tortorici, developing inspectable computational architectures, mass-spectrometry learning systems, and verified evidence infrastructure.",
+  "description": "Global Intent Company develops efficient language-model architectures and the infrastructure required to privately deploy, verify, and operate them.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

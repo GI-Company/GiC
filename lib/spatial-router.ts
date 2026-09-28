@@ -78,11 +78,11 @@ export const SLUG_TO_NODE_ID: Record<string, string> = {
  */
 export function getCanonicalUrl(state: SpatialRouteState): string {
   if (!state.domainId && !state.nodeId) {
-    return '/';
+    return '/research';
   }
 
   const domain = state.domainId || (state.nodeId ? RESEARCH_NODES.find(n => n.id === state.nodeId)?.domain : null);
-  if (!domain) return '/';
+  if (!domain) return '/research';
 
   const prefix = DOMAIN_URL_PREFIXES[domain] || '/research';
 
