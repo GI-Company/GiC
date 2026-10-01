@@ -109,20 +109,9 @@ export default function IntentModelsSection() {
           <p className="text-base sm:text-lg text-slate-300 font-sans leading-relaxed">
             The Intent Model Family explores what can be accomplished when neural architectures are built without bloated framework layers—running directly on local hardware via pure C, WebGPU compute shaders, and glass-box activation taps.
           </p>
-        </div>
-
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <Link
-            href="/intent"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-emerald-500 text-slate-950 font-mono font-bold text-xs hover:bg-emerald-400 transition-colors"
-          >
-            <Terminal className="w-4 h-4" />
-            <span>Try INTENT V2 Research Preview</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+          <Link href="/intent" className="inline-flex items-center gap-2 rounded-md border border-emerald-800/70 bg-emerald-950/30 px-4 py-2 text-sm font-mono text-emerald-300 hover:bg-emerald-950/60">
+            Try INTENT chat <ArrowUpRight className="h-4 w-4" />
           </Link>
-          <span className="text-xs font-mono text-slate-500">
-            Experimental live inference · independently trained model
-          </span>
         </div>
 
         {/* Epistemic Rigor & Scope Note */}

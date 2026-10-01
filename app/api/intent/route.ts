@@ -1,128 +1,92 @@
+import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit } from '@/lib/security';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 
-const MAX_MESSAGE_CHARS = 2000;
-const REQUEST_TIMEOUT_MS = 45000;
+const jsonHeaders = { 'Cache-Control': 'no-store' };
 
-function clientIp(req: NextRequest) {
-  const forwarded = req.headers.get('x-forwarded-for');
-  return forwarded?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+function error(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status, headers: jsonHeaders });
 }
 
-function config() {
-  const base = process.env.INTENT_API_URL?.trim().replace(/\/$/, '');
-  const key = process.env.INTENT_API_KEY?.trim();
-  return base && key ? { base, key } : null;
-}
-
-async function callIntent(path: string, init: RequestInit = {}) {
-  const cfg = config();
-  if (!cfg) {
-    return NextResponse.json(
-      { error: 'INTENT research preview is not connected yet.', ready: false },
-      { status: 503 }
-    );
+export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  if (origin && origin !== request.nextUrl.origin) {
+    return error('Cross-origin requests are not allowed.', 403);
+  }
+  if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) {
+    return error('Expected application/json.', 415);
+  }
+  if (Number(request.headers.get('content-length') || 0) > 4096) {
+    return error('Request is too large.', 413);
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
+  const endpoint = process.env.INTENT_API_URL;
+  const apiKey = process.env.INTENT_API_KEY;
+  if (!endpoint || !apiKey) {
+    return error('INTENT is not connected yet.', 503);
+  }
+  let baseUrl: URL;
   try {
-    const response = await fetch(`${cfg.base}${path}`, {
-      ...init,
-      cache: 'no-store',
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${cfg.key}`,
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(init.headers || {}),
-      },
-    });
-
-    const text = await response.text();
-    let data: unknown = {};
-    try {
-      data = text ? JSON.parse(text) : {};
-    } catch {
-      data = { error: text || 'Invalid response from INTENT runtime.' };
+    baseUrl = new URL(endpoint);
+    if (baseUrl.protocol !== 'https:' || baseUrl.username || baseUrl.password) {
+      throw new Error('Invalid endpoint');
     }
-
-    return NextResponse.json(data, { status: response.status });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error && error.name === 'AbortError'
-        ? 'INTENT runtime timed out.'
-        : 'INTENT runtime is unavailable.';
-    return NextResponse.json({ error: message, ready: false }, { status: 502 });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-export async function GET(req: NextRequest) {
-  const rate = checkRateLimit(`intent-health:${clientIp(req)}`, 30, 60_000);
-  if (!rate.allowed) {
-    return NextResponse.json(
-      { error: 'Too many status checks.' },
-      { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } }
-    );
-  }
-
-  return callIntent('/healthz');
-}
-
-export async function POST(req: NextRequest) {
-  const rate = checkRateLimit(`intent-chat:${clientIp(req)}`, 8, 60_000);
-  if (!rate.allowed) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded. Please wait before trying INTENT again.' },
-      { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } }
-    );
-  }
-
-  let body: unknown;
-  try {
-    body = await req.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON request.' }, { status: 400 });
+    return error('INTENT API URL must be an HTTPS URL.', 503);
   }
 
-  const input = body as { message?: unknown; session_id?: unknown };
-  const message = typeof input.message === 'string' ? input.message.trim() : '';
-  const sessionId = typeof input.session_id === 'string' ? input.session_id.trim() : '';
-
-  if (!message) {
-    return NextResponse.json({ error: 'Message is required.' }, { status: 400 });
+  let raw: unknown;
+  try {
+    const text = await request.text();
+    if (Buffer.byteLength(text, 'utf8') > 4096) return error('Request is too large.', 413);
+    raw = JSON.parse(text);
+  } catch {
+    return error('Invalid JSON body.', 400);
   }
-  if (message.length > MAX_MESSAGE_CHARS) {
-    return NextResponse.json(
-      { error: `Message exceeds the ${MAX_MESSAGE_CHARS}-character preview limit.` },
-      { status: 400 }
-    );
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return error('Invalid request body.', 400);
   }
-  if (sessionId.length > 128) {
-    return NextResponse.json({ error: 'Invalid session identifier.' }, { status: 400 });
+  const body = raw as Record<string, unknown>;
+  const message = typeof body.message === 'string' ? body.message.trim() : '';
+  if (!message || message.length > 2000) {
+    return error('Message must contain 1–2000 characters.', 400);
   }
-
-  return callIntent('/v1/chat', {
-    method: 'POST',
-    body: JSON.stringify({
-      message,
-      ...(sessionId ? { session_id: sessionId } : {}),
-    }),
-  });
-}
-
-export async function DELETE(req: NextRequest) {
-  const sessionId = req.nextUrl.searchParams.get('session_id')?.trim() || '';
-  if (!sessionId || sessionId.length > 128) {
-    return NextResponse.json({ error: 'Valid session_id is required.' }, { status: 400 });
+  const sessionId = body.session_id;
+  if (sessionId != null && (typeof sessionId !== 'string' || !/^[0-9a-f-]{36}$/.test(sessionId))) {
+    return error('Invalid session ID.', 400);
+  }
+  const search = body.search === true;
+  const maxTokens = typeof body.max_tokens === 'number' ? body.max_tokens : 100;
+  if (!Number.isInteger(maxTokens) || maxTokens < 16 || maxTokens > 160) {
+    return error('max_tokens must be 16–160.', 400);
   }
 
-  return callIntent(`/v1/sessions/${encodeURIComponent(sessionId)}`, {
-    method: 'DELETE',
-  });
+  // Vercel replaces x-forwarded-for with its trusted client address.
+  const clientIp = request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim()
+    || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || 'unknown';
+  const client = createHash('sha256').update(clientIp).digest('hex');
+  const url = new URL('/v1/chat', baseUrl);
+  try {
+    const upstream = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'X-Intent-Client': client,
+      },
+      body: JSON.stringify({ message, session_id: sessionId ?? null, search, max_tokens: maxTokens }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(90_000),
+    });
+    const data: unknown = await upstream.json();
+    if (!upstream.ok) {
+      const detail = data && typeof data === 'object' && 'detail' in data ? String(data.detail) : 'INTENT request failed.';
+      return error(detail, upstream.status);
+    }
+    return NextResponse.json(data, { headers: jsonHeaders });
+  } catch {
+    return error('INTENT is temporarily unavailable.', 502);
+  }
 }
