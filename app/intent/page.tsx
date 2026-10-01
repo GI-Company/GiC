@@ -2,11 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowUp, Globe2, RotateCcw } from 'lucide-react';
+import { ArrowUp, Globe2, RotateCcw, ImagePlus, X } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
 
 type Source = { title: string; snippet: string; date: string; url: string };
-type Turn = { role: 'user' | 'assistant'; text: string; sources?: Source[]; warning?: string | null };
+type Turn = { role: 'user' | 'assistant'; text: string; imageName?: string; sources?: Source[]; warning?: string | null };
 type ChatResponse = { session_id: string; answer: string; sources: Source[]; warning: string | null; mode: string };
 
 const suggestions = [
@@ -20,10 +20,25 @@ export default function IntentPage() {
   const [message, setMessage] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [search, setSearch] = useState(false);
+  const [model, setModel] = useState<'gemma4' | 'native'>('native');
+  const [gemmaAvailable, setGemmaAvailable] = useState(false);
+  const [image, setImage] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const transcriptRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasSentRef = useRef(false);
+
+  useEffect(() => {
+    fetch('/api/intent', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { models?: string[] } | null) => {
+        const available = data?.models?.includes('gemma4') === true;
+        setGemmaAvailable(available);
+        if (!hasSentRef.current) setModel(available ? 'gemma4' : 'native');
+      })
+      .catch(() => { if (!hasSentRef.current) setModel('native'); });
+  }, []);
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -34,20 +49,29 @@ export default function IntentPage() {
     event.preventDefault();
     const text = message.trim();
     if (!text || busy) return;
-    setTurns((current) => [...current, { role: 'user', text }]);
+    hasSentRef.current = true;
+    setTurns((current) => [...current, { role: 'user', text, imageName: image?.name }]);
     setMessage('');
     setError('');
     setBusy(true);
     try {
+      const body = image ? new FormData() : JSON.stringify({ message: text, model, session_id: sessionId, search });
+      if (body instanceof FormData && image) {
+        body.set('message', text);
+        body.set('model', model);
+        body.set('image', image);
+        if (sessionId) body.set('session_id', sessionId);
+      }
       const response = await fetch('/api/intent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, session_id: sessionId, search }),
+        ...(image ? {} : { headers: { 'Content-Type': 'application/json' } }),
+        body,
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Request failed.');
       const answer = data as ChatResponse;
       setSessionId(answer.session_id);
+      setImage(null);
       setTurns((current) => [...current, {
         role: 'assistant', text: answer.answer, sources: answer.sources, warning: answer.warning,
       }]);
@@ -68,11 +92,24 @@ export default function IntentPage() {
   }
 
   function newChat() {
+    hasSentRef.current = false;
     setTurns([]);
     setSessionId(null);
     setMessage('');
+    setImage(null);
     setError('');
     textareaRef.current?.focus();
+  }
+
+  function switchModel(next: 'gemma4' | 'native') {
+    if (busy || next === model || (next === 'gemma4' && !gemmaAvailable)) return;
+    hasSentRef.current = false;
+    setModel(next);
+    setSearch(false);
+    setImage(null);
+    setTurns([]);
+    setSessionId(null);
+    setError('');
   }
 
   return (
@@ -94,7 +131,7 @@ export default function IntentPage() {
               </div>
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-              LooseMouth is an experimental INTENT conversational model built by Global Intent Company. It may make mistakes; check retrieved sources when they appear.
+              Choose LooseMouth Enhanced, based on Gemma 4 E2B-it, or LooseMouth Native, our experimental INTENT model trained from scratch. Both can make mistakes.
             </p>
           </div>
           <button type="button" onClick={newChat} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-4 text-sm font-medium text-slate-100 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
@@ -114,7 +151,7 @@ export default function IntentPage() {
               <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-sky-400 shadow-[0_0_14px_rgba(56,189,248,0.7)]" />
               <span className="text-sm font-semibold tracking-wide">LooseMouth</span>
             </div>
-            <span className="text-xs text-slate-300">Experimental assistant</span>
+            <span className="text-xs text-slate-300">{model === 'gemma4' ? 'Image understanding · text answers' : 'Native INTENT model · web search'}</span>
           </div>
 
           <div ref={transcriptRef} role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions text" className="relative z-10 h-[min(58vh,640px)] min-h-[420px] space-y-5 overflow-y-auto overscroll-contain px-4 py-6 sm:px-8 sm:py-8">
@@ -137,6 +174,7 @@ export default function IntentPage() {
               <article key={index} className={`max-w-[95%] rounded-2xl border px-4 py-4 shadow-md sm:max-w-[85%] sm:px-5 ${turn.role === 'user' ? 'ml-auto border-sky-200/20 bg-[#244165] text-white' : 'mr-auto border-white/15 bg-[#17243a] text-slate-100'}`}>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-[0.13em] text-sky-200">{turn.role === 'user' ? 'You' : 'LooseMouth'}</p>
                 <p className="whitespace-pre-wrap break-words text-[15px] leading-7 sm:text-base">{turn.text}</p>
+                {turn.imageName && <p className="mt-2 text-xs text-sky-200">Image attached: {turn.imageName}</p>}
                 {turn.sources && turn.sources.length > 0 && (
                   <div className="mt-4 border-t border-white/15 pt-4">
                     <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-300">Sources to check</p>
@@ -156,18 +194,31 @@ export default function IntentPage() {
           </div>
 
           <form onSubmit={send} className="relative z-10 border-t border-white/10 bg-[#101b30]/95 p-3 sm:p-5">
+            <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Choose model">
+              <button type="button" disabled={busy || !gemmaAvailable} onClick={() => switchModel('gemma4')} aria-pressed={model === 'gemma4'} className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${model === 'gemma4' ? 'border-sky-300 bg-sky-300/20 text-white' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}>LooseMouth Enhanced <span className="text-xs">· {gemmaAvailable ? 'Gemma 4' : 'Connecting'}</span></button>
+              <button type="button" disabled={busy} onClick={() => switchModel('native')} aria-pressed={model === 'native'} className={`rounded-lg border px-3 py-2 text-sm ${model === 'native' ? 'border-sky-300 bg-sky-300/20 text-white' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}>LooseMouth Native <span className="text-xs">· INTENT</span></button>
+            </div>
             <label htmlFor="intent-message" className="sr-only">Message LooseMouth</label>
             <div className="rounded-2xl border border-white/20 bg-[#0b1425] p-2 shadow-inner transition-colors focus-within:border-sky-300/70 focus-within:ring-2 focus-within:ring-sky-300/15">
               <textarea ref={textareaRef} id="intent-message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={onMessageKeyDown} maxLength={2000} rows={2} disabled={busy} className="max-h-40 min-h-14 w-full resize-y bg-transparent px-2 py-2 text-base leading-6 text-white outline-none placeholder:text-slate-400 disabled:opacity-60" placeholder="Message LooseMouth…" />
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-1 pt-2">
-                <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-200 hover:bg-white/5">
+                {model === 'native' && <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-200 hover:bg-white/5">
                   <input type="checkbox" checked={search} onChange={(event) => setSearch(event.target.checked)} className="h-4 w-4 accent-sky-400" />
                   <Globe2 aria-hidden="true" size={16} /> Search the web
-                </label>
+                </label>}
+                {model === 'gemma4' && <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-200 hover:bg-white/5">
+                  <ImagePlus aria-hidden="true" size={16} /> Add image
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(event) => {
+                    const selected = event.target.files?.[0] || null;
+                    if (selected && selected.size > 4_000_000) { setError('Image must be under 4 MB.'); setImage(null); }
+                    else { setError(''); setImage(selected); }
+                  }} />
+                </label>}
                 <button type="submit" disabled={busy || !message.trim()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-sky-400 px-4 text-sm font-semibold text-[#071425] transition hover:bg-sky-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-200 disabled:cursor-not-allowed disabled:opacity-45">
                   Send <ArrowUp aria-hidden="true" size={17} />
                 </button>
               </div>
+              {image && <div className="flex items-center gap-2 px-2 pt-2 text-xs text-sky-200"><span className="max-w-64 truncate">{image.name}</span><button type="button" onClick={() => setImage(null)} aria-label="Remove image" className="rounded p-1 hover:bg-white/10"><X size={14} /></button></div>}
             </div>
             <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 px-1 text-xs leading-5 text-slate-300">
               <span>Enter to send · Shift+Enter for a new line</span>
