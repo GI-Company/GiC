@@ -68,11 +68,11 @@ export default function LandingNav() {
         {/* Zone 3: 1-2 primary actions */}
         <div className="flex items-center gap-3">
           <Link
-            href="/research"
+            href="/intent"
             className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono font-medium text-emerald-300 bg-emerald-950/40 border border-emerald-800/60 rounded-md hover:bg-emerald-900/50 hover:border-emerald-700 transition-colors whitespace-nowrap"
           >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Enter Research</span>
+            <Terminal className="w-3.5 h-3.5" />
+            <span>Try INTENT</span>
           </Link>
 
           <a
@@ -125,6 +125,13 @@ export default function LandingNav() {
           >
             PLMN — Node Verification
           </a>
+          <Link
+            href="/intent"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-1.5 text-emerald-400 font-medium"
+          >
+            Try INTENT Research Preview →
+          </Link>
           <Link
             href="/research"
             onClick={() => setMobileMenuOpen(false)}

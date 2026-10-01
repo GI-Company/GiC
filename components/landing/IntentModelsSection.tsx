@@ -111,6 +111,20 @@ export default function IntentModelsSection() {
           </p>
         </div>
 
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <Link
+            href="/intent"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-emerald-500 text-slate-950 font-mono font-bold text-xs hover:bg-emerald-400 transition-colors"
+          >
+            <Terminal className="w-4 h-4" />
+            <span>Try INTENT V2 Research Preview</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+          <span className="text-xs font-mono text-slate-500">
+            Experimental live inference · independently trained model
+          </span>
+        </div>
+
         {/* Epistemic Rigor & Scope Note */}
         <div className="mt-8 p-4 rounded-md bg-[#0e1420] border border-[#212c3e] text-xs font-mono text-slate-300 flex items-start gap-3">
           <Eye className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
