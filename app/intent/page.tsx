@@ -195,7 +195,7 @@ export default function IntentPage() {
 
           <form onSubmit={send} className="relative z-10 border-t border-white/10 bg-[#101b30]/95 p-3 sm:p-5">
             <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Choose model">
-              <button type="button" disabled={busy || !gemmaAvailable} onClick={() => switchModel('gemma4')} aria-pressed={model === 'gemma4'} className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${model === 'gemma4' ? 'border-sky-300 bg-sky-300/20 text-white' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}>LooseMouth Enhanced <span className="text-xs">· {gemmaAvailable ? 'Gemma 4' : 'Connecting'}</span></button>
+              <button type="button" disabled={busy || !gemmaAvailable} onClick={() => switchModel('gemma4')} aria-pressed={model === 'gemma4'} className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${model === 'gemma4' ? 'border-sky-300 bg-sky-300/20 text-white' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}>LooseMouth Enhanced <span className="text-xs">· {gemmaAvailable ? 'Multimodal' : 'Connecting'}</span></button>
               <button type="button" disabled={busy} onClick={() => switchModel('native')} aria-pressed={model === 'native'} className={`rounded-lg border px-3 py-2 text-sm ${model === 'native' ? 'border-sky-300 bg-sky-300/20 text-white' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}>LooseMouth Native <span className="text-xs">· INTENT</span></button>
             </div>
             <label htmlFor="intent-message" className="sr-only">Message LooseMouth</label>
