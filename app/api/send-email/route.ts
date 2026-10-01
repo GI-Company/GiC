@@ -6,6 +6,17 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: NextRequest) {
   try {
+    const origin = req.headers.get('origin');
+    if (origin && origin !== req.nextUrl.origin) {
+      return NextResponse.json({ error: 'Cross-origin requests are not allowed.' }, { status: 403 });
+    }
+    if (!req.headers.get('content-type')?.toLowerCase().startsWith('application/json')) {
+      return NextResponse.json({ error: 'Expected a JSON request.' }, { status: 415 });
+    }
+    if (Number(req.headers.get('content-length') || 0) > 8192) {
+      return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
+    }
+
     // 1. IP extraction & rate limiting
     const forwardedFor = req.headers.get('x-forwarded-for');
     const realIp = req.headers.get('x-real-ip');
@@ -26,14 +37,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const rawBody = await req.text();
+    if (Buffer.byteLength(rawBody, 'utf8') > 8192) {
+      return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
+    }
+    let body: Record<string, unknown>;
+    try {
+      const parsed: unknown = JSON.parse(rawBody);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Invalid JSON body');
+      body = parsed as Record<string, unknown>;
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+    }
     const {
       name,
       email,
       subject,
       message,
-      to,
-      from,
       // Honeypot field for anti-bot protection
       website_hp,
     } = body;
@@ -95,8 +115,8 @@ export async function POST(req: NextRequest) {
     const safeEmailSubject = escapeHtml(rawSubject || 'Technical Inquiry — Global Intent Company');
     const safeFormattedMessage = safeTextToHtml(rawMessage);
 
-    const fromAddress = from || process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-    const toAddress = to || process.env.SUPPORT_TO_EMAIL || 'support@globalintentcompany.space';
+    const fromAddress = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const toAddress = process.env.SUPPORT_TO_EMAIL || 'cory.tortorici@globalintentcompany.space';
 
     const plainTextContent = `
 Global Intent Company — Direct Technical Inquiry
@@ -166,8 +186,7 @@ Dispatched via Resend • Global Intent Company
       console.error('[Resend Error]:', error);
       return NextResponse.json(
         {
-          error: error.message || 'Failed to dispatch email via Resend API.',
-          details: error,
+          error: 'Failed to send your inquiry. Please try again later.',
         },
         { status: 502 }
       );
@@ -180,11 +199,10 @@ Dispatched via Resend • Global Intent Company
       dispatchedAt: new Date().toISOString(),
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown internal error';
     console.error('[Send Email Exception]:', err);
     return NextResponse.json(
       {
-        error: message,
+        error: 'Failed to send your inquiry. Please try again later.',
       },
       { status: 500 }
     );
