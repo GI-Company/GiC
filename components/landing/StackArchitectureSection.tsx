@@ -30,9 +30,9 @@ const STACK_LAYERS: StackLayer[] = [
     borderColor: 'border-emerald-500/40',
     badgeColor: 'bg-emerald-950/60 text-emerald-300 border-emerald-800/60',
     description:
-      'A developing family of efficient language-model architectures focused on extracting maximal capability from constrained parameter budgets (3.45M – 23M). Implemented in native ANSI C with Apple Accelerate BLAS and browser-native WebGPU WGSL compute shaders, prioritizing glass-box activation inspection, low memory footprints, and sovereign execution.',
+      'A developing family of efficient language-model architectures, including the LooseMouth conversational model and smaller research models. The research models explore native ANSI C with Apple Accelerate BLAS and browser-native WebGPU WGSL compute shaders, prioritizing glass-box activation inspection, low memory footprints, and sovereign execution.',
     technicalCapabilities: [
-      'Constrained parameter budgets (3.45M to 23M weights)',
+      'Model types spanning small research systems and the approximately 162M-parameter LooseMouth conversational model',
       'Direct ANSI C execution with memory-mapped tensor buffers',
       'Apple Accelerate BLAS & WebGPU WGSL hardware acceleration',
       'Real-time glass-box activation inspection via live REPL',

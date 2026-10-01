@@ -86,7 +86,7 @@ export default function LandingHero() {
                   <span className="text-slate-500">Intelligence Layer</span>
                 </div>
                 <p className="text-[11px] text-slate-300 font-sans leading-normal">
-                  Constrained-parameter language models (3.45M – 23M) with glass-box activation inspection &amp; native C / WebGPU execution.
+                  LooseMouth conversational AI plus smaller research models exploring glass-box inspection and native C / WebGPU execution.
                 </p>
               </div>
 

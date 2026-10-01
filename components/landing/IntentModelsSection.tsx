@@ -18,6 +18,23 @@ interface ModelCard {
 
 const INTENT_MODELS: ModelCard[] = [
   {
+    id: 'loosemouth',
+    name: 'LooseMouth',
+    codename: 'INTENT-CONVERSATIONAL',
+    parameterRange: 'Approximately 162M parameters',
+    runtime: 'PyTorch / NVIDIA L4 inference server',
+    description:
+      'The experimental conversational model in the INTENT family, trained from scratch and served through the website chat. It can answer questions and request supported tools, but its responses still need independent checking.',
+    verifiedInCode: [
+      'Custom subword tokenizer and causal language-model checkpoint',
+      'Conversation interface with server-side model inference',
+      'Versioned model releases that can be swapped for serving',
+    ],
+    epistemicNote:
+      'Research preview. Conversational quality and factual reliability are still being evaluated.',
+    researchLink: '/intent',
+  },
+  {
     id: 'tinycoherent',
     name: 'TinyCoherent',
     codename: 'TINYCOHERENT-SCALE',
@@ -107,10 +124,10 @@ export default function IntentModelsSection() {
           </h2>
 
           <p className="text-base sm:text-lg text-slate-300 font-sans leading-relaxed">
-            The Intent Model Family explores what can be accomplished when neural architectures are built without bloated framework layers—running directly on local hardware via pure C, WebGPU compute shaders, and glass-box activation taps.
+            The INTENT model family includes LooseMouth, our experimental conversational model, alongside smaller research models exploring native C, WebGPU compute shaders, and inspectable activations.
           </p>
           <Link href="/intent" className="inline-flex items-center gap-2 rounded-md border border-emerald-800/70 bg-emerald-950/30 px-4 py-2 text-sm font-mono text-emerald-300 hover:bg-emerald-950/60">
-            Try INTENT chat <ArrowUpRight className="h-4 w-4" />
+            Chat with LooseMouth <ArrowUpRight className="h-4 w-4" />
           </Link>
         </div>
 
