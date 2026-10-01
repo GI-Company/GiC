@@ -99,7 +99,6 @@ export async function POST(request: NextRequest) {
     return error('Invalid session ID.', 400);
   }
   const search = body.search === true || body.search === 'true';
-  if (search && model !== 'native') return error('Web search is currently available with LooseMouth Native.', 400);
   const maxTokens = body.max_tokens == null ? 100 : Number(body.max_tokens);
   if (!Number.isInteger(maxTokens) || maxTokens < 16 || maxTokens > 160) {
     return error('max_tokens must be 16–160.', 400);
@@ -122,6 +121,7 @@ export async function POST(request: NextRequest) {
       form.set('image', image);
       form.set('message', message);
       if (sessionId) form.set('session_id', String(sessionId));
+      form.set('search', String(search));
       form.set('max_tokens', String(maxTokens));
       outbound = form;
     } else {

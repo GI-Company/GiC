@@ -131,7 +131,7 @@ export default function IntentPage() {
               </div>
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-              Choose LooseMouth Enhanced, based on Gemma 4 E2B-it, or LooseMouth Native, our experimental INTENT model trained from scratch. Both can make mistakes.
+              Choose a LooseMouth model and start a conversation.
             </p>
           </div>
           <button type="button" onClick={newChat} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-4 text-sm font-medium text-slate-100 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
@@ -151,7 +151,7 @@ export default function IntentPage() {
               <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-sky-400 shadow-[0_0_14px_rgba(56,189,248,0.7)]" />
               <span className="text-sm font-semibold tracking-wide">LooseMouth</span>
             </div>
-            <span className="text-xs text-slate-300">{model === 'gemma4' ? 'Image understanding · text answers' : 'Native INTENT model · web search'}</span>
+            <span className="text-xs text-slate-300">{model === 'gemma4' ? 'Image understanding · web search' : 'Native INTENT model · web search'}</span>
           </div>
 
           <div ref={transcriptRef} role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions text" className="relative z-10 h-[min(58vh,640px)] min-h-[420px] space-y-5 overflow-y-auto overscroll-contain px-4 py-6 sm:px-8 sm:py-8">
@@ -202,10 +202,10 @@ export default function IntentPage() {
             <div className="rounded-2xl border border-white/20 bg-[#0b1425] p-2 shadow-inner transition-colors focus-within:border-sky-300/70 focus-within:ring-2 focus-within:ring-sky-300/15">
               <textarea ref={textareaRef} id="intent-message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={onMessageKeyDown} maxLength={2000} rows={2} disabled={busy} className="max-h-40 min-h-14 w-full resize-y bg-transparent px-2 py-2 text-base leading-6 text-white outline-none placeholder:text-slate-400 disabled:opacity-60" placeholder="Message LooseMouth…" />
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-1 pt-2">
-                {model === 'native' && <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-200 hover:bg-white/5">
+                <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-200 hover:bg-white/5">
                   <input type="checkbox" checked={search} onChange={(event) => setSearch(event.target.checked)} className="h-4 w-4 accent-sky-400" />
                   <Globe2 aria-hidden="true" size={16} /> Search the web
-                </label>}
+                </label>
                 {model === 'gemma4' && <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-200 hover:bg-white/5">
                   <ImagePlus aria-hidden="true" size={16} /> Add image
                   <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(event) => {
@@ -227,6 +227,9 @@ export default function IntentPage() {
             {error && <p role="alert" className="mt-3 rounded-lg border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{error}</p>}
           </form>
         </section>
+        <p className="px-1 text-center text-xs leading-5 text-slate-400">
+          LooseMouth Enhanced is based on Gemma 4 E2B-it. LooseMouth Native is our experimental INTENT model trained from scratch. Both can make mistakes.
+        </p>
       </div>
     </main>
   );
