@@ -633,11 +633,11 @@ export default function SpatialResearchApp({
             </a>
             <span className="text-slate-700">•</span>
             <a
-              href="mailto:support@globalintentcompany.space"
+              href="mailto:cory.tortorici@globalintentcompany.space"
               className="hover:text-white flex items-center gap-1 transition-colors text-slate-300"
             >
               <Mail className="w-3.5 h-3.5 text-emerald-400" />
-              <span>support@globalintentcompany.space</span>
+              <span>cory.tortorici@globalintentcompany.space</span>
             </a>
             <span className="text-slate-700">•</span>
             <span>Founder: Cory Tortorici</span>
