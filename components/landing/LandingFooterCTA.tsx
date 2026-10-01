@@ -101,7 +101,7 @@ export default function LandingFooterCTA() {
             <div className="space-y-2 pt-4 border-t border-[#182130] text-slate-400 text-xs">
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-emerald-400" />
-                <span className="text-slate-300">support@globalintentcompany.space</span>
+                <a href="mailto:cory.tortorici@globalintentcompany.space" className="text-slate-300 hover:text-white underline">cory.tortorici@globalintentcompany.space</a>
               </div>
               <div className="flex items-center gap-2">
                 <Code2 className="w-4 h-4 text-cyan-400" />
