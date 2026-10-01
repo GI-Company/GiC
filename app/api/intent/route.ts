@@ -33,7 +33,9 @@ export async function GET() {
       ? entries.map((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry ? String(entry.id) : '')
       : ['native'];
     const enhancedSearch = entries?.some((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'gemma4' && 'web_search' in entry && entry.web_search === true) === true;
-    return NextResponse.json({ models: models.filter((id: string) => id === 'native' || id === 'gemma4'), enhancedSearch }, { headers: jsonHeaders });
+    const enhanced = entries?.find((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'gemma4');
+    const enhancedMaxTokens = enhanced && typeof enhanced === 'object' && 'max_output_tokens' in enhanced && enhanced.max_output_tokens === 512 ? 512 : 160;
+    return NextResponse.json({ models: models.filter((id: string) => id === 'native' || id === 'gemma4'), enhancedSearch, enhancedMaxTokens }, { headers: jsonHeaders });
   } catch {
     return error('Model availability is temporarily unknown.', 502);
   }
@@ -102,8 +104,9 @@ export async function POST(request: NextRequest) {
   }
   const search = body.search === true || body.search === 'true';
   const maxTokens = body.max_tokens == null ? 100 : Number(body.max_tokens);
-  if (!Number.isInteger(maxTokens) || maxTokens < 16 || maxTokens > 160) {
-    return error('max_tokens must be 16–160.', 400);
+  const maximum = model === 'gemma4' ? 512 : 160;
+  if (!Number.isInteger(maxTokens) || maxTokens < 16 || maxTokens > maximum) {
+    return error(`max_tokens must be 16–${maximum} for this model.`, 400);
   }
 
   // Vercel replaces x-forwarded-for with its trusted client address.

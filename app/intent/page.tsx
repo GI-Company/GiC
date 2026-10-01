@@ -23,6 +23,7 @@ export default function IntentPage() {
   const [model, setModel] = useState<'gemma4' | 'native'>('native');
   const [gemmaAvailable, setGemmaAvailable] = useState(false);
   const [enhancedSearch, setEnhancedSearch] = useState(false);
+  const [enhancedMaxTokens, setEnhancedMaxTokens] = useState(160);
   const [image, setImage] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -33,10 +34,11 @@ export default function IntentPage() {
   useEffect(() => {
     fetch('/api/intent', { cache: 'no-store' })
       .then((response) => response.ok ? response.json() : null)
-      .then((data: { models?: string[]; enhancedSearch?: boolean } | null) => {
+      .then((data: { models?: string[]; enhancedSearch?: boolean; enhancedMaxTokens?: number } | null) => {
         const available = data?.models?.includes('gemma4') === true;
         setGemmaAvailable(available);
         setEnhancedSearch(data?.enhancedSearch === true);
+        setEnhancedMaxTokens(data?.enhancedMaxTokens === 512 ? 512 : 160);
         if (!hasSentRef.current) setModel(available ? 'gemma4' : 'native');
       })
       .catch(() => { if (!hasSentRef.current) setModel('native'); });
@@ -57,12 +59,14 @@ export default function IntentPage() {
     setError('');
     setBusy(true);
     try {
-      const body = image ? new FormData() : JSON.stringify({ message: text, model, session_id: sessionId, search });
+      const maxTokens = model === 'gemma4' && enhancedMaxTokens === 512 ? 320 : 100;
+      const body = image ? new FormData() : JSON.stringify({ message: text, model, session_id: sessionId, search, max_tokens: maxTokens });
       if (body instanceof FormData && image) {
         body.set('message', text);
         body.set('model', model);
         body.set('image', image);
         if (sessionId) body.set('session_id', sessionId);
+        body.set('max_tokens', String(maxTokens));
       }
       const response = await fetch('/api/intent', {
         method: 'POST',
