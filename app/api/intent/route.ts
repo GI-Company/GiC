@@ -28,10 +28,12 @@ export async function GET() {
     });
     if (!response.ok) return error('Model availability is temporarily unknown.', 502);
     const data: unknown = await response.json();
-    const models = data && typeof data === 'object' && 'models' in data && Array.isArray(data.models)
-      ? data.models.map((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry ? String(entry.id) : '')
+    const entries = data && typeof data === 'object' && 'models' in data && Array.isArray(data.models) ? data.models : null;
+    const models = entries
+      ? entries.map((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry ? String(entry.id) : '')
       : ['native'];
-    return NextResponse.json({ models: models.filter((id: string) => id === 'native' || id === 'gemma4') }, { headers: jsonHeaders });
+    const enhancedSearch = entries?.some((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'gemma4' && 'web_search' in entry && entry.web_search === true) === true;
+    return NextResponse.json({ models: models.filter((id: string) => id === 'native' || id === 'gemma4'), enhancedSearch }, { headers: jsonHeaders });
   } catch {
     return error('Model availability is temporarily unknown.', 502);
   }

@@ -22,6 +22,7 @@ export default function IntentPage() {
   const [search, setSearch] = useState(false);
   const [model, setModel] = useState<'gemma4' | 'native'>('native');
   const [gemmaAvailable, setGemmaAvailable] = useState(false);
+  const [enhancedSearch, setEnhancedSearch] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -32,9 +33,10 @@ export default function IntentPage() {
   useEffect(() => {
     fetch('/api/intent', { cache: 'no-store' })
       .then((response) => response.ok ? response.json() : null)
-      .then((data: { models?: string[] } | null) => {
+      .then((data: { models?: string[]; enhancedSearch?: boolean } | null) => {
         const available = data?.models?.includes('gemma4') === true;
         setGemmaAvailable(available);
+        setEnhancedSearch(data?.enhancedSearch === true);
         if (!hasSentRef.current) setModel(available ? 'gemma4' : 'native');
       })
       .catch(() => { if (!hasSentRef.current) setModel('native'); });
@@ -151,7 +153,7 @@ export default function IntentPage() {
               <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-sky-400 shadow-[0_0_14px_rgba(56,189,248,0.7)]" />
               <span className="text-sm font-semibold tracking-wide">LooseMouth</span>
             </div>
-            <span className="text-xs text-slate-300">{model === 'gemma4' ? 'Image understanding · web search' : 'Native INTENT model · web search'}</span>
+            <span className="text-xs text-slate-300">{model === 'gemma4' ? `Image understanding${enhancedSearch ? ' · web search' : ''}` : 'Native INTENT model · web search'}</span>
           </div>
 
           <div ref={transcriptRef} role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions text" className="relative z-10 h-[min(58vh,640px)] min-h-[420px] space-y-5 overflow-y-auto overscroll-contain px-4 py-6 sm:px-8 sm:py-8">
@@ -202,10 +204,10 @@ export default function IntentPage() {
             <div className="rounded-2xl border border-white/20 bg-[#0b1425] p-2 shadow-inner transition-colors focus-within:border-sky-300/70 focus-within:ring-2 focus-within:ring-sky-300/15">
               <textarea ref={textareaRef} id="intent-message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={onMessageKeyDown} maxLength={2000} rows={2} disabled={busy} className="max-h-40 min-h-14 w-full resize-y bg-transparent px-2 py-2 text-base leading-6 text-white outline-none placeholder:text-slate-400 disabled:opacity-60" placeholder="Message LooseMouth…" />
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-1 pt-2">
-                <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-200 hover:bg-white/5">
+                {(model === 'native' || enhancedSearch) && <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-200 hover:bg-white/5">
                   <input type="checkbox" checked={search} onChange={(event) => setSearch(event.target.checked)} className="h-4 w-4 accent-sky-400" />
                   <Globe2 aria-hidden="true" size={16} /> Search the web
-                </label>
+                </label>}
                 {model === 'gemma4' && <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-200 hover:bg-white/5">
                   <ImagePlus aria-hidden="true" size={16} /> Add image
                   <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy} onChange={(event) => {
