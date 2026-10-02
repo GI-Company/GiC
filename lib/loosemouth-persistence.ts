@@ -1,0 +1,179 @@
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
+
+export type PersistedConversation = {
+  id: string;
+  user_id: string;
+  title: string;
+  model: 'native' | 'gemma4';
+  inference_session_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PersistedMessage = {
+  id: number;
+  conversation_id: string;
+  user_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  image_name: string | null;
+  sources: Array<{ title: string; snippet: string; date: string; url: string }>;
+  warning: string | null;
+  created_at: string;
+};
+
+export type LooseMouthPreferences = {
+  user_id: string;
+  preferred_model: 'native' | 'gemma4';
+  web_search_enabled: boolean;
+  updated_at: string;
+};
+
+function authHeaders(accessToken: string, extra?: Record<string, string>) {
+  return {
+    apikey: SUPABASE_PUBLISHABLE_KEY,
+    Authorization: `Bearer ${accessToken}`,
+    ...extra,
+  };
+}
+
+async function checked<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { message?: string; details?: string } | null;
+    throw new Error(payload?.message || payload?.details || `Persistence request failed (${response.status}).`);
+  }
+  if (response.status === 204) return undefined as T;
+  return await response.json() as T;
+}
+
+export async function listConversations(accessToken: string, userId: string) {
+  const url = new URL('/rest/v1/loosemouth_conversations', SUPABASE_URL);
+  url.searchParams.set('select', 'id,user_id,title,model,inference_session_id,created_at,updated_at');
+  url.searchParams.set('user_id', `eq.${userId}`);
+  url.searchParams.set('order', 'updated_at.desc');
+  url.searchParams.set('limit', '30');
+  return checked<PersistedConversation[]>(await fetch(url, {
+    headers: authHeaders(accessToken),
+    cache: 'no-store',
+  }));
+}
+
+export async function loadMessages(accessToken: string, userId: string, conversationId: string) {
+  const url = new URL('/rest/v1/loosemouth_messages', SUPABASE_URL);
+  url.searchParams.set('select', 'id,conversation_id,user_id,role,content,image_name,sources,warning,created_at');
+  url.searchParams.set('user_id', `eq.${userId}`);
+  url.searchParams.set('conversation_id', `eq.${conversationId}`);
+  url.searchParams.set('order', 'id.asc');
+  return checked<PersistedMessage[]>(await fetch(url, {
+    headers: authHeaders(accessToken),
+    cache: 'no-store',
+  }));
+}
+
+export async function createConversation(
+  accessToken: string,
+  userId: string,
+  values: { title: string; model: 'native' | 'gemma4' },
+) {
+  const url = new URL('/rest/v1/loosemouth_conversations', SUPABASE_URL);
+  url.searchParams.set('select', 'id,user_id,title,model,inference_session_id,created_at,updated_at');
+  const rows = await checked<PersistedConversation[]>(await fetch(url, {
+    method: 'POST',
+    headers: authHeaders(accessToken, {
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    }),
+    body: JSON.stringify({ user_id: userId, ...values }),
+  }));
+  if (!rows[0]) throw new Error('Conversation was not created.');
+  return rows[0];
+}
+
+export async function updateConversation(
+  accessToken: string,
+  userId: string,
+  conversationId: string,
+  values: Partial<Pick<PersistedConversation, 'title' | 'model' | 'inference_session_id'>>,
+) {
+  const url = new URL('/rest/v1/loosemouth_conversations', SUPABASE_URL);
+  url.searchParams.set('id', `eq.${conversationId}`);
+  url.searchParams.set('user_id', `eq.${userId}`);
+  await checked<void>(await fetch(url, {
+    method: 'PATCH',
+    headers: authHeaders(accessToken, {
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    }),
+    body: JSON.stringify({ ...values, updated_at: new Date().toISOString() }),
+  }));
+}
+
+export async function saveMessage(
+  accessToken: string,
+  userId: string,
+  conversationId: string,
+  message: {
+    role: 'user' | 'assistant';
+    content: string;
+    image_name?: string | null;
+    sources?: PersistedMessage['sources'];
+    warning?: string | null;
+  },
+) {
+  const url = new URL('/rest/v1/loosemouth_messages', SUPABASE_URL);
+  await checked<void>(await fetch(url, {
+    method: 'POST',
+    headers: authHeaders(accessToken, {
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    }),
+    body: JSON.stringify({
+      conversation_id: conversationId,
+      user_id: userId,
+      role: message.role,
+      content: message.content,
+      image_name: message.image_name ?? null,
+      sources: message.sources ?? [],
+      warning: message.warning ?? null,
+    }),
+  }));
+}
+
+export async function getPreferences(accessToken: string, userId: string) {
+  const url = new URL('/rest/v1/loosemouth_user_preferences', SUPABASE_URL);
+  url.searchParams.set('select', 'user_id,preferred_model,web_search_enabled,updated_at');
+  url.searchParams.set('user_id', `eq.${userId}`);
+  url.searchParams.set('limit', '1');
+  const rows = await checked<LooseMouthPreferences[]>(await fetch(url, {
+    headers: authHeaders(accessToken),
+    cache: 'no-store',
+  }));
+  return rows[0] ?? null;
+}
+
+export async function savePreferences(
+  accessToken: string,
+  userId: string,
+  values: { preferred_model: 'native' | 'gemma4'; web_search_enabled: boolean },
+) {
+  const url = new URL('/rest/v1/loosemouth_user_preferences', SUPABASE_URL);
+  url.searchParams.set('on_conflict', 'user_id');
+  await checked<void>(await fetch(url, {
+    method: 'POST',
+    headers: authHeaders(accessToken, {
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    }),
+    body: JSON.stringify({ user_id: userId, ...values, updated_at: new Date().toISOString() }),
+  }));
+}
+
+export async function deleteConversation(accessToken: string, userId: string, conversationId: string) {
+  const url = new URL('/rest/v1/loosemouth_conversations', SUPABASE_URL);
+  url.searchParams.set('id', `eq.${conversationId}`);
+  url.searchParams.set('user_id', `eq.${userId}`);
+  await checked<void>(await fetch(url, {
+    method: 'DELETE',
+    headers: authHeaders(accessToken, { Prefer: 'return=minimal' }),
+  }));
+}
