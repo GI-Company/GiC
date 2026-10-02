@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 const jsonHeaders = { 'Cache-Control': 'no-store' };
 
 async function consumeQuota(actorKey: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const baseUrl = SUPABASE_URL;
   const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!baseUrl || !secret) return { allowed: false, remaining: 0, resetAt: null as string | null, configured: false };
 
