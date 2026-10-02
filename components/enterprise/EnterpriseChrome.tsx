@@ -17,7 +17,7 @@ export function EnterpriseHeader() {
           <Link href="/systems" className="hover:text-slate-950">Systems</Link>
           <Link href="/software" className="hover:text-slate-950">Software</Link>
         </nav>
-        <a href="mailto:cory.tortorici@globalintentcompany.com" className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+        <a href="mailto:cory.tortorici@globalintentcompany.space" className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
           Contact
         </a>
       </div>
@@ -37,7 +37,7 @@ export function EnterpriseFooter() {
           <a href="https://github.com/GI-Company" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-white">
             <Github className="h-4 w-4" /> GitHub
           </a>
-          <a href="mailto:cory.tortorici@globalintentcompany.com" className="inline-flex items-center gap-2 hover:text-white">
+          <a href="mailto:cory.tortorici@globalintentcompany.space" className="inline-flex items-center gap-2 hover:text-white">
             <Mail className="h-4 w-4" /> Contact
           </a>
         </div>
