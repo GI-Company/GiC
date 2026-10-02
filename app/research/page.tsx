@@ -1,13 +1,12 @@
-import React from 'react';
 import type { Metadata } from 'next';
-import SpatialResearchApp from '@/components/SpatialResearchApp';
+import ResearchIndexPage from '@/components/enterprise/ResearchIndexPage';
 
 export const metadata: Metadata = {
   title: 'Research',
-  description: 'Machine-learning research, experiments, measured results, and technical evidence from Global Intent Company.',
+  description: 'Research questions, experiments, measured results, and technical evidence from Global Intent Company.',
   alternates: { canonical: '/research' },
 };
 
-export default function ResearchDomainPage() {
-  return <SpatialResearchApp initialDomain="machine_learning" />;
+export default function ResearchPage() {
+  return <ResearchIndexPage />;
 }

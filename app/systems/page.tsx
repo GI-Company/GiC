@@ -1,13 +1,12 @@
-import React from 'react';
 import type { Metadata } from 'next';
-import SpatialResearchApp from '@/components/SpatialResearchApp';
+import SystemsIndexPage from '@/components/enterprise/SystemsIndexPage';
 
 export const metadata: Metadata = {
   title: 'Systems',
-  description: 'Systems research and engineering across private AI infrastructure, runtimes, protocols, and computing architecture.',
+  description: 'Private AI infrastructure, runtimes, protocols, verification, and systems architecture from Global Intent Company.',
   alternates: { canonical: '/systems' },
 };
 
-export default function SystemsDomainPage() {
-  return <SpatialResearchApp initialDomain="systems_research" />;
+export default function SystemsPage() {
+  return <SystemsIndexPage />;
 }

@@ -1,14 +1,12 @@
-import React from 'react';
-import SpatialResearchApp from '@/components/SpatialResearchApp';
+import type { Metadata } from 'next';
+import EnterpriseResearchLog from '@/components/enterprise/EnterpriseResearchLog';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Research Logs & Chronology',
-  description: 'Chronological timeline of research questions, source code implementations, controlled experiments, null results, and founder research logs.',
+  description: 'Chronological timeline of research questions, source implementations, experiments, results, null results, and iterations from Global Intent Company.',
   alternates: { canonical: '/research/log' },
 };
 
 export default function ResearchLogPage() {
-  return (
-    <SpatialResearchApp initialActiveTab="research-log" />
-  );
+  return <EnterpriseResearchLog />;
 }

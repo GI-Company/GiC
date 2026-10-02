@@ -60,7 +60,7 @@ export default function HeaderNav({
                   COMPANY
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400">Cory Tortorici • Independent Research</p>
+              <p className="text-[10px] text-slate-400">Technical Research Explorer</p>
             </div>
           </Link>
         </div>
