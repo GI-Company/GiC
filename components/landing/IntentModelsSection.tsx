@@ -1,206 +1,24 @@
-'use client';
-
-import React from 'react';
 import Link from 'next/link';
-import { Cpu, Terminal, Eye, Layers, ArrowUpRight, Code2, Sparkles, CheckCircle2 } from 'lucide-react';
-
-interface ModelCard {
-  id: string;
-  name: string;
-  codename: string;
-  parameterRange: string;
-  runtime: string;
-  description: string;
-  verifiedInCode: string[];
-  epistemicNote: string;
-  researchLink: string;
-}
-
-const INTENT_MODELS: ModelCard[] = [
-  {
-    id: 'loosemouth',
-    name: 'LooseMouth',
-    codename: 'INTENT-CONVERSATIONAL',
-    parameterRange: 'Approximately 162M parameters',
-    runtime: 'PyTorch / NVIDIA L4 inference server',
-    description:
-      'The experimental conversational model in the INTENT family, trained from scratch and served through the website chat. It can answer questions and request supported tools, but its responses still need independent checking.',
-    verifiedInCode: [
-      'Custom subword tokenizer and causal language-model checkpoint',
-      'Conversation interface with server-side model inference',
-      'Versioned model releases that can be swapped for serving',
-    ],
-    epistemicNote:
-      'Research preview. Conversational quality and factual reliability are still being evaluated.',
-    researchLink: '/intent',
-  },
-  {
-    id: 'tinycoherent',
-    name: 'TinyCoherent',
-    codename: 'TINYCOHERENT-SCALE',
-    parameterRange: '3.45M – 23M Parameters',
-    runtime: 'Pure ANSI C / Apple Silicon Accelerate BLAS',
-    description:
-      'A zero-dependency decoder-only Transformer written in pure C. Features direct memory-mapped tensor allocations, custom analytical backpropagation, prompt-loss masking for instruction tuning, and pre-allocated activation buffers for live glass-box terminal REPL inspection.',
-    verifiedInCode: [
-      'Pure C99/C11 implementation with zero Python/PyTorch runtime dependencies',
-      'Apple Accelerate framework (cblas_sgemm) linear algebra dispatch',
-      'Subword Byte-Pair Encoding (BPE) addressing sequence inflation',
-      'Rung 6 V2 step-by-step reasoning scratchpad curation pipeline',
-    ],
-    epistemicNote:
-      'Focuses on inspectability, memory mapping, and pure C execution rather than frontier benchmark claims.',
-    researchLink: '/research/tinycoherent',
-  },
-  {
-    id: 'bnlm',
-    name: 'BNLM (Browser-Native LM)',
-    codename: 'BNLM-BROWSER-TRANSFORMER',
-    parameterRange: 'Sub-10M Lightweight Transformer',
-    runtime: 'JavaScript ES Modules / WebGPU WGSL Compute Shaders',
-    description:
-      'A decoder-only Transformer initialized, trained, and executed for inference entirely client-side inside a browser tab with WebGPU compute shaders and non-blocking Web Workers.',
-    verifiedInCode: [
-      'Client-side reverse-mode automatic differentiation in pure JS',
-      'WebGPU WGSL matmul shader with automatic CPU fallback',
-      'Zero server dependencies, Python runtimes, or build steps',
-      'Finite-difference numerical gradient verification (gradcheck.mjs)',
-    ],
-    epistemicNote:
-      'Explores boundary feasibility for zero-server in-browser training and execution under strict client constraints.',
-    researchLink: '/research/bnlm',
-  },
-  {
-    id: 'cortex',
-    name: 'Cortex Global Workspace',
-    codename: 'CORTEX-ARCH',
-    parameterRange: 'Selective Workspace Routing Architecture',
-    runtime: 'Hybrid Local Reflex & Gated Global Hypothesis Slots',
-    description:
-      'A cognitive architecture decoupling fast-path sensory reflex from deliberate global workspace integration. Gated thresholds recruit bounded hypothesis slots to compete for final output synthesis.',
-    verifiedInCode: [
-      'Selective local processing resolving low-entropy signals locally',
-      'Bounded hypothesis competition slots (H1, H2, H3)',
-      'Gating hysteresis analysis avoiding decision threshold thrashing',
-      'Empirical baseline testing against dense self-attention',
-    ],
-    epistemicNote:
-      'An experimental architectural paradigm investigating whether selective global integration can reduce compute on ambiguous inputs.',
-    researchLink: '/research/cortex',
-  },
-  {
-    id: 'cortex-ms',
-    name: 'Cortex-MS',
-    codename: 'CORTEX-MS-L4',
-    parameterRange: '3.2M-Parameter Molecular Representation Model',
-    runtime: 'NVIDIA L4 Hardware Probe & Multi-Task Decoders',
-    description:
-      'Transforms raw tandem mass spectra (MS/MS) and precursor metadata into structured geometric peak embeddings, maintaining competing molecular hypotheses for formula and fingerprint decoding.',
-    verifiedInCode: [
-      'Geometric peak manifold projections with Fourier positional encoding',
-      'Active hypothesis workspace evaluating competing molecular slots',
-      'L4 saturation probe documenting input deserialization bottlenecks',
-      'Contrastive margin diagnostics with honest null/negative margin reporting',
-    ],
-    epistemicNote:
-      'Documents honest hardware saturation non-linearities and representation challenges under real L4 probe telemetry.',
-    researchLink: '/research/cortex-ms',
-  },
-];
+import { ArrowRight, Boxes, Cpu, MessageSquareText } from 'lucide-react';
 
 export default function IntentModelsSection() {
   return (
-    <section id="intent-models" className="py-20 sm:py-28 bg-[#090c13] border-b border-[#161d2b]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl space-y-4">
-          <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
-            <span>03. Intelligence Layer</span>
-            <span aria-hidden="true" className="text-slate-600">·</span>
-            <span className="text-slate-400">Intent Model Family</span>
+    <section id="intent-models" className="border-b border-slate-200 bg-white py-20 sm:py-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold text-blue-700">INTENT model family</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl">Model research that can be inspected, measured, and deployed.</h2>
+            <p className="mt-5 text-base leading-7 text-slate-600 sm:text-lg">INTENT is GIC's model-development program, spanning compact experimental architectures and the public LooseMouth research interface.</p>
           </div>
-
-          <h2 className="text-3xl sm:text-4xl font-sans font-bold tracking-tight text-white text-balance leading-tight">
-            Efficient architectures engineered for inspectability and constrained silicon.
-          </h2>
-
-          <p className="text-base sm:text-lg text-slate-300 font-sans leading-relaxed">
-            The INTENT model family includes LooseMouth, our experimental conversational model, alongside smaller research models exploring native C, WebGPU compute shaders, and inspectable activations.
-          </p>
-          <Link href="/intent" className="inline-flex items-center gap-2 rounded-md border border-emerald-800/70 bg-emerald-950/30 px-4 py-2 text-sm font-mono text-emerald-300 hover:bg-emerald-950/60">
-            Chat with LooseMouth <ArrowUpRight className="h-4 w-4" />
-          </Link>
+          <Link href="/intent" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-950">Try LooseMouth <ArrowRight className="h-4 w-4"/></Link>
         </div>
-
-        {/* Epistemic Rigor & Scope Note */}
-        <div className="mt-8 p-4 rounded-md bg-[#0e1420] border border-[#212c3e] text-xs font-mono text-slate-300 flex items-start gap-3">
-          <Eye className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-          <p className="font-sans leading-relaxed">
-            <strong className="text-emerald-300 font-mono">Epistemic Scope:</strong> Our research program targets efficiency, inspectability, transparency, and private edge execution under constrained parameter budgets. We do not make unfounded claims of matching or exceeding trillion-parameter frontier cloud models; our work is evaluated against specific architectural baselines documented in our public research dossiers.
-          </p>
-        </div>
-
-        {/* Models Grid */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {INTENT_MODELS.map((model) => (
-            <div
-              key={model.id}
-              className="p-6 rounded-lg bg-[#0b0e16] border border-[#1b2333] hover:border-[#2b3952] transition-colors flex flex-col justify-between space-y-5"
-            >
-              <div className="space-y-4">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-bold text-white tracking-tight">{model.name}</h3>
-                    <span className="text-xs font-mono text-emerald-400 block">{model.codename}</span>
-                  </div>
-                  <span className="text-xs font-mono text-slate-400 text-right">
-                    {model.parameterRange}
-                  </span>
-                </div>
-
-                {/* Runtime & Description */}
-                <div className="space-y-2">
-                  <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
-                    <Terminal className="w-3 h-3 text-cyan-400" />
-                    <span>{model.runtime}</span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">
-                    {model.description}
-                  </p>
-                </div>
-
-                {/* Verified In Code List */}
-                <div className="space-y-1.5 pt-2 border-t border-[#182130]">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 block">
-                    Source-Verified Implementation Features
-                  </span>
-                  <ul className="space-y-1 text-xs text-slate-300 font-sans">
-                    {model.verifiedInCode.map((feat, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="text-emerald-400 font-mono text-[10px] mt-0.5">✓</span>
-                        <span className="text-[12px]">{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Card Footer with Epistemic Note & Link */}
-              <div className="pt-4 border-t border-[#182130] space-y-3">
-                <p className="text-[11px] text-slate-400 italic font-sans">
-                  {model.epistemicNote}
-                </p>
-
-                <Link
-                  href={model.researchLink}
-                  className="inline-flex items-center gap-1.5 text-xs font-mono text-emerald-400 hover:text-emerald-300 font-semibold"
-                >
-                  <span>Open Complete Research Dossier</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          ))}
+        <div className="mt-12 grid gap-5 md:grid-cols-3">
+          {[
+            [Boxes,'Architecture research','Explore parameter efficiency, training behavior, reasoning supervision, and model scaling under constrained compute.'],
+            [Cpu,'Local execution','Investigate runtimes and model formats intended for operator-controlled hardware rather than mandatory remote inference.'],
+            [MessageSquareText,'LooseMouth','A public research interface that demonstrates GIC-operated inference while clearly distinguishing native INTENT models from enhanced open-model serving.'],
+          ].map(([Icon,title,text]:any)=><article key={title} className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm"><Icon className="h-5 w-5 text-blue-700"/><h3 className="mt-7 text-lg font-semibold text-slate-950">{title}</h3><p className="mt-3 text-sm leading-6 text-slate-600">{text}</p></article>)}
         </div>
       </div>
     </section>

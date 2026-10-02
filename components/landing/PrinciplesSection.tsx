@@ -1,116 +1,30 @@
-'use client';
+import { Eye, Gauge, LockKeyhole, Scale, ShieldCheck } from 'lucide-react';
 
-import React from 'react';
-import { Lock, Cpu, ShieldCheck, Eye, Scale } from 'lucide-react';
-
-interface Principle {
-  number: string;
-  title: string;
-  tagline: string;
-  description: string;
-  invariant: string;
-  icon: React.ElementType;
-}
-
-const PRINCIPLES: Principle[] = [
-  {
-    number: '01',
-    title: 'Private Ownership',
-    tagline: 'Sovereign compute, sovereign weights, sovereign boundaries.',
-    description:
-      'Inference, contextual memory, and model weights must remain strictly within the operator’s sovereign network perimeter. We reject architectures that force external data exfiltration for routine intelligence tasks.',
-    invariant: 'INVARIANT: Zero unauthenticated external network egress during inference.',
-    icon: Lock,
-  },
-  {
-    number: '02',
-    title: 'Efficient Computation',
-    tagline: 'Maximizing capability per parameter and compute cycle.',
-    description:
-      'Rather than relying on brute-force scaling alone, we engineer compact architectures (3.45M – 23M) with low-overhead C runtimes and memory-mapped tensors to execute on local workstation silicon.',
-    invariant: 'INVARIANT: Zero dependency on heavy Python/PyTorch runtime layers in core C engines.',
-    icon: Cpu,
-  },
-  {
-    number: '03',
-    title: 'Verifiable Infrastructure',
-    tagline: 'Multi-stage validation before token emission.',
-    description:
-      'An endpoint must mathematically and cryptographically prove its readiness through a 7-stage verification lifecycle before receiving user prompts. Health checks and streaming share a unified transport.',
-    invariant: 'INVARIANT: Readiness diagnostics and streaming pipelines execute over identical transport paths.',
-    icon: ShieldCheck,
-  },
-  {
-    number: '04',
-    title: 'Transparent Experimentation',
-    tagline: 'Glass-box activation taps over opaque black boxes.',
-    description:
-      'Neural architectures must be inspectable. By managing contiguous activation memory buffers, operators can probe internal layer representations, attention maps, and gradient updates in real time via live REPL interfaces.',
-    invariant: 'INVARIANT: Constant-time O(1) buffer lookup during live activation inspection.',
-    icon: Eye,
-  },
-  {
-    number: '05',
-    title: 'Evidence Before Claims',
-    tagline: 'Epistemic discipline and honest null result reporting.',
-    description:
-      'Every technical statement is rigorously categorized into source-verified code, controlled empirical trials, author-reported observations, or open hypotheses. Negative margins and hardware bottlenecks are documented openly.',
-    invariant: 'INVARIANT: Explicit separation of verified empirical data from architectural hypotheses.',
-    icon: Scale,
-  },
+const principles = [
+  { icon: LockKeyhole, title: 'Private by architecture', text: 'Design deployment so operators can keep inference, model assets, and application context inside infrastructure they control.' },
+  { icon: Gauge, title: 'Efficiency over brute force', text: 'Investigate capability per parameter, memory footprint, runtime overhead, and practical deployment constraints.' },
+  { icon: ShieldCheck, title: 'Verify before execution', text: 'Treat reachability, protocol compatibility, authentication, model readiness, and stream readiness as distinct states.' },
+  { icon: Eye, title: 'Inspectable systems', text: 'Prefer architectures and tooling that expose meaningful runtime state instead of hiding every layer behind a remote API.' },
+  { icon: Scale, title: 'Evidence before claims', text: 'Separate implemented behavior, measured results, design objectives, and open hypotheses so readers can tell what has actually been demonstrated.' },
 ];
 
 export default function PrinciplesSection() {
   return (
-    <section id="principles" className="py-20 sm:py-28 bg-[#090c13] border-b border-[#161d2b]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl space-y-4">
-          <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
-            <span>07. Core Philosophy</span>
-            <span aria-hidden="true" className="text-slate-600">·</span>
-            <span className="text-slate-400">Principles of Operation</span>
-          </div>
-
-          <h2 className="text-3xl sm:text-4xl font-sans font-bold tracking-tight text-white text-balance leading-tight">
-            Engineering principles grounded in mathematical and systems discipline.
-          </h2>
-
-          <p className="text-base sm:text-lg text-slate-300 font-sans leading-relaxed">
-            Global Intent Company operates under a strict epistemic and architectural code. We build systems based on verifiable capabilities rather than inflated marketing promises.
-          </p>
+    <section id="principles" className="border-b border-slate-200 bg-white py-20 sm:py-28">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold text-blue-700">Engineering principles</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl">Technical ambition backed by explicit evidence.</h2>
+          <p className="mt-5 text-base leading-7 text-slate-600 sm:text-lg">The standard is not whether a claim sounds advanced. It is whether the implementation, experiment, or documentation makes the claim inspectable.</p>
         </div>
-
-        {/* Principles Grid */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {PRINCIPLES.map((principle) => {
-            const Icon = principle.icon;
-            return (
-              <div
-                key={principle.number}
-                className="p-6 rounded-lg bg-[#0b0e16] border border-[#1b2333] hover:border-[#2a364d] transition-colors flex flex-col justify-between space-y-4 font-mono text-xs"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-slate-500 pb-2 border-b border-[#182130]">
-                    <span className="text-emerald-400 font-bold text-xs">{principle.number}</span>
-                    <Icon className="w-4 h-4 text-slate-400" />
-                  </div>
-
-                  <h3 className="text-base font-bold text-white font-sans">{principle.title}</h3>
-                  <span className="text-emerald-400/90 text-xs font-sans font-medium block">
-                    {principle.tagline}
-                  </span>
-
-                  <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                    {principle.description}
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-[#182130] text-[10px] text-slate-400 leading-snug">
-                  {principle.invariant}
-                </div>
-              </div>
-            );
-          })}
+        <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 md:grid-cols-2 lg:grid-cols-3">
+          {principles.map(({ icon: Icon, title, text }) => (
+            <article key={title} className="bg-white p-7">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><Icon className="h-5 w-5" /></span>
+              <h3 className="mt-6 text-lg font-semibold text-slate-950">{title}</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{text}</p>
+            </article>
+          ))}
         </div>
       </div>
     </section>

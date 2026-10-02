@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+/* Corporate shell tokens. Landing components now own their visual treatment
+ * directly; technical applications retain their specialized visual language. */
+.enterprise-site {
+  --gic-ink: #0f172a;
+  --gic-muted: #475569;
+  --gic-line: #e2e8f0;
+  --gic-surface: #ffffff;
+  --gic-subtle: #f8fafc;
+  --gic-accent: #1d4ed8;
+  background: var(--gic-surface);
+  color: var(--gic-ink);
+}

@@ -1,0 +1,28 @@
+# Global Intent Company
+
+> Global Intent Company is an independent AI and systems engineering company developing language models, private AI infrastructure, and scientific computing systems.
+
+Canonical site: https://globalintentcompany.space/
+
+## Primary areas
+
+- INTENT model family: https://globalintentcompany.space/intent
+  Language-model research and privately operated conversational AI, including LooseMouth.
+- Virtual Lab: https://globalintentcompany.space/virtual-lab
+  Evidence-oriented scientific computing, simulation, instrumentation, and reproducible experimentation.
+- Research: https://globalintentcompany.space/research
+  Technical research dossiers, experiments, systems work, and evidence.
+- Systems: https://globalintentcompany.space/systems
+  Systems architecture and engineering projects.
+- Software: https://globalintentcompany.space/software
+  Software developed by Global Intent Company.
+
+## Private AI infrastructure
+
+Global Intent Company is developing PLMN (Private Language Model Node) and PLMH (Private Language Model Hub) as infrastructure for discovering, authenticating, verifying, and operating privately hosted language models.
+
+## Evidence and provenance
+
+Technical claims should be interpreted according to the evidence attached to the relevant research page. Experimental results, source-verified implementation details, architectural objectives, and hypotheses are intentionally distinguished.
+
+Source organization: https://github.com/GI-Company

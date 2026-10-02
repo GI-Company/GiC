@@ -5,6 +5,39 @@ export const runtime = 'nodejs';
 
 const jsonHeaders = { 'Cache-Control': 'no-store' };
 
+async function consumeQuota(actorKey: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!baseUrl || !secret) return { allowed: false, remaining: 0, resetAt: null as string | null, configured: false };
+
+  try {
+    const response = await fetch(new URL('/rest/v1/rpc/consume_inference_quota', baseUrl), {
+      method: 'POST',
+      headers: {
+        apikey: secret,
+        Authorization: `Bearer ${secret}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_actor_key: actorKey, p_limit: 20, p_window_seconds: 3600 }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) return { allowed: false, remaining: 0, resetAt: null as string | null, configured: true };
+    const data: unknown = await response.json();
+    const row = Array.isArray(data) ? data[0] : null;
+    if (!row || typeof row !== 'object') return { allowed: false, remaining: 0, resetAt: null as string | null, configured: true };
+    const result = row as Record<string, unknown>;
+    return {
+      allowed: result.allowed === true,
+      remaining: Number(result.remaining ?? 0),
+      resetAt: typeof result.reset_at === 'string' ? result.reset_at : null,
+      configured: true,
+    };
+  } catch {
+    return { allowed: false, remaining: 0, resetAt: null as string | null, configured: true };
+  }
+}
+
 function backend(url: string | undefined, key: string | undefined) {
   if (!url || !key) return null;
   try {
@@ -115,6 +148,15 @@ export async function POST(request: NextRequest) {
     || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || 'unknown';
   const client = createHash('sha256').update(clientIp).digest('hex');
+  const quota = await consumeQuota(`ip:${client}`);
+  if (!quota.configured) return error('Inference access is being configured. Please try again shortly.', 503);
+  if (!quota.allowed) {
+    const response = error('Usage limit reached. Please try again after the current hourly window resets.', 429);
+    response.headers.set('X-RateLimit-Limit', '20');
+    response.headers.set('X-RateLimit-Remaining', '0');
+    if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);
+    return response;
+  }
   const url = new URL(isForm ? '/v1/chat/image' : '/v1/chat', target.baseUrl);
   try {
     let outbound: BodyInit;
@@ -146,7 +188,11 @@ export async function POST(request: NextRequest) {
       const detail = data && typeof data === 'object' && 'detail' in data ? String(data.detail) : 'INTENT request failed.';
       return error(detail, upstream.status);
     }
-    return NextResponse.json(data, { headers: jsonHeaders });
+    const response = NextResponse.json(data, { headers: jsonHeaders });
+    response.headers.set('X-RateLimit-Limit', '20');
+    response.headers.set('X-RateLimit-Remaining', String(quota.remaining));
+    if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);
+    return response;
   } catch {
     return error('INTENT is temporarily unavailable.', 502);
   }
