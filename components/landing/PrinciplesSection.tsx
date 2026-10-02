@@ -1,5 +1,3 @@
-'use client';
-
 import { Eye, Gauge, LockKeyhole, Scale, ShieldCheck } from 'lucide-react';
 
 const principles = [
