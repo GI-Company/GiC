@@ -1,6 +1,5 @@
-import React from 'react';
 import type { Metadata } from 'next';
-import SpatialResearchApp from '@/components/SpatialResearchApp';
+import EnterpriseDomainPage from '@/components/enterprise/EnterpriseDomainPage';
 
 export const metadata: Metadata = {
   title: 'Virtual Lab',
@@ -9,5 +8,18 @@ export const metadata: Metadata = {
 };
 
 export default function VirtualLabDomainPage() {
-  return <SpatialResearchApp initialDomain="virtual_lab" />;
+  return (
+    <EnterpriseDomainPage
+      domain="virtual_lab"
+      eyebrow="Virtual Lab"
+      title="Scientific computing with evidence built into the workflow."
+      description="Virtual Lab brings simulation, instrumentation, model execution, artifact integrity, and reproducible evidence into one technical environment."
+      narrative="Virtual Lab is GIC’s primary scientific-computing product direction. The work combines simulation and model execution with sensor-linked experimentation, evidence packaging, integrity checks, and portable study artifacts so technical results can remain inspectable after an experiment ends."
+      highlights={[
+        'Simulation and scientific model execution with reusable experiment structure.',
+        'Sensor and instrumentation work designed to connect physical observations to digital studies.',
+        'Evidence packaging, artifact verification, and reproducible project exchange as first-class concerns.',
+      ]}
+    />
+  );
 }
