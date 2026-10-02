@@ -29,7 +29,7 @@ export default function CompanyFounderSection() {
             <a href="https://github.com/GI-Company" target="_blank" rel="noopener noreferrer" className="group rounded-2xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm sm:col-span-2">
               <div className="flex items-center justify-between"><Github className="h-5 w-5" /><ArrowUpRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></div>
               <h3 className="mt-8 text-lg font-semibold">Inspect the source organization</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-300">Public repositories provide direct provenance for research, systems, models, and shipped software.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">Public repositories provide source-level provenance for selected research, systems, models, and software.</p>
             </a>
           </div>
         </div>
