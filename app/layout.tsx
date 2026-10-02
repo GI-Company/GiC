@@ -20,11 +20,13 @@ export const metadata: Metadata = {
     url: siteUrl,
     siteName: 'Global Intent Company',
     type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Global Intent Company — Private AI. Owned infrastructure. Verifiable systems.' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Global Intent Company — Private AI Infrastructure & Research',
     description: 'Language models, private AI infrastructure, and scientific computing systems designed for ownership, verification, and control.',
+    images: ['/opengraph-image'],
   },
 };
 
