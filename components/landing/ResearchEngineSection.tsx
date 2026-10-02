@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { ArrowRight, Beaker, Binary, FlaskConical, Layers3 } from 'lucide-react';
 
