@@ -9,7 +9,7 @@ type AuthSession = {
   refresh_token: string;
   expires_at?: number;
   expires_in?: number;
-  user?: { id?: string; email?: string };
+  user?: { id?: string; email?: string; user_metadata?: { full_name?: string; name?: string }; app_metadata?: { provider?: string } };
 };
 
 const STORAGE_KEY = 'gic-loosemouth-session';
@@ -181,6 +181,8 @@ export default function IntentAuthGate() {
       <IntentClient
         accessToken={session.access_token}
         accountEmail={session.user?.email || email}
+        accountName={session.user?.user_metadata?.full_name || session.user?.user_metadata?.name}
+        accountProvider={session.user?.app_metadata?.provider}
         onSignOut={signOut}
       />
     );
