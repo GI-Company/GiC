@@ -1,5 +1,3 @@
-'use client';
-
 import { Cpu, Database, KeyRound, Server } from 'lucide-react';
 
 export default function PLMHSection() {
