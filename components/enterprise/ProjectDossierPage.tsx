@@ -17,6 +17,11 @@ export default function ProjectDossierPage({ nodeId, expectedDomain }: ProjectDo
   const repo = node.repositories?.[0];
   const simplified = node.domain === 'machine_learning' || node.domain === 'systems_research';
   const purpose = node.researchQuestion || node.engineeringObjective || node.productPurpose || node.classificationNote;
+  const isResearch = node.domain === 'machine_learning';
+  const isSystems = node.domain === 'systems_research';
+  const purposeLabel = isResearch ? 'Research question' : isSystems ? 'Engineering objective' : 'Purpose';
+  const architectureLabel = isResearch ? 'Method & architecture' : isSystems ? 'Architecture' : 'How it works';
+  const findingsLabel = isResearch ? 'Results & findings' : isSystems ? 'Implementation evidence' : 'Key findings';
   const technicalItems = [
     ...(node.architecture.principles || []),
     ...(node.architecture.components || []).map((item) => `${item.name}: ${item.description}`),
@@ -47,13 +52,13 @@ export default function ProjectDossierPage({ nodeId, expectedDomain }: ProjectDo
               <div className="space-y-10">
                 {purpose && (
                   <section>
-                    <p className="text-sm font-semibold text-blue-700">Purpose</p>
+                    <p className="text-sm font-semibold text-blue-700">{purposeLabel}</p>
                     <p className="mt-3 text-base leading-7 text-slate-700">{purpose}</p>
                   </section>
                 )}
 
                 <section>
-                  <p className="text-sm font-semibold text-blue-700">How it works</p>
+                  <p className="text-sm font-semibold text-blue-700">{architectureLabel}</p>
                   <p className="mt-3 text-base leading-7 text-slate-700">{node.architecture.overview}</p>
                   {technicalItems.length > 0 && (
                     <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-600">
@@ -64,7 +69,7 @@ export default function ProjectDossierPage({ nodeId, expectedDomain }: ProjectDo
 
                 {node.findings?.length ? (
                   <section>
-                    <p className="text-sm font-semibold text-blue-700">Key findings</p>
+                    <p className="text-sm font-semibold text-blue-700">{findingsLabel}</p>
                     <div className="mt-4 divide-y divide-slate-200 border-y border-slate-200">
                       {node.findings.slice(0, simplified ? 4 : 5).map((finding) => (
                         <div key={finding.title} className="py-5">
