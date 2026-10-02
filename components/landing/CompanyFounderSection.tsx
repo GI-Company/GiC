@@ -1,5 +1,3 @@
-'use client';
-
 import { ArrowUpRight, Building2, Github, UserRound } from 'lucide-react';
 
 export default function CompanyFounderSection() {
