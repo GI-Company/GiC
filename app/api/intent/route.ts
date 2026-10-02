@@ -1,9 +1,34 @@
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
 
 const jsonHeaders = { 'Cache-Control': 'no-store' };
+
+async function consumeQuota(actorKey: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !secret) return { allowed: false, remaining: 0, resetAt: null as string | null, configured: false };
+
+  const supabase = createClient(url, secret, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error: quotaError } = await supabase.rpc('consume_inference_quota', {
+    p_actor_key: actorKey,
+    p_limit: 20,
+    p_window_seconds: 3600,
+  });
+  if (quotaError || !Array.isArray(data) || !data[0]) {
+    return { allowed: false, remaining: 0, resetAt: null as string | null, configured: true };
+  }
+  return {
+    allowed: data[0].allowed === true,
+    remaining: Number(data[0].remaining ?? 0),
+    resetAt: typeof data[0].reset_at === 'string' ? data[0].reset_at : null,
+    configured: true,
+  };
+}
 
 function backend(url: string | undefined, key: string | undefined) {
   if (!url || !key) return null;
@@ -115,6 +140,15 @@ export async function POST(request: NextRequest) {
     || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || 'unknown';
   const client = createHash('sha256').update(clientIp).digest('hex');
+  const quota = await consumeQuota(`ip:${client}`);
+  if (!quota.configured) return error('Inference access is being configured. Please try again shortly.', 503);
+  if (!quota.allowed) {
+    const response = error('Usage limit reached. Please try again after the current hourly window resets.', 429);
+    response.headers.set('X-RateLimit-Limit', '20');
+    response.headers.set('X-RateLimit-Remaining', '0');
+    if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);
+    return response;
+  }
   const url = new URL(isForm ? '/v1/chat/image' : '/v1/chat', target.baseUrl);
   try {
     let outbound: BodyInit;
@@ -146,7 +180,11 @@ export async function POST(request: NextRequest) {
       const detail = data && typeof data === 'object' && 'detail' in data ? String(data.detail) : 'INTENT request failed.';
       return error(detail, upstream.status);
     }
-    return NextResponse.json(data, { headers: jsonHeaders });
+    const response = NextResponse.json(data, { headers: jsonHeaders });
+    response.headers.set('X-RateLimit-Limit', '20');
+    response.headers.set('X-RateLimit-Remaining', String(quota.remaining));
+    if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);
+    return response;
   } catch {
     return error('INTENT is temporarily unavailable.', 502);
   }
