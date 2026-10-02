@@ -9,7 +9,6 @@ import {
   ImagePlus,
   X,
   LogOut,
-  UserRound,
   ShieldCheck,
   Gauge,
   Cpu,
@@ -17,6 +16,16 @@ import {
 } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
+import {
+  createConversation,
+  getPreferences,
+  listConversations,
+  loadMessages,
+  saveMessage,
+  savePreferences,
+  updateConversation,
+  type PersistedConversation,
+} from '@/lib/loosemouth-persistence';
 
 type Source = { title: string; snippet: string; date: string; url: string };
 type Turn = { role: 'user' | 'assistant'; text: string; imageName?: string; sources?: Source[]; warning?: string | null };
@@ -24,6 +33,7 @@ type ChatResponse = { session_id: string; answer: string; sources: Source[]; war
 
 type IntentClientProps = {
   accessToken: string;
+  accountUserId?: string;
   accountEmail?: string;
   accountName?: string;
   accountProvider?: string;
@@ -38,6 +48,7 @@ const suggestions = [
 
 export default function IntentClient({
   accessToken,
+  accountUserId,
   accountEmail,
   accountName,
   accountProvider,
@@ -58,9 +69,14 @@ export default function IntentClient({
   const [error, setError] = useState('');
   const [quotaRemaining, setQuotaRemaining] = useState<number | null>(20);
   const [quotaResetAt, setQuotaResetAt] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<PersistedConversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [historyReady, setHistoryReady] = useState(false);
+  const [historyError, setHistoryError] = useState('');
   const transcriptRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasSentRef = useRef(false);
+  const preferencesLoadedRef = useRef(false);
 
   const displayName = accountName?.trim() || accountEmail?.split('@')[0] || 'Signed-in user';
   const initials = useMemo(() => {
@@ -84,7 +100,9 @@ export default function IntentClient({
         setNativeAvailable(data?.models?.includes('native') === true);
         setEnhancedSearch(data?.enhancedSearch === true);
         setEnhancedMaxTokens(data?.enhancedMaxTokens === 512 ? 512 : 160);
-        if (!hasSentRef.current) setModel(enhanced ? 'gemma4' : 'native');
+        if (!hasSentRef.current && !preferencesLoadedRef.current && !activeConversationId) {
+          setModel(enhanced ? 'gemma4' : 'native');
+        }
       } catch {
         if (!active) return;
         setGemmaAvailable(false);
@@ -100,7 +118,43 @@ export default function IntentClient({
       active = false;
       window.clearInterval(interval);
     };
-  }, [accessToken]);
+  }, [accessToken, activeConversationId]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function restoreWorkspace() {
+      if (!accountUserId) {
+        if (active) setHistoryReady(true);
+        return;
+      }
+
+      try {
+        const [storedConversations, preferences] = await Promise.all([
+          listConversations(accessToken, accountUserId),
+          getPreferences(accessToken, accountUserId),
+        ]);
+        if (!active) return;
+        setConversations(storedConversations);
+        if (preferences) {
+          preferencesLoadedRef.current = true;
+          setModel(preferences.preferred_model);
+          setSearch(preferences.web_search_enabled);
+        } else {
+          preferencesLoadedRef.current = true;
+        }
+        setHistoryError('');
+      } catch (cause) {
+        if (!active) return;
+        setHistoryError(cause instanceof Error ? cause.message : 'Conversation history is temporarily unavailable.');
+      } finally {
+        if (active) setHistoryReady(true);
+      }
+    }
+
+    void restoreWorkspace();
+    return () => { active = false; };
+  }, [accessToken, accountUserId]);
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -152,12 +206,63 @@ export default function IntentClient({
       }
 
       const answer = data as ChatResponse;
+      const imageName = image?.name ?? null;
       setSessionId(answer.session_id);
       setImage(null);
       setTurns((current) => [
         ...current,
         { role: 'assistant', text: answer.answer, sources: answer.sources, warning: answer.warning },
       ]);
+
+      if (accountUserId) {
+        try {
+          let conversationId = activeConversationId;
+          let conversation = conversations.find((entry) => entry.id === conversationId) ?? null;
+
+          if (!conversationId) {
+            const title = text.length > 72 ? `${text.slice(0, 69)}…` : text;
+            conversation = await createConversation(accessToken, accountUserId, { title, model });
+            conversationId = conversation.id;
+            setActiveConversationId(conversationId);
+          }
+
+          await saveMessage(accessToken, accountUserId, conversationId, {
+            role: 'user',
+            content: text,
+            image_name: imageName,
+          });
+          await saveMessage(accessToken, accountUserId, conversationId, {
+            role: 'assistant',
+            content: answer.answer,
+            sources: answer.sources,
+            warning: answer.warning,
+          });
+          await updateConversation(accessToken, accountUserId, conversationId, {
+            model,
+            inference_session_id: answer.session_id,
+          });
+
+          const updatedAt = new Date().toISOString();
+          const nextConversation: PersistedConversation = conversation
+            ? { ...conversation, model, inference_session_id: answer.session_id, updated_at: updatedAt }
+            : {
+                id: conversationId,
+                user_id: accountUserId,
+                title: text.slice(0, 72) || 'New conversation',
+                model,
+                inference_session_id: answer.session_id,
+                created_at: updatedAt,
+                updated_at: updatedAt,
+              };
+          setConversations((current) => [
+            nextConversation,
+            ...current.filter((entry) => entry.id !== conversationId),
+          ]);
+          setHistoryError('');
+        } catch (cause) {
+          setHistoryError(cause instanceof Error ? cause.message : 'This response could not be saved to history.');
+        }
+      }
     } catch (cause) {
       setTurns((current) => current.slice(0, -1));
       setMessage(text);
@@ -176,6 +281,7 @@ export default function IntentClient({
 
   function newChat() {
     hasSentRef.current = false;
+    setActiveConversationId(null);
     setTurns([]);
     setSessionId(null);
     setMessage('');
@@ -187,12 +293,43 @@ export default function IntentClient({
   function switchModel(next: 'gemma4' | 'native') {
     if (busy || next === model || (next === 'gemma4' ? !gemmaAvailable : !nativeAvailable)) return;
     hasSentRef.current = false;
+    setActiveConversationId(null);
     setModel(next);
     setSearch(false);
     setImage(null);
     setTurns([]);
     setSessionId(null);
     setError('');
+    if (accountUserId) {
+      void savePreferences(accessToken, accountUserId, {
+        preferred_model: next,
+        web_search_enabled: false,
+      }).catch(() => setHistoryError('Model preference could not be saved.'));
+    }
+  }
+
+  async function openConversation(conversation: PersistedConversation) {
+    if (!accountUserId || busy) return;
+    setHistoryError('');
+    try {
+      const storedMessages = await loadMessages(accessToken, accountUserId, conversation.id);
+      setActiveConversationId(conversation.id);
+      setModel(conversation.model);
+      setSessionId(conversation.inference_session_id);
+      setTurns(storedMessages.map((entry) => ({
+        role: entry.role,
+        text: entry.content,
+        imageName: entry.image_name || undefined,
+        sources: entry.sources,
+        warning: entry.warning,
+      })));
+      hasSentRef.current = storedMessages.length > 0;
+      setMessage('');
+      setImage(null);
+      setError('');
+    } catch (cause) {
+      setHistoryError(cause instanceof Error ? cause.message : 'Conversation could not be loaded.');
+    }
   }
 
   const resetLabel = quotaResetAt
@@ -261,6 +398,35 @@ export default function IntentClient({
           </div>
 
           <div className="mt-6 hidden space-y-5 lg:block">
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Recent sessions</p>
+                <span className="text-[10px] text-slate-600">{historyReady ? 'Synced' : 'Syncing…'}</span>
+              </div>
+              <div className="mt-2 space-y-1">
+                {conversations.slice(0, 8).map((conversation) => (
+                  <button
+                    key={conversation.id}
+                    type="button"
+                    onClick={() => void openConversation(conversation)}
+                    className={`w-full rounded-lg px-3 py-2.5 text-left transition ${
+                      activeConversationId === conversation.id
+                        ? 'bg-sky-300/10 text-sky-100'
+                        : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'
+                    }`}
+                  >
+                    <span className="block truncate text-xs font-medium">{conversation.title}</span>
+                    <span className="mt-1 block text-[10px] text-slate-600">
+                      {conversation.model === 'gemma4' ? 'Enhanced' : 'Native'} · {new Date(conversation.updated_at).toLocaleDateString()}
+                    </span>
+                  </button>
+                ))}
+                {historyReady && conversations.length === 0 && (
+                  <p className="px-3 py-2 text-xs text-slate-600">Your saved conversations will appear here.</p>
+                )}
+              </div>
+            </div>
+
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Inference allowance</p>
               <div className="mt-3 rounded-xl border border-white/10 bg-[#09111f] p-4">
@@ -528,7 +694,16 @@ export default function IntentClient({
                           <input
                             type="checkbox"
                             checked={search}
-                            onChange={(event) => setSearch(event.target.checked)}
+                            onChange={(event) => {
+                              const next = event.target.checked;
+                              setSearch(next);
+                              if (accountUserId) {
+                                void savePreferences(accessToken, accountUserId, {
+                                  preferred_model: model,
+                                  web_search_enabled: next,
+                                }).catch(() => setHistoryError('Search preference could not be saved.'));
+                              }
+                            }}
                             className="h-4 w-4 accent-sky-400"
                           />
                           <Globe2 size={16} /> Web
@@ -581,6 +756,12 @@ export default function IntentClient({
                   <span>Enter to send · Shift+Enter for newline</span>
                   <span>LooseMouth can make mistakes.</span>
                 </div>
+
+                {historyError && (
+                  <p role="status" className="mt-3 rounded-lg border border-sky-300/15 bg-sky-300/[0.05] px-3 py-2 text-xs text-sky-100">
+                    History: {historyError}
+                  </p>
+                )}
 
                 {error && (
                   <p role="alert" className="mt-3 rounded-lg border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">

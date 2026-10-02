@@ -180,6 +180,7 @@ export default function IntentAuthGate() {
     return (
       <IntentClient
         accessToken={session.access_token}
+        accountUserId={session.user?.id}
         accountEmail={session.user?.email || email}
         accountName={session.user?.user_metadata?.full_name || session.user?.user_metadata?.name}
         accountProvider={session.user?.app_metadata?.provider}
