@@ -4,6 +4,10 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Global Intent Company — Private AI, from model to infrastructure',
   description: 'Global Intent Company develops efficient language-model architectures and the infrastructure required to privately deploy, verify, and operate them.',
+  icons: {
+    icon: '/images/global-intent-company-icon.png',
+    apple: '/images/global-intent-company-icon.png',
+  },
   openGraph: {
     title: 'Global Intent Company — Private AI, from model to infrastructure',
     description: 'Global Intent Company develops efficient language-model architectures and the infrastructure required to privately deploy, verify, and operate them.',

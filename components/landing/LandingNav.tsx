@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowUpRight, Menu, X, Shield, Terminal, BookOpen, Layers } from 'lucide-react';
 
 export default function LandingNav() {
@@ -31,9 +32,7 @@ export default function LandingNav() {
           href="/"
           className="flex items-center gap-2.5 text-slate-100 hover:text-white transition-colors group shrink-0"
         >
-          <div className="w-7 h-7 rounded-md bg-[#0f1420] border border-[#232b3e] flex items-center justify-center text-emerald-400 group-hover:border-emerald-500/80 transition-colors">
-            <span className="font-mono font-bold text-xs tracking-tight text-emerald-400">GI</span>
-          </div>
+          <Image src="/images/global-intent-company-icon.png" alt="" width={32} height={32} priority className="h-8 w-8 shrink-0 object-contain" />
           <span className="font-mono font-semibold tracking-tight text-sm text-slate-100 group-hover:text-white">
             GLOBAL INTENT COMPANY
           </span>
@@ -72,7 +71,7 @@ export default function LandingNav() {
             className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono font-medium text-emerald-300 bg-emerald-950/40 border border-emerald-800/60 rounded-md hover:bg-emerald-900/50 hover:border-emerald-700 transition-colors whitespace-nowrap"
           >
             <Terminal className="w-3.5 h-3.5" />
-            <span>Try INTENT</span>
+            <span>Try LooseMouth</span>
           </Link>
 
           <a
@@ -130,7 +129,7 @@ export default function LandingNav() {
             onClick={() => setMobileMenuOpen(false)}
             className="block py-1.5 text-emerald-400 font-medium"
           >
-            Try INTENT Research Preview →
+            Try LooseMouth Research Preview →
           </Link>
           <Link
             href="/research"

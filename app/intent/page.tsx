@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUp, Globe2, RotateCcw, ImagePlus, X } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import BrandLoader from '@/components/BrandLoader';
 
 type Source = { title: string; snippet: string; date: string; url: string };
 type Turn = { role: 'user' | 'assistant'; text: string; imageName?: string; sources?: Source[]; warning?: string | null };
@@ -196,7 +197,7 @@ export default function IntentPage() {
                 {turn.warning && <p className="mt-3 rounded-lg bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-100">{turn.warning}</p>}
               </article>
             ))}
-            {busy && <div className="mr-auto w-fit rounded-2xl border border-white/15 bg-[#17243a] px-5 py-3 text-sm text-slate-200" role="status">LooseMouth is responding…</div>}
+            {busy && <div className="mr-auto w-fit rounded-2xl border border-white/15 bg-[#17243a] px-5 py-3"><BrandLoader label="LooseMouth is responding…" size={36} /></div>}
           </div>
 
           <form onSubmit={send} className="relative z-10 border-t border-white/10 bg-[#101b30]/95 p-3 sm:p-5">

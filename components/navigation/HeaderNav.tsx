@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { RenderTier } from '@/components/neural-mesh/NeuralGraphCanvas';
 import {
   Compass,
@@ -51,9 +52,7 @@ export default function HeaderNav({
             className="flex items-center gap-2.5 text-left group"
             title="Return to Global Intent Company Landing Page"
           >
-            <div className="w-8 h-8 rounded-lg bg-[#0f141f] border border-[#212838] flex items-center justify-center text-emerald-400 group-hover:border-emerald-500/80 transition-colors">
-              <span className="font-bold text-sm tracking-tighter text-white">GI</span>
-            </div>
+            <Image src="/images/global-intent-company-icon.png" alt="" width={36} height={36} className="h-9 w-9 shrink-0 object-contain" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-white tracking-wider text-sm">GLOBAL INTENT</span>

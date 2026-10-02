@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowUp, ArrowRight, Mail, CheckCircle2, AlertCircle, Loader2, Send, Code2, ExternalLink } from 'lucide-react';
+import Image from 'next/image';
+import BrandLoader from '@/components/BrandLoader';
+import { ArrowUp, ArrowRight, Mail, CheckCircle2, AlertCircle, Send, Code2, ExternalLink } from 'lucide-react';
 
 export default function LandingFooterCTA() {
   const [name, setName] = useState('');
@@ -218,8 +220,7 @@ export default function LandingFooterCTA() {
                 >
                   {status === 'submitting' ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Transmitting Payload...</span>
+                      <BrandLoader label="Sending…" size={24} />
                     </>
                   ) : (
                     <>
@@ -236,12 +237,9 @@ export default function LandingFooterCTA() {
         {/* Global Footer Links & Copyright */}
         <div className="mt-20 pt-8 border-t border-[#161d2b] flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-6 h-6 rounded bg-[#0f1420] border border-[#232b3e] flex items-center justify-center text-emerald-400">
-              <span className="font-bold text-[10px]">GI</span>
+            <div className="rounded-lg bg-slate-100 p-1.5">
+              <Image src="/images/global-intent-company-logo.png" alt="Global Intent Company" width={1774} height={887} sizes="(max-width: 640px) 160px, 200px" className="h-auto w-40 sm:w-48" />
             </div>
-            <span className="font-semibold text-white tracking-wide">
-              GLOBAL INTENT COMPANY
-            </span>
             <span className="text-slate-600">|</span>
             <span className="text-slate-400">Cory Tortorici</span>
           </div>
