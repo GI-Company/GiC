@@ -16,7 +16,7 @@ const suggestions = [
   'What is the latest NASA news?',
 ];
 
-export default function IntentClient() {
+export default function IntentClient({ accessToken, accountEmail, onSignOut }: { accessToken: string; accountEmail?: string; onSignOut: () => void }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [message, setMessage] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export default function IntentClient() {
     let active = true;
     async function refreshAvailability() {
       try {
-        const response = await fetch('/api/intent', { cache: 'no-store' });
+        const response = await fetch('/api/intent', { cache: 'no-store', headers: { Authorization: `Bearer ${accessToken}` } });
         const data: { models?: string[]; enhancedSearch?: boolean; enhancedMaxTokens?: number } | null = response.ok ? await response.json() : null;
         if (!active) return;
         const enhanced = data?.models?.includes('gemma4') === true;
@@ -58,7 +58,7 @@ export default function IntentClient() {
     void refreshAvailability();
     const interval = window.setInterval(() => void refreshAvailability(), 30_000);
     return () => { active = false; window.clearInterval(interval); };
-  }, []);
+  }, [accessToken]);
 
   useEffect(() => {
     const transcript = transcriptRef.current;
@@ -86,7 +86,9 @@ export default function IntentClient() {
       }
       const response = await fetch('/api/intent', {
         method: 'POST',
-        ...(image ? {} : { headers: { 'Content-Type': 'application/json' } }),
+        headers: image
+          ? { Authorization: `Bearer ${accessToken}` }
+          : { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body,
       });
       const data = await response.json();
@@ -156,9 +158,15 @@ export default function IntentClient() {
               Choose a LooseMouth model and start a conversation.
             </p>
           </div>
-          <button type="button" onClick={newChat} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-4 text-sm font-medium text-slate-100 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
-            <RotateCcw aria-hidden="true" size={16} /> New chat
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {accountEmail && <span className="max-w-56 truncate text-xs text-slate-400">{accountEmail}</span>}
+            <button type="button" onClick={newChat} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-4 text-sm font-medium text-slate-100 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
+              <RotateCcw aria-hidden="true" size={16} /> New chat
+            </button>
+            <button type="button" onClick={onSignOut} className="min-h-11 rounded-xl border border-white/10 px-4 text-sm font-medium text-slate-300 transition hover:bg-white/[0.06] hover:text-white">
+              Sign out
+            </button>
+          </div>
         </header>
 
         <section aria-label="LooseMouth chat" className="relative isolate overflow-hidden rounded-[1.5rem] border border-sky-200/15 bg-[#0d172b] shadow-[0_24px_80px_rgba(0,0,0,0.3)]">
