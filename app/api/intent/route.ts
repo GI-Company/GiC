@@ -54,7 +54,7 @@ function error(message: string, status: number) {
   return NextResponse.json({ error: message }, { status, headers: jsonHeaders });
 }
 
-async function authenticatedUser(request: NextRequest) {
+async function authenticatedUser(request: NextRequest): Promise<{ id: string; email?: string } | null> {
   const authorization = request.headers.get('authorization');
   if (!authorization?.startsWith('Bearer ')) return null;
   try {
@@ -69,7 +69,7 @@ async function authenticatedUser(request: NextRequest) {
     if (!response.ok) return null;
     const user = await response.json() as { id?: string; email?: string; email_confirmed_at?: string | null };
     if (!user.id || !user.email_confirmed_at) return null;
-    return user;
+    return { id: user.id, email: user.email };
   } catch {
     return null;
   }
