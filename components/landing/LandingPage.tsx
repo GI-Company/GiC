@@ -15,7 +15,7 @@ import LandingFooterCTA from '@/components/landing/LandingFooterCTA';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div className="enterprise-site min-h-screen bg-white text-slate-950 selection:bg-blue-100 selection:text-blue-950">
       <LandingNav />
       <main>
         <LandingHero />
