@@ -4,7 +4,7 @@ import { Building2, Cloud, Eye, ShieldCheck } from 'lucide-react';
 
 export default function ProblemSection() {
   const items = [
-    { icon: Cloud, title: 'Hosted by default', text: 'Most AI products assume model execution happens on infrastructure controlled by a third party.' },
+    { icon: Cloud, title: 'Hosted by default', text: 'Many hosted AI products place model execution on infrastructure controlled by a third party.' },
     { icon: Eye, title: 'Limited observability', text: 'Operators often see an API response, not the model runtime, readiness state, or execution environment behind it.' },
     { icon: Building2, title: 'Operational dependency', text: 'Application availability, pricing, model access, and data handling can depend on an external provider.' },
   ];
