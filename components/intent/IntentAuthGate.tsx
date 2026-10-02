@@ -73,9 +73,6 @@ export default function IntentAuthGate() {
     return () => { active = false; };
   }, [persist]);
 
-  useEffect(() => {
-    if (!checked) setChecked(true);
-  }, [checked]);
 
   useEffect(() => {
     if (!session?.refresh_token || !session.expires_at) return;
