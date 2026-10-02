@@ -51,6 +51,13 @@ grant execute on function public.consume_inference_quota(text, integer, integer)
 
 create index if not exists inference_rate_limits_updated_at_idx on public.inference_rate_limits(updated_at);
 
--- Supabase helper is administrative only; browsers do not need to execute it.
-revoke execute on function public.rls_auto_enable() from public;
-grant execute on function public.rls_auto_enable() to service_role;
+-- Supabase helper is administrative only when present. Keep this migration
+-- portable to fresh projects where rls_auto_enable() has not been installed.
+do $
+begin
+  if to_regprocedure('public.rls_auto_enable()') is not null then
+    revoke execute on function public.rls_auto_enable() from public;
+    grant execute on function public.rls_auto_enable() to service_role;
+  end if;
+end
+$;
