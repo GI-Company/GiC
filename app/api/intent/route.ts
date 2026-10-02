@@ -5,40 +5,51 @@ export const runtime = 'nodejs';
 
 const jsonHeaders = { 'Cache-Control': 'no-store' };
 
+function backend(url: string | undefined, key: string | undefined) {
+  if (!url || !key) return null;
+  try {
+    const baseUrl = new URL(url);
+    if (baseUrl.protocol !== 'https:' || baseUrl.username || baseUrl.password) return null;
+    return { baseUrl, apiKey: key };
+  } catch {
+    return null;
+  }
+}
+
 function error(message: string, status: number) {
   return NextResponse.json({ error: message }, { status, headers: jsonHeaders });
 }
 
 export async function GET() {
-  const endpoint = process.env.INTENT_API_URL;
-  const apiKey = process.env.INTENT_API_KEY;
-  if (!endpoint || !apiKey) return error('INTENT is not connected yet.', 503);
-  let baseUrl: URL;
-  try {
-    baseUrl = new URL(endpoint);
-    if (baseUrl.protocol !== 'https:' || baseUrl.username || baseUrl.password) throw new Error('Invalid endpoint');
-  } catch {
-    return error('INTENT API URL must be an HTTPS URL.', 503);
-  }
-  try {
-    const response = await fetch(new URL('/v1/models', baseUrl), {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!response.ok) return error('Model availability is temporarily unknown.', 502);
-    const data: unknown = await response.json();
-    const entries = data && typeof data === 'object' && 'models' in data && Array.isArray(data.models) ? data.models : null;
-    const models = entries
-      ? entries.map((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry ? String(entry.id) : '')
-      : ['native'];
-    const enhancedSearch = entries?.some((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'gemma4' && 'web_search' in entry && entry.web_search === true) === true;
-    const enhanced = entries?.find((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'gemma4');
-    const enhancedMaxTokens = enhanced && typeof enhanced === 'object' && 'max_output_tokens' in enhanced && enhanced.max_output_tokens === 512 ? 512 : 160;
-    return NextResponse.json({ models: models.filter((id: string) => id === 'native' || id === 'gemma4'), enhancedSearch, enhancedMaxTokens }, { headers: jsonHeaders });
-  } catch {
-    return error('Model availability is temporarily unknown.', 502);
-  }
+  const gateway = backend(process.env.INTENT_API_URL, process.env.INTENT_API_KEY);
+  const native = backend(process.env.NATIVE_INTENT_API_URL, process.env.NATIVE_INTENT_API_KEY);
+  if (!gateway && !native) return error('INTENT is not connected yet.', 503);
+
+  const check = async (target: NonNullable<typeof gateway>) => {
+    try {
+      const response = await fetch(new URL('/v1/models', target.baseUrl), {
+        headers: { Authorization: `Bearer ${target.apiKey}` },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10_000),
+      });
+      return response.ok ? await response.json() as unknown : null;
+    } catch {
+      return null;
+    }
+  };
+  const [gatewayData, nativeData] = await Promise.all([
+    gateway ? check(gateway) : Promise.resolve(null),
+    native ? check(native) : Promise.resolve(null),
+  ]);
+  if (!gatewayData && !nativeData) return error('Model availability is temporarily unknown.', 502);
+  const gatewayEntries = gatewayData && typeof gatewayData === 'object' && 'models' in gatewayData && Array.isArray(gatewayData.models) ? gatewayData.models : [];
+  const models = [];
+  if (native ? nativeData : gatewayEntries.some((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'native')) models.push('native');
+  const enhanced = gatewayEntries.find((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'gemma4');
+  if (enhanced) models.push('gemma4');
+  const enhancedSearch = enhanced && typeof enhanced === 'object' && 'web_search' in enhanced && enhanced.web_search === true;
+  const enhancedMaxTokens = enhanced && typeof enhanced === 'object' && 'max_output_tokens' in enhanced && enhanced.max_output_tokens === 512 ? 512 : 160;
+  return NextResponse.json({ models, enhancedSearch, enhancedMaxTokens }, { headers: jsonHeaders });
 }
 
 export async function POST(request: NextRequest) {
@@ -52,21 +63,6 @@ export async function POST(request: NextRequest) {
   if (!isJson && !isForm) return error('Expected JSON or image upload.', 415);
   if (Number(request.headers.get('content-length') || 0) > (isForm ? 4_500_000 : 4096)) {
     return error('Request is too large.', 413);
-  }
-
-  const endpoint = process.env.INTENT_API_URL;
-  const apiKey = process.env.INTENT_API_KEY;
-  if (!endpoint || !apiKey) {
-    return error('INTENT is not connected yet.', 503);
-  }
-  let baseUrl: URL;
-  try {
-    baseUrl = new URL(endpoint);
-    if (baseUrl.protocol !== 'https:' || baseUrl.username || baseUrl.password) {
-      throw new Error('Invalid endpoint');
-    }
-  } catch {
-    return error('INTENT API URL must be an HTTPS URL.', 503);
   }
 
   let raw: unknown;
@@ -90,6 +86,11 @@ export async function POST(request: NextRequest) {
   const body = raw as Record<string, unknown>;
   const model = body.model === 'native' ? 'native' : body.model === 'gemma4' ? 'gemma4' : null;
   if (!model) return error('Choose a valid model.', 400);
+  const target = model === 'native'
+    ? backend(process.env.NATIVE_INTENT_API_URL, process.env.NATIVE_INTENT_API_KEY)
+      ?? backend(process.env.INTENT_API_URL, process.env.INTENT_API_KEY)
+    : backend(process.env.INTENT_API_URL, process.env.INTENT_API_KEY);
+  if (!target) return error('Selected model is not connected yet.', 503);
   if (isForm && model !== 'gemma4') return error('Image input requires LooseMouth Enhanced.', 400);
   if (isForm && (!image || !['image/jpeg', 'image/png', 'image/webp'].includes(image.type) || image.size > 4_000_000)) {
     return error('Choose a JPEG, PNG, or WebP image under 4 MB.', 400);
@@ -114,11 +115,11 @@ export async function POST(request: NextRequest) {
     || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || 'unknown';
   const client = createHash('sha256').update(clientIp).digest('hex');
-  const url = new URL(isForm ? '/v1/chat/image' : '/v1/chat', baseUrl);
+  const url = new URL(isForm ? '/v1/chat/image' : '/v1/chat', target.baseUrl);
   try {
     let outbound: BodyInit;
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${target.apiKey}`,
       'X-Intent-Client': client,
     };
     if (isForm && image) {

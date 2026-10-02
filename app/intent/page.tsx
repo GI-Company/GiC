@@ -23,6 +23,8 @@ export default function IntentPage() {
   const [search, setSearch] = useState(false);
   const [model, setModel] = useState<'gemma4' | 'native'>('native');
   const [gemmaAvailable, setGemmaAvailable] = useState(false);
+  const [nativeAvailable, setNativeAvailable] = useState(false);
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
   const [enhancedSearch, setEnhancedSearch] = useState(false);
   const [enhancedMaxTokens, setEnhancedMaxTokens] = useState(160);
   const [image, setImage] = useState<File | null>(null);
@@ -33,16 +35,29 @@ export default function IntentPage() {
   const hasSentRef = useRef(false);
 
   useEffect(() => {
-    fetch('/api/intent', { cache: 'no-store' })
-      .then((response) => response.ok ? response.json() : null)
-      .then((data: { models?: string[]; enhancedSearch?: boolean; enhancedMaxTokens?: number } | null) => {
-        const available = data?.models?.includes('gemma4') === true;
-        setGemmaAvailable(available);
+    let active = true;
+    async function refreshAvailability() {
+      try {
+        const response = await fetch('/api/intent', { cache: 'no-store' });
+        const data: { models?: string[]; enhancedSearch?: boolean; enhancedMaxTokens?: number } | null = response.ok ? await response.json() : null;
+        if (!active) return;
+        const enhanced = data?.models?.includes('gemma4') === true;
+        setGemmaAvailable(enhanced);
+        setNativeAvailable(data?.models?.includes('native') === true);
         setEnhancedSearch(data?.enhancedSearch === true);
         setEnhancedMaxTokens(data?.enhancedMaxTokens === 512 ? 512 : 160);
-        if (!hasSentRef.current) setModel(available ? 'gemma4' : 'native');
-      })
-      .catch(() => { if (!hasSentRef.current) setModel('native'); });
+        if (!hasSentRef.current) setModel(enhanced ? 'gemma4' : 'native');
+      } catch {
+        if (!active) return;
+        setGemmaAvailable(false);
+        setNativeAvailable(false);
+      } finally {
+        if (active) setAvailabilityChecked(true);
+      }
+    }
+    void refreshAvailability();
+    const interval = window.setInterval(() => void refreshAvailability(), 30_000);
+    return () => { active = false; window.clearInterval(interval); };
   }, []);
 
   useEffect(() => {
@@ -53,7 +68,7 @@ export default function IntentPage() {
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = message.trim();
-    if (!text || busy) return;
+    if (!text || busy || !availabilityChecked || (model === 'gemma4' ? !gemmaAvailable : !nativeAvailable)) return;
     hasSentRef.current = true;
     setTurns((current) => [...current, { role: 'user', text, imageName: image?.name }]);
     setMessage('');
@@ -109,7 +124,7 @@ export default function IntentPage() {
   }
 
   function switchModel(next: 'gemma4' | 'native') {
-    if (busy || next === model || (next === 'gemma4' && !gemmaAvailable)) return;
+    if (busy || next === model || (next === 'gemma4' ? !gemmaAvailable : !nativeAvailable)) return;
     hasSentRef.current = false;
     setModel(next);
     setSearch(false);
@@ -202,9 +217,14 @@ export default function IntentPage() {
 
           <form onSubmit={send} className="relative z-10 border-t border-white/10 bg-[#101b30]/95 p-3 sm:p-5">
             <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Choose model">
-              <button type="button" disabled={busy || !gemmaAvailable} onClick={() => switchModel('gemma4')} aria-pressed={model === 'gemma4'} className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${model === 'gemma4' ? 'border-sky-300 bg-sky-300/20 text-white' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}>LooseMouth Enhanced <span className="text-xs">· {gemmaAvailable ? 'Multimodal' : 'Connecting'}</span></button>
-              <button type="button" disabled={busy} onClick={() => switchModel('native')} aria-pressed={model === 'native'} className={`rounded-lg border px-3 py-2 text-sm ${model === 'native' ? 'border-sky-300 bg-sky-300/20 text-white' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}>LooseMouth Native <span className="text-xs">· INTENT</span></button>
+              <button type="button" disabled={busy || !gemmaAvailable} onClick={() => switchModel('gemma4')} aria-pressed={model === 'gemma4'} className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${model === 'gemma4' ? 'border-sky-300 bg-sky-300/20 text-white' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}>LooseMouth Enhanced <span className="text-xs">· {gemmaAvailable ? 'Multimodal' : availabilityChecked ? 'Offline' : 'Connecting'}</span></button>
+              <button type="button" disabled={busy || !nativeAvailable} onClick={() => switchModel('native')} aria-pressed={model === 'native'} className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${model === 'native' ? 'border-sky-300 bg-sky-300/20 text-white' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}>LooseMouth Native <span className="text-xs">· {nativeAvailable ? 'INTENT' : availabilityChecked ? 'Offline' : 'Connecting'}</span></button>
             </div>
+            {availabilityChecked && !gemmaAvailable && (
+              <p role="status" className="mb-3 rounded-lg border border-sky-200/15 bg-sky-200/[0.06] px-3 py-2 text-sm leading-6 text-slate-200">
+                LooseMouth Enhanced is offline. We need funding to keep serving larger models. {nativeAvailable ? 'Try LooseMouth Native.' : 'Please check back soon.'}
+              </p>
+            )}
             <label htmlFor="intent-message" className="sr-only">Message LooseMouth</label>
             <div className="rounded-2xl border border-white/20 bg-[#0b1425] p-2 shadow-inner transition-colors focus-within:border-sky-300/70 focus-within:ring-2 focus-within:ring-sky-300/15">
               <textarea ref={textareaRef} id="intent-message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={onMessageKeyDown} maxLength={2000} rows={2} disabled={busy} className="max-h-40 min-h-14 w-full resize-y bg-transparent px-2 py-2 text-base leading-6 text-white outline-none placeholder:text-slate-400 disabled:opacity-60" placeholder="Message LooseMouth…" />
@@ -221,7 +241,7 @@ export default function IntentPage() {
                     else { setError(''); setImage(selected); }
                   }} />
                 </label>}
-                <button type="submit" disabled={busy || !message.trim()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-sky-400 px-4 text-sm font-semibold text-[#071425] transition hover:bg-sky-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-200 disabled:cursor-not-allowed disabled:opacity-45">
+                <button type="submit" disabled={busy || !message.trim() || !availabilityChecked || (model === 'gemma4' ? !gemmaAvailable : !nativeAvailable)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-sky-400 px-4 text-sm font-semibold text-[#071425] transition hover:bg-sky-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-200 disabled:cursor-not-allowed disabled:opacity-45">
                   Send <ArrowUp aria-hidden="true" size={17} />
                 </button>
               </div>
