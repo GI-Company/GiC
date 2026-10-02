@@ -9,6 +9,7 @@ export const metadata: Metadata = {
     title: 'INTENT & LooseMouth',
     description: 'Explore the INTENT model family and Global Intent Company’s public research inference interface.',
     url: '/intent',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Global Intent Company — INTENT & LooseMouth' }],
   },
 };
 
