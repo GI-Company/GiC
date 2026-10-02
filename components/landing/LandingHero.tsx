@@ -42,7 +42,7 @@ export default function LandingHero() {
           </h1>
 
           <p className="mt-7 max-w-3xl text-lg leading-8 text-slate-600 sm:text-xl">
-            Global Intent Company develops language models, private AI infrastructure, and scientific computing systems designed to give organizations direct control over their models, compute, and data.
+            Global Intent Company develops language models, private AI infrastructure, and scientific computing systems designed to provide direct control over models, compute, and data.
           </p>
 
           <div className="mt-9 flex flex-wrap gap-3">
