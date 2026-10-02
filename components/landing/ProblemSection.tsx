@@ -1,5 +1,3 @@
-'use client';
-
 import { Building2, Cloud, Eye, ShieldCheck } from 'lucide-react';
 
 export default function ProblemSection() {
