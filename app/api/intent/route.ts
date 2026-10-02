@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
 
 export const runtime = 'nodejs';
 
@@ -53,7 +54,30 @@ function error(message: string, status: number) {
   return NextResponse.json({ error: message }, { status, headers: jsonHeaders });
 }
 
-export async function GET() {
+async function authenticatedUser(request: NextRequest) {
+  const authorization = request.headers.get('authorization');
+  if (!authorization?.startsWith('Bearer ')) return null;
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: authorization,
+      },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) return null;
+    const user = await response.json() as { id?: string; email?: string; email_confirmed_at?: string | null };
+    if (!user.id || !user.email_confirmed_at) return null;
+    return user;
+  } catch {
+    return null;
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const user = await authenticatedUser(request);
+  if (!user) return error('Sign in with a confirmed account to use LooseMouth.', 401);
   const gateway = backend(process.env.INTENT_API_URL, process.env.INTENT_API_KEY);
   const native = backend(process.env.NATIVE_INTENT_API_URL, process.env.NATIVE_INTENT_API_KEY);
   if (!gateway && !native) return error('INTENT is not connected yet.', 503);
@@ -90,6 +114,8 @@ export async function POST(request: NextRequest) {
   if (origin && origin !== request.nextUrl.origin) {
     return error('Cross-origin requests are not allowed.', 403);
   }
+  const user = await authenticatedUser(request);
+  if (!user) return error('Sign in with a confirmed account to use LooseMouth.', 401);
   const contentType = request.headers.get('content-type')?.toLowerCase() || '';
   const isJson = contentType.startsWith('application/json');
   const isForm = contentType.startsWith('multipart/form-data');
@@ -143,12 +169,8 @@ export async function POST(request: NextRequest) {
     return error(`max_tokens must be 16–${maximum} for this model.`, 400);
   }
 
-  // Vercel replaces x-forwarded-for with its trusted client address.
-  const clientIp = request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || 'unknown';
-  const client = createHash('sha256').update(clientIp).digest('hex');
-  const quota = await consumeQuota(`ip:${client}`);
+  const client = createHash('sha256').update(user.id).digest('hex');
+  const quota = await consumeQuota(`user:${client}`);
   if (!quota.configured) return error('Inference access is being configured. Please try again shortly.', 503);
   if (!quota.allowed) {
     const response = error('Usage limit reached. Please try again after the current hourly window resets.', 429);
