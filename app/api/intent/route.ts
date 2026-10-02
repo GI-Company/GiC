@@ -1,33 +1,41 @@
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
 
 const jsonHeaders = { 'Cache-Control': 'no-store' };
 
 async function consumeQuota(actorKey: string) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !secret) return { allowed: false, remaining: 0, resetAt: null as string | null, configured: false };
+  if (!baseUrl || !secret) return { allowed: false, remaining: 0, resetAt: null as string | null, configured: false };
 
-  const supabase = createClient(url, secret, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error: quotaError } = await supabase.rpc('consume_inference_quota', {
-    p_actor_key: actorKey,
-    p_limit: 20,
-    p_window_seconds: 3600,
-  });
-  if (quotaError || !Array.isArray(data) || !data[0]) {
+  try {
+    const response = await fetch(new URL('/rest/v1/rpc/consume_inference_quota', baseUrl), {
+      method: 'POST',
+      headers: {
+        apikey: secret,
+        Authorization: `Bearer ${secret}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_actor_key: actorKey, p_limit: 20, p_window_seconds: 3600 }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) return { allowed: false, remaining: 0, resetAt: null as string | null, configured: true };
+    const data: unknown = await response.json();
+    const row = Array.isArray(data) ? data[0] : null;
+    if (!row || typeof row !== 'object') return { allowed: false, remaining: 0, resetAt: null as string | null, configured: true };
+    const result = row as Record<string, unknown>;
+    return {
+      allowed: result.allowed === true,
+      remaining: Number(result.remaining ?? 0),
+      resetAt: typeof result.reset_at === 'string' ? result.reset_at : null,
+      configured: true,
+    };
+  } catch {
     return { allowed: false, remaining: 0, resetAt: null as string | null, configured: true };
   }
-  return {
-    allowed: data[0].allowed === true,
-    remaining: Number(data[0].remaining ?? 0),
-    resetAt: typeof data[0].reset_at === 'string' ? data[0].reset_at : null,
-    configured: true,
-  };
 }
 
 function backend(url: string | undefined, key: string | undefined) {
