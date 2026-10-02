@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     const safeFormattedMessage = safeTextToHtml(rawMessage);
 
     const fromAddress = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-    const toAddress = process.env.SUPPORT_TO_EMAIL || 'cory.tortorici@globalintentcompany.com';
+    const toAddress = process.env.SUPPORT_TO_EMAIL || 'cory.tortorici@globalintentcompany.space';
 
     const plainTextContent = `
 Global Intent Company — Direct Technical Inquiry
