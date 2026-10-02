@@ -7,6 +7,7 @@ import { ChevronDown, Menu, X } from 'lucide-react';
 
 export default function LandingNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [productsOpen, setProductsOpen] = useState(false);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/90 bg-white/95 backdrop-blur">
@@ -17,9 +18,9 @@ export default function LandingNav() {
         </Link>
 
         <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 lg:flex">
-          <div className="group relative">
-            <button className="flex items-center gap-1 py-6 hover:text-slate-950">Products <ChevronDown className="h-3.5 w-3.5" /></button>
-            <div className="invisible absolute left-0 top-16 w-64 rounded-xl border border-slate-200 bg-white p-2 opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100">
+          <div className="group relative" onMouseLeave={() => setProductsOpen(false)}>
+            <button type="button" aria-haspopup="menu" aria-expanded={productsOpen} onClick={() => setProductsOpen((open) => !open)} onKeyDown={(event) => { if (event.key === 'Escape') setProductsOpen(false); }} className="flex items-center gap-1 py-6 hover:text-slate-950">Products <ChevronDown className="h-3.5 w-3.5" /></button>
+            <div role="menu" className={`${productsOpen ? 'visible opacity-100' : 'invisible opacity-0'} absolute left-0 top-16 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100`}>
               <Link href="/intent" className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"><strong className="block text-slate-900">INTENT</strong><span className="text-xs text-slate-500">Models &amp; LooseMouth</span></Link>
               <Link href="/virtual-lab" className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"><strong className="block text-slate-900">Virtual Lab</strong><span className="text-xs text-slate-500">Scientific computing</span></Link>
               <a href="#plmn" className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"><strong className="block text-slate-900">PLMN</strong><span className="text-xs text-slate-500">Private model node</span></a>
@@ -29,7 +30,7 @@ export default function LandingNav() {
           <Link href="/research" className="hover:text-slate-950">Research</Link>
           <a href="#the-stack" className="hover:text-slate-950">Technology</a>
           <a href="#company" className="hover:text-slate-950">Company</a>
-          <Link href="/systems" className="hover:text-slate-950">Documentation</Link>
+          <Link href="/systems" className="hover:text-slate-950">Systems</Link>
         </nav>
 
         <div className="flex items-center gap-2">
