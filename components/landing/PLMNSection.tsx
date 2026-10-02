@@ -1,5 +1,3 @@
-'use client';
-
 import { Check, ShieldCheck } from 'lucide-react';
 
 const stages=['CONFIGURED','DISCOVERED','REACHABLE','PROTOCOL_OK','AUTHENTICATED','MODEL_READY','STREAM_READY'];
