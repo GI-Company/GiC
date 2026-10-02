@@ -52,6 +52,29 @@ export default function IntentAuthGate() {
     let active = true;
     async function restore() {
       try {
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const oauthAccessToken = hash.get('access_token');
+        const oauthRefreshToken = hash.get('refresh_token');
+        const oauthExpiresIn = Number(hash.get('expires_in') || 0);
+        if (oauthAccessToken && oauthRefreshToken) {
+          const userResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+            headers: {
+              apikey: SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${oauthAccessToken}`,
+            },
+          });
+          const user = userResponse.ok ? await userResponse.json() as AuthSession['user'] : undefined;
+          const oauthSession = normalizeSession({
+            access_token: oauthAccessToken,
+            refresh_token: oauthRefreshToken,
+            expires_in: oauthExpiresIn || 3600,
+            user,
+          });
+          persist(oauthSession);
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          return;
+        }
+
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
         const stored = JSON.parse(raw) as AuthSession;
@@ -83,6 +106,14 @@ export default function IntentAuthGate() {
     }, delay);
     return () => window.clearTimeout(timer);
   }, [session, persist]);
+
+  function signInWithGoogle() {
+    const redirectTo = 'https://globalintentcompany.space/intent';
+    const authorizeUrl = new URL(`${SUPABASE_URL}/auth/v1/authorize`);
+    authorizeUrl.searchParams.set('provider', 'google');
+    authorizeUrl.searchParams.set('redirect_to', redirectTo);
+    window.location.assign(authorizeUrl.toString());
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -176,7 +207,22 @@ export default function IntentAuthGate() {
             <button type="button" onClick={() => { setMode('signup'); setError(''); setNotice(''); }} className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold ${mode === 'signup' ? 'bg-white text-slate-950' : 'text-slate-300'}`}>Create account</button>
           </div>
 
-          <form onSubmit={submit} className="mt-6 space-y-4">
+          <button
+            type="button"
+            onClick={signInWithGoogle}
+            className="mt-6 flex w-full items-center justify-center gap-3 rounded-lg border border-white/15 bg-white px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100"
+          >
+            <span aria-hidden="true" className="text-base font-bold">G</span>
+            Continue with Google
+          </button>
+
+          <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.12em] text-slate-500">
+            <span className="h-px flex-1 bg-white/10" />
+            <span>or use email</span>
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
+
+          <form onSubmit={submit} className="space-y-4">
             <label className="block">
               <span className="text-sm font-medium text-slate-200">Email</span>
               <input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 w-full rounded-lg border border-white/15 bg-[#0b1425] px-3 py-3 text-white outline-none focus:border-sky-300" />
