@@ -10,7 +10,6 @@ export const metadata: Metadata = {
     template: '%s | Global Intent Company',
   },
   description: 'Global Intent Company develops language models, private AI infrastructure, and scientific computing systems for direct control over models, compute, and data.',
-  alternates: { canonical: '/' },
   icons: {
     icon: '/images/global-intent-company-icon.png',
     apple: '/images/global-intent-company-icon.png',
