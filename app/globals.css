@@ -1,10 +1,7 @@
 @import "tailwindcss";
 
-/*
- * Corporate shell for the GIC landing experience.
- * Deep technical applications retain their own visual language; the public
- * company surface uses a restrained enterprise palette and typography.
- */
+/* Corporate shell tokens. Landing components now own their visual treatment
+ * directly; technical applications retain their specialized visual language. */
 .enterprise-site {
   --gic-ink: #0f172a;
   --gic-muted: #475569;
@@ -14,75 +11,4 @@
   --gic-accent: #1d4ed8;
   background: var(--gic-surface);
   color: var(--gic-ink);
-}
-
-.enterprise-site section {
-  background-color: var(--gic-surface) !important;
-  border-color: var(--gic-line) !important;
-}
-
-.enterprise-site section:nth-of-type(even) {
-  background-color: var(--gic-subtle) !important;
-}
-
-.enterprise-site footer {
-  background: #0f172a !important;
-}
-
-/* Translate legacy dark landing cards into a light enterprise surface. */
-.enterprise-site main [class*="bg-[#0"],
-.enterprise-site main [class*="bg-[#1"] {
-  background-color: #ffffff !important;
-}
-
-.enterprise-site main [class*="border-[#"],
-.enterprise-site main [class*="border-slate-6"],
-.enterprise-site main [class*="border-slate-7"] {
-  border-color: var(--gic-line) !important;
-}
-
-.enterprise-site main .text-white,
-.enterprise-site main [class*="text-slate-100"],
-.enterprise-site main [class*="text-slate-200"] {
-  color: var(--gic-ink) !important;
-}
-
-.enterprise-site main [class*="text-slate-300"],
-.enterprise-site main [class*="text-slate-400"],
-.enterprise-site main [class*="text-slate-500"] {
-  color: var(--gic-muted) !important;
-}
-
-/* Technical accents become a single restrained corporate blue family. */
-.enterprise-site main [class*="text-emerald-"],
-.enterprise-site main [class*="text-cyan-"],
-.enterprise-site main [class*="text-blue-"],
-.enterprise-site main [class*="text-indigo-"],
-.enterprise-site main [class*="text-purple-"] {
-  color: var(--gic-accent) !important;
-}
-
-.enterprise-site main [class*="border-emerald-"],
-.enterprise-site main [class*="border-cyan-"],
-.enterprise-site main [class*="border-blue-"],
-.enterprise-site main [class*="border-indigo-"] {
-  border-color: #bfdbfe !important;
-}
-
-.enterprise-site main [class*="bg-emerald-"],
-.enterprise-site main [class*="bg-cyan-"],
-.enterprise-site main [class*="bg-blue-"],
-.enterprise-site main [class*="bg-indigo-"] {
-  background-color: #eff6ff !important;
-}
-
-/* Monospace remains appropriate for identifiers and telemetry, but no longer
- * defines the corporate presentation. */
-.enterprise-site main .font-mono {
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-}
-
-.enterprise-site main [class*="shadow-2xl"],
-.enterprise-site main [class*="shadow-xl"] {
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07) !important;
 }
