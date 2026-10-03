@@ -13,9 +13,11 @@ import {
   Cpu,
   ExternalLink,
   Trash2,
+  Menu,
 } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
+import IntentPwaControls from '@/components/intent/IntentPwaControls';
 import { enrichSourcesWithPyScript } from '@/lib/pyscript-search';
 import {
   createConversation,
@@ -99,6 +101,7 @@ export default function IntentClient({
   const [historyReady, setHistoryReady] = useState(false);
   const [historyError, setHistoryError] = useState('');
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasSentRef = useRef(false);
@@ -395,9 +398,9 @@ export default function IntentClient({
     : null;
 
   return (
-    <main className="min-h-screen bg-white text-slate-950">
-      <div className="mx-auto grid min-h-screen max-w-[1500px] lg:grid-cols-[270px_1fr]">
-        <aside className="border-b border-slate-200 bg-slate-50 px-5 py-5 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
+    <main className="h-[100dvh] overflow-hidden bg-white text-slate-950 lg:h-auto lg:min-h-screen lg:overflow-visible">
+      <div className="mx-auto grid h-full max-w-[1500px] lg:min-h-screen lg:grid-cols-[270px_1fr]">
+        <aside className="hidden border-r border-slate-200 bg-slate-50 px-5 py-6 lg:block">
           <div className="flex items-center justify-between gap-4 lg:block">
             <Link href="/" className="inline-flex items-center gap-3">
               <Image
@@ -572,8 +575,166 @@ export default function IntentClient({
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-col">
-          <header className="border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
+        <section className="flex h-full min-w-0 flex-col lg:min-h-screen">
+          <header className="shrink-0 border-b border-slate-200 bg-white/95 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={newChat}
+                aria-label="New session"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700"
+              >
+                <RotateCcw size={17} />
+              </button>
+
+              <div className="flex min-w-0 items-center gap-2">
+                <Image
+                  src="/images/loosemouth-model-logo.png"
+                  alt=""
+                  width={1456}
+                  height={1080}
+                  sizes="44px"
+                  className="h-auto w-10 shrink-0"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-950">LooseMouth</p>
+                  <p className="truncate text-[10px] font-medium uppercase tracking-[0.11em] text-blue-700">
+                    {model === 'intentR-402' ? 'INTENT-R 402M' : 'Native'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                aria-label="Open sessions and settings"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700"
+              >
+                <Menu size={18} />
+              </button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2" role="group" aria-label="Choose model">
+              <button
+                type="button"
+                disabled={busy || !intentRAvailable}
+                onClick={() => switchModel('intentR-402')}
+                aria-pressed={model === 'intentR-402'}
+                className={`min-h-9 rounded-lg border px-2 text-xs font-semibold disabled:opacity-40 ${
+                  model === 'intentR-402'
+                    ? 'border-blue-500 bg-blue-50 text-blue-900'
+                    : 'border-slate-200 bg-white text-slate-600'
+                }`}
+              >
+                Enhanced · {intentRAvailable ? '402M' : availabilityChecked ? 'offline' : 'checking'}
+              </button>
+              <button
+                type="button"
+                disabled={busy || !nativeAvailable}
+                onClick={() => switchModel('native')}
+                aria-pressed={model === 'native'}
+                className={`min-h-9 rounded-lg border px-2 text-xs font-semibold disabled:opacity-40 ${
+                  model === 'native'
+                    ? 'border-blue-500 bg-blue-50 text-blue-900'
+                    : 'border-slate-200 bg-white text-slate-600'
+                }`}
+              >
+                Native · {nativeAvailable ? 'INTENT' : availabilityChecked ? 'offline' : 'checking'}
+              </button>
+            </div>
+          </header>
+
+          {mobileMenuOpen && (
+            <>
+              <button
+                type="button"
+                aria-label="Close sessions and settings"
+                onClick={() => setMobileMenuOpen(false)}
+                className="fixed inset-0 z-50 bg-slate-950/35 backdrop-blur-[1px] lg:hidden"
+              />
+              <aside className="fixed inset-y-0 right-0 z-[60] w-[min(88vw,360px)] overflow-y-auto border-l border-slate-200 bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] shadow-2xl lg:hidden">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">LooseMouth</p>
+                    <p className="text-xs text-slate-500">{displayName}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-label="Close menu"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="mt-5">
+                  <IntentPwaControls />
+                </div>
+
+                <div className="mt-6 flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Recent sessions</p>
+                  <span className="text-[10px] text-slate-500">{quotaRemaining ?? '—'} / 20 left</span>
+                </div>
+
+                <div className="mt-2 space-y-1">
+                  {conversations.slice(0, 12).map((conversation) => (
+                    <div
+                      key={conversation.id}
+                      className={`flex items-stretch rounded-xl border ${
+                        activeConversationId === conversation.id
+                          ? 'border-blue-200 bg-blue-50'
+                          : 'border-transparent bg-slate-50'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void openConversation(conversation).then(() => setMobileMenuOpen(false));
+                        }}
+                        disabled={busy || deletingConversationId === conversation.id}
+                        className="min-w-0 flex-1 px-3 py-3 text-left disabled:opacity-50"
+                      >
+                        <span className="block truncate text-xs font-semibold text-slate-800">{conversation.title}</span>
+                        <span className="mt-1 block text-[10px] text-slate-500">
+                          {conversation.model === 'intentR-402' ? 'INTENT-R 402M' : 'Native'} · {new Date(conversation.updated_at).toLocaleDateString()}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void removeConversation(conversation)}
+                        disabled={busy || deletingConversationId != null}
+                        aria-label={`Delete session: ${conversation.title}`}
+                        className="flex w-11 items-center justify-center text-slate-400 hover:text-red-700 disabled:opacity-40"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                  {historyReady && conversations.length === 0 && (
+                    <p className="rounded-xl bg-slate-50 px-3 py-3 text-xs text-slate-500">No saved sessions yet.</p>
+                  )}
+                </div>
+
+                <nav className="mt-6 grid grid-cols-2 gap-2 border-t border-slate-200 pt-5 text-xs font-semibold">
+                  <Link href="/" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Main site</Link>
+                  <Link href="/research" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Research</Link>
+                  <Link href="/systems" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Systems</Link>
+                  <Link href="/virtual-lab" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Virtual Lab</Link>
+                </nav>
+
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700"
+                >
+                  <LogOut size={15} /> Sign out
+                </button>
+              </aside>
+            </>
+          )}
+
+          <header className="hidden border-b border-slate-200 bg-white/95 px-8 py-4 backdrop-blur lg:block">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-4">
                 <Image
@@ -653,10 +814,10 @@ export default function IntentClient({
               aria-label="Conversation"
               aria-live="polite"
               aria-relevant="additions text"
-              className="min-h-[420px] flex-1 space-y-6 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6 lg:px-10"
+              className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 sm:py-6 lg:min-h-[420px] lg:px-10"
             >
               {!availabilityChecked && turns.length === 0 && (
-                <div className="mx-auto flex min-h-[58vh] max-w-3xl flex-col justify-center">
+                <div className="mx-auto flex min-h-[44vh] lg:min-h-[58vh] max-w-3xl flex-col justify-center">
                   <BrandLoader
                     label={`Connecting to ${model === 'intentR-402' ? 'INTENT-R 402M' : 'LooseMouth Native'}…`}
                     size={52}
@@ -665,7 +826,7 @@ export default function IntentClient({
               )}
 
               {availabilityChecked && turns.length === 0 && (
-                <div className="mx-auto flex min-h-[58vh] max-w-3xl flex-col justify-center">
+                <div className="mx-auto flex min-h-[44vh] lg:min-h-[58vh] max-w-3xl flex-col justify-center">
                   <div className="mb-7 flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-200 bg-blue-50">
                       <Cpu className="h-5 w-5 text-blue-700" />
@@ -785,7 +946,7 @@ export default function IntentClient({
               )}
             </div>
 
-            <div className="sticky bottom-0 border-t border-slate-200 bg-white/96 px-4 py-4 backdrop-blur sm:px-6 lg:px-10">
+            <div className="shrink-0 border-t border-slate-200 bg-white/96 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-6 sm:py-4 lg:px-10">
               <form onSubmit={send} className="mx-auto max-w-4xl">
                 {availabilityChecked && !intentRAvailable && model === 'intentR-402' && (
                   <p role="status" className="mb-3 rounded-lg border border-sky-200/15 bg-sky-200/[0.05] px-3 py-2 text-sm text-slate-700">
