@@ -107,8 +107,16 @@ export default function IntentAuthGate() {
     return () => window.clearTimeout(timer);
   }, [session, persist]);
 
+  function intentRedirectUrl() {
+    const host = window.location.hostname;
+    if (host === 'globalintentcompany.space' || host === 'www.globalintentcompany.space') {
+      return 'https://globalintentcompany.space/intent';
+    }
+    return `${window.location.origin}/intent`;
+  }
+
   function signInWithGoogle() {
-    const redirectTo = `${window.location.origin}/intent`;
+    const redirectTo = intentRedirectUrl();
     const authorizeUrl = new URL(`${SUPABASE_URL}/auth/v1/authorize`);
     authorizeUrl.searchParams.set('provider', 'google');
     authorizeUrl.searchParams.set('redirect_to', redirectTo);
@@ -122,7 +130,7 @@ export default function IntentAuthGate() {
     setNotice('');
     try {
       const endpoint = mode === 'signup'
-        ? `${SUPABASE_URL}/auth/v1/signup?redirect_to=${encodeURIComponent(`${window.location.origin}/intent`)}`
+        ? `${SUPABASE_URL}/auth/v1/signup?redirect_to=${encodeURIComponent(intentRedirectUrl())}`
         : `${SUPABASE_URL}/auth/v1/token?grant_type=password`;
       const response = await fetch(endpoint, {
         method: 'POST',
