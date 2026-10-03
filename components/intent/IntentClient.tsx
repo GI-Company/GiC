@@ -337,9 +337,9 @@ export default function IntentClient({
     : null;
 
   return (
-    <main className="min-h-screen bg-[#080d18] text-slate-100">
+    <main className="min-h-screen bg-white text-slate-950">
       <div className="mx-auto grid min-h-screen max-w-[1500px] lg:grid-cols-[270px_1fr]">
-        <aside className="border-b border-white/10 bg-[#0b1220] px-5 py-5 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
+        <aside className="border-b border-slate-200 bg-slate-50 px-5 py-5 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
           <div className="flex items-center justify-between gap-4 lg:block">
             <Link href="/" className="inline-flex items-center gap-3">
               <Image
@@ -351,30 +351,30 @@ export default function IntentClient({
               />
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Global Intent Company</p>
-                <p className="text-sm font-semibold text-white">LooseMouth Workspace</p>
+                <p className="text-sm font-semibold text-slate-950">LooseMouth Workspace</p>
               </div>
             </Link>
             <button
               type="button"
               onClick={onSignOut}
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/10 px-3 text-xs font-medium text-slate-300 hover:bg-white/[0.05] hover:text-white lg:hidden"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-white/[0.05] hover:text-slate-950 lg:hidden"
             >
               <LogOut size={14} /> Sign out
             </button>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-300/20 bg-sky-300/10 text-sm font-semibold text-sky-100">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 text-sm font-semibold text-blue-700">
                 {initials}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-white">{displayName}</p>
+                <p className="truncate text-sm font-semibold text-slate-950">{displayName}</p>
                 {accountEmail && <p className="truncate text-xs text-slate-500">{accountEmail}</p>}
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3 text-xs">
-              <span className="inline-flex items-center gap-1.5 text-emerald-300">
+            <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 text-xs">
+              <span className="inline-flex items-center gap-1.5 text-emerald-700">
                 <ShieldCheck size={14} /> Authenticated
               </span>
               <span className="text-slate-500">{accountProvider === 'google' ? 'Google' : 'Email'}</span>
@@ -385,13 +385,13 @@ export default function IntentClient({
             <button
               type="button"
               onClick={newChat}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-sky-300 px-4 text-sm font-semibold text-[#071425] hover:bg-sky-200"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
             >
               <RotateCcw size={16} /> New session
             </button>
             <Link
               href="/research"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 px-4 text-sm font-medium text-slate-300 hover:bg-white/[0.05] hover:text-white"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-white/[0.05] hover:text-slate-950"
             >
               Research <ExternalLink size={14} />
             </Link>
@@ -411,8 +411,8 @@ export default function IntentClient({
                     onClick={() => void openConversation(conversation)}
                     className={`w-full rounded-lg px-3 py-2.5 text-left transition ${
                       activeConversationId === conversation.id
-                        ? 'bg-sky-300/10 text-sky-100'
-                        : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-slate-600 hover:bg-white/[0.04] hover:text-slate-950'
                     }`}
                   >
                     <span className="block truncate text-xs font-medium">{conversation.title}</span>
@@ -429,15 +429,15 @@ export default function IntentClient({
 
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Inference allowance</p>
-              <div className="mt-3 rounded-xl border border-white/10 bg-[#09111f] p-4">
+              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
                 <div className="flex items-end justify-between">
                   <div>
-                    <p className="text-2xl font-semibold text-white">{quotaRemaining ?? '—'}</p>
+                    <p className="text-2xl font-semibold text-slate-950">{quotaRemaining ?? '—'}</p>
                     <p className="text-xs text-slate-500">requests remaining</p>
                   </div>
-                  <Gauge className="h-5 w-5 text-sky-300" />
+                  <Gauge className="h-5 w-5 text-blue-700" />
                 </div>
-                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
                   <div
                     className="h-full rounded-full bg-sky-300 transition-all"
                     style={{ width: `${Math.max(0, Math.min(100, ((quotaRemaining ?? 20) / 20) * 100))}%` }}
@@ -451,14 +451,14 @@ export default function IntentClient({
 
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Workspace</p>
-              <div className="mt-2 space-y-2 text-xs text-slate-400">
-                <div className="flex items-center justify-between rounded-lg border border-white/[0.07] px-3 py-2.5">
+              <div className="mt-2 space-y-2 text-xs text-slate-600">
+                <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
                   <span>Session</span>
-                  <span className="font-mono text-slate-300">{sessionId ? sessionId.slice(0, 8) : 'new'}</span>
+                  <span className="font-mono text-slate-700">{sessionId ? sessionId.slice(0, 8) : 'new'}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-lg border border-white/[0.07] px-3 py-2.5">
+                <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
                   <span>Transport</span>
-                  <span className="text-emerald-300">GIC-operated</span>
+                  <span className="text-emerald-700">GIC-operated</span>
                 </div>
               </div>
             </div>
@@ -466,7 +466,7 @@ export default function IntentClient({
             <button
               type="button"
               onClick={onSignOut}
-              className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-white/10 text-xs font-medium text-slate-400 hover:bg-white/[0.05] hover:text-white"
+              className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-white/[0.05] hover:text-slate-950"
             >
               <LogOut size={14} /> Sign out
             </button>
@@ -474,7 +474,7 @@ export default function IntentClient({
         </aside>
 
         <section className="flex min-w-0 flex-col">
-          <header className="border-b border-white/10 bg-[#0a111e]/95 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
+          <header className="border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-4">
                 <Image
@@ -488,25 +488,25 @@ export default function IntentClient({
                 />
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">LooseMouth</h1>
-                    <span className="rounded-full border border-sky-300/20 bg-sky-300/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-200">
+                    <h1 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">LooseMouth</h1>
+                    <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-700">
                       Signed-in workspace
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-400">Private inference access through the INTENT model family.</p>
+                  <p className="mt-1 text-sm text-slate-600">Private inference access through the INTENT model family.</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="hidden rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-right sm:block">
+                <div className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-right sm:block">
                   <p className="text-[10px] uppercase tracking-[0.13em] text-slate-500">Active model</p>
-                  <p className="text-xs font-semibold text-white">
+                  <p className="text-xs font-semibold text-slate-950">
                     {model === 'gemma4' ? 'LooseMouth Enhanced' : 'LooseMouth Native'}
                   </p>
                 </div>
                 <span
                   className={`h-2.5 w-2.5 rounded-full ${
-                    model === 'gemma4' ? (gemmaAvailable ? 'bg-emerald-400' : 'bg-slate-600') : nativeAvailable ? 'bg-emerald-400' : 'bg-slate-600'
+                    model === 'gemma4' ? (gemmaAvailable ? 'bg-emerald-500' : 'bg-slate-300') : nativeAvailable ? 'bg-emerald-500' : 'bg-slate-300'
                   }`}
                   aria-label="Model availability"
                 />
@@ -521,11 +521,11 @@ export default function IntentClient({
                 aria-pressed={model === 'gemma4'}
                 className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
                   model === 'gemma4'
-                    ? 'border-sky-300/60 bg-sky-300/12 text-white'
-                    : 'border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/[0.06] hover:text-white'
+                    ? 'border-blue-500 bg-blue-50 text-blue-900'
+                    : 'border-slate-200 bg-white/[0.03] text-slate-600 hover:bg-white/[0.06] hover:text-slate-950'
                 }`}
               >
-                Enhanced <span className="text-xs text-slate-400">· {gemmaAvailable ? 'multimodal' : availabilityChecked ? 'offline' : 'checking'}</span>
+                Enhanced <span className="text-xs text-slate-600">· {gemmaAvailable ? 'multimodal' : availabilityChecked ? 'offline' : 'checking'}</span>
               </button>
               <button
                 type="button"
@@ -534,11 +534,11 @@ export default function IntentClient({
                 aria-pressed={model === 'native'}
                 className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
                   model === 'native'
-                    ? 'border-sky-300/60 bg-sky-300/12 text-white'
-                    : 'border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/[0.06] hover:text-white'
+                    ? 'border-blue-500 bg-blue-50 text-blue-900'
+                    : 'border-slate-200 bg-white/[0.03] text-slate-600 hover:bg-white/[0.06] hover:text-slate-950'
                 }`}
               >
-                Native <span className="text-xs text-slate-400">· {nativeAvailable ? 'INTENT' : availabilityChecked ? 'offline' : 'checking'}</span>
+                Native <span className="text-xs text-slate-600">· {nativeAvailable ? 'INTENT' : availabilityChecked ? 'offline' : 'checking'}</span>
               </button>
 
               <div className="ml-auto flex items-center gap-3 text-xs text-slate-500 lg:hidden">
@@ -568,19 +568,19 @@ export default function IntentClient({
               {availabilityChecked && turns.length === 0 && (
                 <div className="mx-auto flex min-h-[58vh] max-w-3xl flex-col justify-center">
                   <div className="mb-7 flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-sky-300/20 bg-sky-300/10">
-                      <Cpu className="h-5 w-5 text-sky-200" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-200 bg-blue-50">
+                      <Cpu className="h-5 w-5 text-blue-700" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-300">Session ready</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">Session ready</p>
                       <p className="text-sm text-slate-500">Authenticated as {displayName}</p>
                     </div>
                   </div>
 
-                  <h2 className="max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-white sm:text-4xl">
+                  <h2 className="max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl">
                     What do you want to investigate?
                   </h2>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400">
+                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
                     Ask LooseMouth directly, switch models above, attach an image when Enhanced is available, or enable web search when the active model supports it.
                   </p>
 
@@ -593,7 +593,7 @@ export default function IntentClient({
                           setMessage(suggestion);
                           textareaRef.current?.focus();
                         }}
-                        className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 text-left text-sm leading-6 text-slate-300 transition hover:border-sky-300/25 hover:bg-sky-300/[0.05] hover:text-white"
+                        className="rounded-2xl border border-slate-200 bg-white p-4 text-left text-sm leading-6 text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-slate-950"
                       >
                         {suggestion}
                       </button>
@@ -607,18 +607,18 @@ export default function IntentClient({
                   key={index}
                   className={`mx-auto max-w-4xl ${
                     turn.role === 'user'
-                      ? 'rounded-2xl border border-sky-300/15 bg-sky-300/[0.06] px-4 py-4 sm:px-5'
+                      ? 'rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4 sm:px-5'
                       : 'px-1 py-2'
                   }`}
                 >
                   <div className="mb-2 flex items-center gap-2">
                     {turn.role === 'user' ? (
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-[10px] font-semibold text-white">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-semibold text-slate-950">
                         {initials}
                       </div>
                     ) : (
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-sky-300/20 bg-sky-300/10">
-                        <Image src="/images/global-intent-company-icon.png" alt="" width={18} height={18} className="h-4 w-4 object-contain" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-blue-200 bg-blue-50">
+                        <Image src="/images/loosemouth-model-logo.png" alt="" width={28} height={20} className="h-4 w-auto object-contain" />
                       </div>
                     )}
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -628,20 +628,20 @@ export default function IntentClient({
 
                   <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-slate-100 sm:text-base">{turn.text}</p>
 
-                  {turn.imageName && <p className="mt-2 text-xs text-sky-300">Image attached: {turn.imageName}</p>}
+                  {turn.imageName && <p className="mt-2 text-xs text-blue-700">Image attached: {turn.imageName}</p>}
 
                   {turn.sources && turn.sources.length > 0 && (
-                    <div className="mt-5 border-t border-white/10 pt-4">
+                    <div className="mt-5 border-t border-slate-200 pt-4">
                       <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Sources</p>
                       <ul className="space-y-3">
                         {turn.sources.map((source, sourceIndex) => (
-                          <li key={sourceIndex} className="text-sm leading-6 text-slate-300">
+                          <li key={sourceIndex} className="text-sm leading-6 text-slate-700">
                             {source.url ? (
                               <a
                                 href={source.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-medium text-sky-200 underline decoration-sky-300/30 underline-offset-2 hover:text-white"
+                                className="font-medium text-blue-700 underline decoration-sky-300/30 underline-offset-2 hover:text-slate-950"
                               >
                                 [{sourceIndex + 1}] {source.title || source.url}
                               </a>
@@ -649,7 +649,7 @@ export default function IntentClient({
                               <span>[{sourceIndex + 1}] {source.title}</span>
                             )}
                             {source.date && <span className="ml-2 text-xs text-slate-500">{source.date}</span>}
-                            {source.snippet && <p className="mt-1 text-sm text-slate-400">{source.snippet}</p>}
+                            {source.snippet && <p className="mt-1 text-sm text-slate-600">{source.snippet}</p>}
                           </li>
                         ))}
                       </ul>
@@ -657,7 +657,7 @@ export default function IntentClient({
                   )}
 
                   {turn.warning && (
-                    <p className="mt-4 rounded-lg border border-amber-300/15 bg-amber-300/[0.06] px-3 py-2 text-xs leading-5 text-amber-100">
+                    <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
                       {turn.warning}
                     </p>
                   )}
@@ -666,23 +666,23 @@ export default function IntentClient({
 
               {busy && (
                 <div className="mx-auto max-w-4xl">
-                  <div className="w-fit rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <div className="w-fit rounded-xl border border-slate-200 bg-white/[0.03] px-4 py-3">
                     <BrandLoader label="LooseMouth is responding…" size={34} />
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="sticky bottom-0 border-t border-white/10 bg-[#0a111e]/96 px-4 py-4 backdrop-blur sm:px-6 lg:px-10">
+            <div className="sticky bottom-0 border-t border-slate-200 bg-white/96 px-4 py-4 backdrop-blur sm:px-6 lg:px-10">
               <form onSubmit={send} className="mx-auto max-w-4xl">
                 {availabilityChecked && !gemmaAvailable && model === 'gemma4' && (
-                  <p role="status" className="mb-3 rounded-lg border border-sky-200/15 bg-sky-200/[0.05] px-3 py-2 text-sm text-slate-300">
+                  <p role="status" className="mb-3 rounded-lg border border-sky-200/15 bg-sky-200/[0.05] px-3 py-2 text-sm text-slate-700">
                     LooseMouth Enhanced is offline. {nativeAvailable ? 'Switch to Native to continue.' : 'Please check back soon.'}
                   </p>
                 )}
 
                 <label htmlFor="intent-message" className="sr-only">Message LooseMouth</label>
-                <div className="rounded-2xl border border-white/15 bg-[#09111f] p-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.24)] transition focus-within:border-sky-300/50 focus-within:ring-2 focus-within:ring-sky-300/10">
+                <div className="rounded-2xl border border-slate-300 bg-white p-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.24)] transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
                   <textarea
                     ref={textareaRef}
                     id="intent-message"
@@ -692,14 +692,14 @@ export default function IntentClient({
                     maxLength={2000}
                     rows={2}
                     disabled={busy}
-                    className="max-h-40 min-h-16 w-full resize-y bg-transparent px-2 py-2 text-base leading-6 text-white outline-none placeholder:text-slate-600 disabled:opacity-60"
+                    className="max-h-40 min-h-16 w-full resize-y bg-transparent px-2 py-2 text-base leading-6 text-slate-950 outline-none placeholder:text-slate-600 disabled:opacity-60"
                     placeholder="Message LooseMouth…"
                   />
 
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-1 pt-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-1 pt-2">
                     <div className="flex flex-wrap items-center gap-1">
                       {(model === 'native' || enhancedSearch) && (
-                        <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-400 hover:bg-white/[0.04] hover:text-white">
+                        <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-white/[0.04] hover:text-slate-950">
                           <input
                             type="checkbox"
                             checked={search}
@@ -713,14 +713,14 @@ export default function IntentClient({
                                 }).catch(() => setHistoryError('Search preference could not be saved.'));
                               }
                             }}
-                            className="h-4 w-4 accent-sky-400"
+                            className="h-4 w-4 accent-blue-600"
                           />
                           <Globe2 size={16} /> Web
                         </label>
                       )}
 
                       {model === 'gemma4' && (
-                        <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-400 hover:bg-white/[0.04] hover:text-white">
+                        <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-white/[0.04] hover:text-slate-950">
                           <ImagePlus size={16} /> Image
                           <input
                             type="file"
@@ -745,16 +745,16 @@ export default function IntentClient({
                     <button
                       type="submit"
                       disabled={busy || !message.trim() || !availabilityChecked || (model === 'gemma4' ? !gemmaAvailable : !nativeAvailable)}
-                      className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-sky-300 px-4 text-sm font-semibold text-[#071425] transition hover:bg-sky-200 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Send <ArrowUp size={17} />
                     </button>
                   </div>
 
                   {image && (
-                    <div className="flex items-center gap-2 px-2 pt-2 text-xs text-sky-200">
+                    <div className="flex items-center gap-2 px-2 pt-2 text-xs text-blue-700">
                       <span className="max-w-64 truncate">{image.name}</span>
-                      <button type="button" onClick={() => setImage(null)} aria-label="Remove image" className="rounded p-1 hover:bg-white/10">
+                      <button type="button" onClick={() => setImage(null)} aria-label="Remove image" className="rounded p-1 hover:bg-slate-100">
                         <X size={14} />
                       </button>
                     </div>
@@ -767,13 +767,13 @@ export default function IntentClient({
                 </div>
 
                 {historyError && (
-                  <p role="status" className="mt-3 rounded-lg border border-sky-300/15 bg-sky-300/[0.05] px-3 py-2 text-xs text-sky-100">
+                  <p role="status" className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                     History: {historyError}
                   </p>
                 )}
 
                 {error && (
-                  <p role="alert" className="mt-3 rounded-lg border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+                  <p role="alert" className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                     {error}
                   </p>
                 )}
