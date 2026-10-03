@@ -46,7 +46,7 @@ export default function IntentPwaControls({ compact = false }: { compact?: boole
         </button>
       ) : iosInstallHint ? (
         <p className="text-xs leading-5 text-slate-600">
-          On iPhone or iPad, use Share → Add to Home Screen to install LooseMouth.
+          On iPhone or iPad, use Share → Add to Home Screen. The Home Screen app opens LooseMouth in standalone mode without Safari chrome.
         </p>
       ) : installed ? (
         <p className="text-xs font-medium text-emerald-700">LooseMouth is installed.</p>
