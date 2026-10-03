@@ -556,7 +556,16 @@ export default function IntentClient({
               aria-relevant="additions text"
               className="min-h-[420px] flex-1 space-y-6 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6 lg:px-10"
             >
-              {turns.length === 0 && (
+              {!availabilityChecked && turns.length === 0 && (
+                <div className="mx-auto flex min-h-[58vh] max-w-3xl flex-col justify-center">
+                  <BrandLoader
+                    label={`Connecting to ${model === 'gemma4' ? 'LooseMouth Enhanced' : 'LooseMouth Native'}…`}
+                    size={52}
+                  />
+                </div>
+              )}
+
+              {availabilityChecked && turns.length === 0 && (
                 <div className="mx-auto flex min-h-[58vh] max-w-3xl flex-col justify-center">
                   <div className="mb-7 flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-sky-300/20 bg-sky-300/10">
