@@ -51,7 +51,7 @@ self.addEventListener('fetch', (event) => {
     headers: {
       'Content-Type': 'application/javascript; charset=utf-8',
       'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'Service-Worker-Allowed': '/intent/',
+      'Service-Worker-Allowed': '/intent',
       'X-LooseMouth-App-Version': version,
     },
   });
