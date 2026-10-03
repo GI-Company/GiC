@@ -106,7 +106,15 @@ export async function GET(request: NextRequest) {
   if (enhanced) models.push('gemma4');
   const enhancedSearch = enhanced && typeof enhanced === 'object' && 'web_search' in enhanced && enhanced.web_search === true;
   const enhancedMaxTokens = enhanced && typeof enhanced === 'object' && 'max_output_tokens' in enhanced && enhanced.max_output_tokens === 512 ? 512 : 160;
-  return NextResponse.json({ models, enhancedSearch, enhancedMaxTokens }, { headers: jsonHeaders });
+  return NextResponse.json({
+    models,
+    enhancedSearch,
+    enhancedMaxTokens,
+    researchProfiles: {
+      quick: { maxQueries: 2, maxPages: 3, maxHops: 1, maxSources: 6 },
+      deep: { maxQueries: 4, maxPages: 6, maxHops: 2, maxSources: 12 },
+    },
+  }, { headers: jsonHeaders });
 }
 
 export async function POST(request: NextRequest) {
@@ -148,6 +156,42 @@ export async function POST(request: NextRequest) {
     return error('Invalid session ID.', 400);
   }
   const search = body.search === true || body.search === 'true';
+  const searchDepth = body.search_depth === 'deep' ? 'deep' : 'quick';
+  const research = search
+    ? searchDepth === 'deep'
+      ? {
+          enabled: true,
+          depth: 'deep',
+          max_queries: 4,
+          results_per_query: 5,
+          max_pages: 6,
+          max_chunks_per_page: 3,
+          max_hops: 2,
+          max_sources: 12,
+          fetch_timeout_ms: 8_000,
+        }
+      : {
+          enabled: true,
+          depth: 'quick',
+          max_queries: 2,
+          results_per_query: 4,
+          max_pages: 3,
+          max_chunks_per_page: 2,
+          max_hops: 1,
+          max_sources: 6,
+          fetch_timeout_ms: 6_000,
+        }
+    : {
+        enabled: false,
+        depth: 'quick',
+        max_queries: 0,
+        results_per_query: 0,
+        max_pages: 0,
+        max_chunks_per_page: 0,
+        max_hops: 0,
+        max_sources: 0,
+        fetch_timeout_ms: 0,
+      };
   const maxTokens = body.max_tokens == null ? 100 : Number(body.max_tokens);
   const maximum = model === 'gemma4' ? 512 : 160;
   if (!Number.isInteger(maxTokens) || maxTokens < 16 || maxTokens > maximum) {
@@ -171,7 +215,14 @@ export async function POST(request: NextRequest) {
       'X-Intent-Client': client,
       'Content-Type': 'application/json',
     };
-    const outbound = JSON.stringify({ message, model, session_id: sessionId ?? null, search, max_tokens: maxTokens });
+    const outbound = JSON.stringify({
+      message,
+      model,
+      session_id: sessionId ?? null,
+      search,
+      research,
+      max_tokens: maxTokens,
+    });
     const upstream = await fetch(url, {
       method: 'POST',
       headers,

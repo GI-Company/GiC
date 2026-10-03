@@ -28,8 +28,31 @@ import {
 } from '@/lib/loosemouth-persistence';
 
 type Source = { title: string; snippet: string; date: string; url: string };
-type Turn = { role: 'user' | 'assistant'; text: string; imageName?: string; sources?: Source[]; warning?: string | null };
-type ChatResponse = { session_id: string; answer: string; sources: Source[]; warning: string | null; mode: string };
+type Turn = {
+  role: 'user' | 'assistant';
+  text: string;
+  imageName?: string;
+  sources?: Source[];
+  warning?: string | null;
+  research?: ResearchDiagnostics;
+};
+type ResearchDiagnostics = {
+  depth?: 'quick' | 'deep';
+  queries?: number;
+  fetched_pages?: number;
+  hops?: number;
+  sources_considered?: number;
+  elapsed_ms?: number;
+};
+
+type ChatResponse = {
+  session_id: string;
+  answer: string;
+  sources: Source[];
+  warning: string | null;
+  mode: string;
+  research?: ResearchDiagnostics;
+};
 
 type IntentClientProps = {
   accessToken: string;
@@ -58,6 +81,7 @@ export default function IntentClient({
   const [message, setMessage] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [search, setSearch] = useState(false);
+  const [searchDepth, setSearchDepth] = useState<'quick' | 'deep'>('quick');
   const [model, setModel] = useState<'gemma4' | 'native'>('native');
   const [gemmaAvailable, setGemmaAvailable] = useState(false);
   const [nativeAvailable, setNativeAvailable] = useState(false);
@@ -176,7 +200,14 @@ export default function IntentClient({
       const response = await fetch('/api/intent', {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, model, session_id: sessionId, search, max_tokens: maxTokens }),
+        body: JSON.stringify({
+          message: text,
+          model,
+          session_id: sessionId,
+          search,
+          search_depth: search ? searchDepth : undefined,
+          max_tokens: maxTokens,
+        }),
       });
 
       const remaining = response.headers.get('X-RateLimit-Remaining');
@@ -197,7 +228,13 @@ export default function IntentClient({
         : answer.sources;
       setTurns((current) => [
         ...current,
-        { role: 'assistant', text: answer.answer, sources: enrichedSources, warning: answer.warning },
+        {
+          role: 'assistant',
+          text: answer.answer,
+          sources: enrichedSources,
+          warning: answer.warning,
+          research: answer.research,
+        },
       ]);
 
       if (accountUserId) {
@@ -660,6 +697,19 @@ export default function IntentClient({
                     </div>
                   )}
 
+                  {turn.research && (
+                    <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                      <span className="font-semibold uppercase tracking-[0.12em] text-blue-700">
+                        {turn.research.depth === 'deep' ? 'Deep research' : 'Web research'}
+                      </span>
+                      {typeof turn.research.queries === 'number' && <span>{turn.research.queries} queries</span>}
+                      {typeof turn.research.fetched_pages === 'number' && <span>{turn.research.fetched_pages} pages</span>}
+                      {typeof turn.research.hops === 'number' && <span>{turn.research.hops} hops</span>}
+                      {typeof turn.research.sources_considered === 'number' && <span>{turn.research.sources_considered} sources considered</span>}
+                      {typeof turn.research.elapsed_ms === 'number' && <span>{(turn.research.elapsed_ms / 1000).toFixed(1)}s research</span>}
+                    </div>
+                  )}
+
                   {turn.warning && (
                     <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
                       {turn.warning}
@@ -721,6 +771,31 @@ export default function IntentClient({
                           />
                           <Globe2 size={16} /> Web
                         </label>
+                      )}
+
+                      {search && (
+                        <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Web research depth">
+                          <button
+                            type="button"
+                            onClick={() => setSearchDepth('quick')}
+                            aria-pressed={searchDepth === 'quick'}
+                            className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
+                              searchDepth === 'quick' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-950'
+                            }`}
+                          >
+                            Quick
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSearchDepth('deep')}
+                            aria-pressed={searchDepth === 'deep'}
+                            className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
+                              searchDepth === 'deep' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-950'
+                            }`}
+                          >
+                            Deep
+                          </button>
+                        </div>
                       )}
 
 
