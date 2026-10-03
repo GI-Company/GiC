@@ -139,6 +139,49 @@ export async function saveMessage(
   }));
 }
 
+export async function saveExchange(
+  accessToken: string,
+  userId: string,
+  conversationId: string,
+  values: {
+    userContent: string;
+    assistantContent: string;
+    assistantSources?: PersistedMessage['sources'];
+    assistantWarning?: string | null;
+  },
+) {
+  const url = new URL('/rest/v1/loosemouth_messages', SUPABASE_URL);
+  await checked<void>(await fetch(url, {
+    method: 'POST',
+    headers: authHeaders(accessToken, {
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    }),
+    // PostgREST bulk inserts execute as a single database transaction. Either
+    // both sides of the turn persist or neither does.
+    body: JSON.stringify([
+      {
+        conversation_id: conversationId,
+        user_id: userId,
+        role: 'user',
+        content: values.userContent,
+        image_name: null,
+        sources: [],
+        warning: null,
+      },
+      {
+        conversation_id: conversationId,
+        user_id: userId,
+        role: 'assistant',
+        content: values.assistantContent,
+        image_name: null,
+        sources: values.assistantSources ?? [],
+        warning: values.assistantWarning ?? null,
+      },
+    ]),
+  }));
+}
+
 export async function getPreferences(accessToken: string, userId: string) {
   const url = new URL('/rest/v1/loosemouth_user_preferences', SUPABASE_URL);
   url.searchParams.set('select', 'user_id,preferred_model,web_search_enabled,updated_at');
