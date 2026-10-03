@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import IntentClient from '@/components/intent/IntentClient';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
