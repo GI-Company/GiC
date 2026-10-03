@@ -39,11 +39,25 @@ function authHeaders(accessToken: string, extra?: Record<string, string>) {
 
 async function checked<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const payload = await response.json().catch(() => null) as { message?: string; details?: string } | null;
+    const text = await response.text().catch(() => '');
+    let payload: { message?: string; details?: string } | null = null;
+    if (text) {
+      try {
+        payload = JSON.parse(text) as { message?: string; details?: string };
+      } catch {
+        // Keep the HTTP status fallback when an upstream error is not JSON.
+      }
+    }
     throw new Error(payload?.message || payload?.details || `Persistence request failed (${response.status}).`);
   }
+
+  // PostgREST can return a successful 200/201 with an empty response body for
+  // writes using Prefer: return=minimal. Do not attempt JSON parsing when
+  // there is no representation to decode.
   if (response.status === 204) return undefined as T;
-  return await response.json() as T;
+  const text = await response.text();
+  if (!text.trim()) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export async function listConversations(accessToken: string, userId: string) {
