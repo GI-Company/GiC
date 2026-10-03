@@ -65,6 +65,7 @@ export function IntentPwaProvider({ children }: { children: ReactNode }) {
     let active = true;
     let refreshing = false;
     let interval: number | undefined;
+    let currentRegistration: ServiceWorkerRegistration | null = null;
 
     const onControllerChange = () => {
       if (refreshing) return;
@@ -72,12 +73,21 @@ export function IntentPwaProvider({ children }: { children: ReactNode }) {
       window.location.reload();
     };
 
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && currentRegistration) {
+        void currentRegistration.update().catch(() => undefined);
+      }
+    };
+
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    document.addEventListener('visibilitychange', onVisibility);
 
     void navigator.serviceWorker.register('/chat-sw.js', { scope: '/intent/' })
       .then((nextRegistration) => {
         if (!active) return;
+        currentRegistration = nextRegistration;
         setRegistration(nextRegistration);
+
         if (nextRegistration.waiting && navigator.serviceWorker.controller) {
           setUpdateAvailable(true);
         }
@@ -100,20 +110,13 @@ export function IntentPwaProvider({ children }: { children: ReactNode }) {
         // The chat remains fully functional without service-worker support.
       });
 
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        void registration?.update().catch(() => undefined);
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-
     return () => {
       active = false;
       if (interval) window.clearInterval(interval);
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [registration]);
+  }, []);
 
   const install = useCallback(async () => {
     if (!installPrompt) return;
