@@ -382,6 +382,12 @@ export default function IntentClient({
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-2 lg:grid-cols-1">
+            <Link
+              href="/"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+            >
+              Main site <ExternalLink size={14} />
+            </Link>
             <button
               type="button"
               onClick={newChat}
