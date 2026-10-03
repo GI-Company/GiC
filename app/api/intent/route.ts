@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
   const gatewayEntries = gatewayData && typeof gatewayData === 'object' && 'models' in gatewayData && Array.isArray(gatewayData.models) ? gatewayData.models : [];
   const models = [];
   if (native ? nativeData : gatewayEntries.some((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'native')) models.push('native');
-  const enhanced = gatewayEntries.find((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'gemma4');
+  const enhanced = [...gatewayEntries, ...(gateway?.baseUrl.origin === native?.baseUrl.origin && nativeData && typeof nativeData === 'object' && 'models' in nativeData && Array.isArray(nativeData.models) ? nativeData.models : [])].find((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'gemma4');
   if (enhanced) models.push('gemma4');
   const enhancedSearch = enhanced && typeof enhanced === 'object' && 'web_search' in enhanced && enhanced.web_search === true;
   const enhancedMaxTokens = enhanced && typeof enhanced === 'object' && 'max_output_tokens' in enhanced && enhanced.max_output_tokens === 512 ? 512 : 160;
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
   const target = model === 'native'
     ? backend(process.env.NATIVE_INTENT_API_URL, process.env.NATIVE_INTENT_API_KEY)
       ?? backend(process.env.INTENT_API_URL, process.env.INTENT_API_KEY)
-    : backend(process.env.INTENT_API_URL, process.env.INTENT_API_KEY);
+    : backend(process.env.INTENT_API_URL, process.env.NATIVE_INTENT_API_URL === process.env.INTENT_API_URL ? process.env.NATIVE_INTENT_API_KEY : process.env.INTENT_API_KEY);
   if (!target) return error('Selected model is not connected yet.', 503);
   const message = typeof body.message === 'string' ? body.message.trim() : '';
   if (!message || message.length > 2000) {
