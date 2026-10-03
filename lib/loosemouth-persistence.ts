@@ -1,10 +1,12 @@
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
 
+export type LooseMouthModel = 'native' | 'intentR-402';
+
 export type PersistedConversation = {
   id: string;
   user_id: string;
   title: string;
-  model: 'native' | 'gemma4';
+  model: LooseMouthModel;
   inference_session_id: string | null;
   created_at: string;
   updated_at: string;
@@ -24,7 +26,7 @@ export type PersistedMessage = {
 
 export type LooseMouthPreferences = {
   user_id: string;
-  preferred_model: 'native' | 'gemma4';
+  preferred_model: LooseMouthModel;
   web_search_enabled: boolean;
   updated_at: string;
 };
@@ -60,16 +62,21 @@ async function checked<T>(response: Response): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+function normalizeStoredModel(value: unknown): LooseMouthModel {
+  return value === 'native' ? 'native' : 'intentR-402';
+}
+
 export async function listConversations(accessToken: string, userId: string) {
   const url = new URL('/rest/v1/loosemouth_conversations', SUPABASE_URL);
   url.searchParams.set('select', 'id,user_id,title,model,inference_session_id,created_at,updated_at');
   url.searchParams.set('user_id', `eq.${userId}`);
   url.searchParams.set('order', 'updated_at.desc');
   url.searchParams.set('limit', '30');
-  return checked<PersistedConversation[]>(await fetch(url, {
+  const rows = await checked<Array<Omit<PersistedConversation, 'model'> & { model: string }>>(await fetch(url, {
     headers: authHeaders(accessToken),
     cache: 'no-store',
   }));
+  return rows.map((row) => ({ ...row, model: normalizeStoredModel(row.model) }));
 }
 
 export async function loadMessages(accessToken: string, userId: string, conversationId: string) {
@@ -87,11 +94,11 @@ export async function loadMessages(accessToken: string, userId: string, conversa
 export async function createConversation(
   accessToken: string,
   userId: string,
-  values: { title: string; model: 'native' | 'gemma4' },
+  values: { title: string; model: LooseMouthModel },
 ) {
   const url = new URL('/rest/v1/loosemouth_conversations', SUPABASE_URL);
   url.searchParams.set('select', 'id,user_id,title,model,inference_session_id,created_at,updated_at');
-  const rows = await checked<PersistedConversation[]>(await fetch(url, {
+  const rows = await checked<Array<Omit<PersistedConversation, 'model'> & { model: string }>>(await fetch(url, {
     method: 'POST',
     headers: authHeaders(accessToken, {
       'Content-Type': 'application/json',
@@ -100,7 +107,7 @@ export async function createConversation(
     body: JSON.stringify({ user_id: userId, ...values }),
   }));
   if (!rows[0]) throw new Error('Conversation was not created.');
-  return rows[0];
+  return { ...rows[0], model: normalizeStoredModel(rows[0].model) };
 }
 
 export async function updateConversation(
@@ -201,17 +208,18 @@ export async function getPreferences(accessToken: string, userId: string) {
   url.searchParams.set('select', 'user_id,preferred_model,web_search_enabled,updated_at');
   url.searchParams.set('user_id', `eq.${userId}`);
   url.searchParams.set('limit', '1');
-  const rows = await checked<LooseMouthPreferences[]>(await fetch(url, {
+  const rows = await checked<Array<Omit<LooseMouthPreferences, 'preferred_model'> & { preferred_model: string }>>(await fetch(url, {
     headers: authHeaders(accessToken),
     cache: 'no-store',
   }));
-  return rows[0] ?? null;
+  if (!rows[0]) return null;
+  return { ...rows[0], preferred_model: normalizeStoredModel(rows[0].preferred_model) };
 }
 
 export async function savePreferences(
   accessToken: string,
   userId: string,
-  values: { preferred_model: 'native' | 'gemma4'; web_search_enabled: boolean },
+  values: { preferred_model: LooseMouthModel; web_search_enabled: boolean },
 ) {
   const url = new URL('/rest/v1/loosemouth_user_preferences', SUPABASE_URL);
   url.searchParams.set('on_conflict', 'user_id');
