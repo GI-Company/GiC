@@ -385,7 +385,7 @@ export default function IntentClient({
             <button
               type="button"
               onClick={newChat}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
             >
               <RotateCcw size={16} /> New session
             </button>
@@ -544,7 +544,7 @@ export default function IntentClient({
                 className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
                   model === 'gemma4'
                     ? 'border-blue-500 bg-blue-50 text-blue-900'
-                    : 'border-slate-200 bg-white/[0.03] text-slate-600 hover:bg-white/[0.06] hover:text-slate-950'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
                 }`}
               >
                 Enhanced <span className="text-xs text-slate-600">· {gemmaAvailable ? 'multimodal' : availabilityChecked ? 'offline' : 'checking'}</span>
@@ -557,7 +557,7 @@ export default function IntentClient({
                 className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
                   model === 'native'
                     ? 'border-blue-500 bg-blue-50 text-blue-900'
-                    : 'border-slate-200 bg-white/[0.03] text-slate-600 hover:bg-white/[0.06] hover:text-slate-950'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
                 }`}
               >
                 Native <span className="text-xs text-slate-600">· {nativeAvailable ? 'INTENT' : availabilityChecked ? 'offline' : 'checking'}</span>
@@ -648,7 +648,7 @@ export default function IntentClient({
                     </p>
                   </div>
 
-                  <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-slate-100 sm:text-base">{turn.text}</p>
+                  <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-slate-800 sm:text-base">{turn.text}</p>
 
                   {turn.imageName && <p className="mt-2 text-xs text-blue-700">Image attached: {turn.imageName}</p>}
 
@@ -688,7 +688,7 @@ export default function IntentClient({
 
               {busy && (
                 <div className="mx-auto max-w-4xl">
-                  <div className="w-fit rounded-xl border border-slate-200 bg-white/[0.03] px-4 py-3">
+                  <div className="w-fit rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
                     <BrandLoader label="LooseMouth is responding…" size={34} />
                   </div>
                 </div>
