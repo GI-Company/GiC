@@ -202,8 +202,23 @@ export default function IntentAuthGate() {
   }
 
   return (
-    <main className="min-h-screen bg-white px-4 py-10 text-slate-100 sm:px-6">
-      <div className="mx-auto grid min-h-[80vh] max-w-5xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+    <main className="min-h-screen bg-white px-4 py-6 text-slate-950 sm:px-6">
+      <div className="mx-auto max-w-5xl">
+        <nav className="flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-950">
+            <ArrowLeft size={16} /> Main site
+          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/research" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-950">
+              Research
+            </Link>
+            <Link href="/systems" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-950">
+              Systems <ExternalLink size={14} />
+            </Link>
+          </div>
+        </nav>
+      </div>
+      <div className="mx-auto grid min-h-[78vh] max-w-5xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
         <section>
           <div className="mb-6 flex items-center gap-4">
             <Image
