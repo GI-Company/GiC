@@ -103,8 +103,8 @@ export async function GET(request: NextRequest) {
   const gatewayEntries = gatewayData && typeof gatewayData === 'object' && 'models' in gatewayData && Array.isArray(gatewayData.models) ? gatewayData.models : [];
   const models = [];
   if (native ? nativeData : gatewayEntries.some((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'native')) models.push('native');
-  const enhanced = [...gatewayEntries, ...(gateway?.baseUrl.origin === native?.baseUrl.origin && nativeData && typeof nativeData === 'object' && 'models' in nativeData && Array.isArray(nativeData.models) ? nativeData.models : [])].find((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'gemma4');
-  if (enhanced) models.push('gemma4');
+  const enhanced = [...gatewayEntries, ...(gateway?.baseUrl.origin === native?.baseUrl.origin && nativeData && typeof nativeData === 'object' && 'models' in nativeData && Array.isArray(nativeData.models) ? nativeData.models : [])].find((entry: unknown) => entry && typeof entry === 'object' && 'id' in entry && entry.id === 'intentR-402');
+  if (enhanced) models.push('intentR-402');
   const enhancedSearch = enhanced && typeof enhanced === 'object' && 'web_search' in enhanced && enhanced.web_search === true;
   const enhancedMaxTokens = enhanced && typeof enhanced === 'object' && 'max_output_tokens' in enhanced && enhanced.max_output_tokens === 512 ? 512 : 160;
   return NextResponse.json({
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     return error('Invalid request body.', 400);
   }
   const body = raw as Record<string, unknown>;
-  const model = body.model === 'native' ? 'native' : body.model === 'gemma4' ? 'gemma4' : null;
+  const model = body.model === 'native' ? 'native' : body.model === 'intentR-402' ? 'intentR-402' : null;
   if (!model) return error('Choose a valid model.', 400);
   const target = model === 'native'
     ? backend(process.env.NATIVE_INTENT_API_URL, process.env.NATIVE_INTENT_API_KEY)
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
         fetch_timeout_ms: 0,
       };
   const maxTokens = body.max_tokens == null ? 100 : Number(body.max_tokens);
-  const maximum = model === 'gemma4' ? 512 : 160;
+  const maximum = model === 'intentR-402' ? 512 : 160;
   if (!Number.isInteger(maxTokens) || maxTokens < 16 || maxTokens > maximum) {
     return error(`max_tokens must be 16–${maximum} for this model.`, 400);
   }
