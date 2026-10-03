@@ -23,7 +23,7 @@ import {
   getPreferences,
   listConversations,
   loadMessages,
-  saveMessage,
+  saveExchange,
   savePreferences,
   updateConversation,
   type PersistedConversation,
@@ -252,15 +252,11 @@ export default function IntentClient({
             setActiveConversationId(conversationId);
           }
 
-          await saveMessage(accessToken, accountUserId, conversationId, {
-            role: 'user',
-            content: text,
-          });
-          await saveMessage(accessToken, accountUserId, conversationId, {
-            role: 'assistant',
-            content: answer.answer,
-            sources: enrichedSources,
-            warning: answer.warning,
+          await saveExchange(accessToken, accountUserId, conversationId, {
+            userContent: text,
+            assistantContent: answer.answer,
+            assistantSources: enrichedSources,
+            assistantWarning: answer.warning,
           });
           await updateConversation(accessToken, accountUserId, conversationId, {
             model,
