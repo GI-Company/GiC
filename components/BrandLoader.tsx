@@ -1,8 +1,19 @@
 import Image from 'next/image';
 
-export default function BrandLoader({ label = 'Loading', size = 48 }: { label?: string; size?: number }) {
+export default function BrandLoader({
+  label = 'Loading',
+  size = 48,
+  tone = 'light',
+}: {
+  label?: string;
+  size?: number;
+  tone?: 'light' | 'dark';
+}) {
   return (
-    <span role="status" className="inline-flex items-center gap-3 text-sm text-slate-200">
+    <span
+      role="status"
+      className={`inline-flex items-center gap-3 text-sm ${tone === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}
+    >
       <span className="relative inline-block shrink-0" style={{ width: size, height: size }} aria-hidden="true">
         <Image src="/images/global-intent-company-icon.png" alt="" fill sizes={`${size}px`} className="object-contain" />
         <video
