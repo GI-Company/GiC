@@ -357,7 +357,7 @@ export default function IntentClient({
             <button
               type="button"
               onClick={onSignOut}
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-white/[0.05] hover:text-slate-950 lg:hidden"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950 lg:hidden"
             >
               <LogOut size={14} /> Sign out
             </button>
@@ -381,13 +381,7 @@ export default function IntentClient({
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <Link
-              href="/"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950"
-            >
-              Main site <ExternalLink size={14} />
-            </Link>
+          <div className="mt-5 space-y-2">
             <button
               type="button"
               onClick={newChat}
@@ -395,12 +389,34 @@ export default function IntentClient({
             >
               <RotateCcw size={16} /> New session
             </button>
-            <Link
-              href="/research"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-white/[0.05] hover:text-slate-950"
-            >
-              Research <ExternalLink size={14} />
-            </Link>
+
+            <nav className="grid grid-cols-2 gap-2" aria-label="Workspace navigation">
+              <Link
+                href="/"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+              >
+                Main site
+              </Link>
+              <Link
+                href="/research"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+              >
+                Research
+              </Link>
+              <Link
+                href="/systems"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+              >
+                Systems
+              </Link>
+              <Link
+                href="/virtual-lab"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+              >
+                Virtual Lab
+              </Link>
+            </nav>
+
           </div>
 
           <div className="mt-6 hidden space-y-5 lg:block">
@@ -418,7 +434,7 @@ export default function IntentClient({
                     className={`w-full rounded-lg px-3 py-2.5 text-left transition ${
                       activeConversationId === conversation.id
                         ? 'bg-blue-50 text-blue-700'
-                        : 'text-slate-600 hover:bg-white/[0.04] hover:text-slate-950'
+                        : 'text-slate-600 hover:bg-white hover:text-slate-950'
                     }`}
                   >
                     <span className="block truncate text-xs font-medium">{conversation.title}</span>
@@ -445,7 +461,7 @@ export default function IntentClient({
                 </div>
                 <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
                   <div
-                    className="h-full rounded-full bg-sky-300 transition-all"
+                    className="h-full rounded-full bg-blue-600 transition-all"
                     style={{ width: `${Math.max(0, Math.min(100, ((quotaRemaining ?? 20) / 20) * 100))}%` }}
                   />
                 </div>
@@ -472,7 +488,7 @@ export default function IntentClient({
             <button
               type="button"
               onClick={onSignOut}
-              className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-white/[0.05] hover:text-slate-950"
+              className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950"
             >
               <LogOut size={14} /> Sign out
             </button>
@@ -705,7 +721,7 @@ export default function IntentClient({
                   <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-1 pt-2">
                     <div className="flex flex-wrap items-center gap-1">
                       {(model === 'native' || enhancedSearch) && (
-                        <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-white/[0.04] hover:text-slate-950">
+                        <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-white hover:text-slate-950">
                           <input
                             type="checkbox"
                             checked={search}
@@ -726,7 +742,7 @@ export default function IntentClient({
                       )}
 
                       {model === 'gemma4' && (
-                        <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-white/[0.04] hover:text-slate-950">
+                        <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-white hover:text-slate-950">
                           <ImagePlus size={16} /> Image
                           <input
                             type="file"
