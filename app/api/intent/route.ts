@@ -117,25 +117,14 @@ export async function POST(request: NextRequest) {
   const user = await authenticatedUser(request);
   if (!user) return error('Sign in with a confirmed account to use LooseMouth.', 401);
   const contentType = request.headers.get('content-type')?.toLowerCase() || '';
-  const isJson = contentType.startsWith('application/json');
-  const isForm = contentType.startsWith('multipart/form-data');
-  if (!isJson && !isForm) return error('Expected JSON or image upload.', 415);
-  if (Number(request.headers.get('content-length') || 0) > (isForm ? 4_500_000 : 4096)) {
-    return error('Request is too large.', 413);
-  }
+  if (!contentType.startsWith('application/json')) return error('Expected JSON.', 415);
+  if (Number(request.headers.get('content-length') || 0) > 4096) return error('Request is too large.', 413);
 
   let raw: unknown;
-  let image: File | null = null;
   try {
-    if (isForm) {
-      const form = await request.formData();
-      image = form.get('image') instanceof File ? form.get('image') as File : null;
-      raw = Object.fromEntries(form.entries());
-    } else {
-      const text = await request.text();
-      if (Buffer.byteLength(text, 'utf8') > 4096) return error('Request is too large.', 413);
-      raw = JSON.parse(text);
-    }
+    const text = await request.text();
+    if (Buffer.byteLength(text, 'utf8') > 4096) return error('Request is too large.', 413);
+    raw = JSON.parse(text);
   } catch {
     return error('Invalid JSON body.', 400);
   }
@@ -150,10 +139,6 @@ export async function POST(request: NextRequest) {
       ?? backend(process.env.INTENT_API_URL, process.env.INTENT_API_KEY)
     : backend(process.env.INTENT_API_URL, process.env.INTENT_API_KEY);
   if (!target) return error('Selected model is not connected yet.', 503);
-  if (isForm && model !== 'gemma4') return error('Image input requires LooseMouth Enhanced.', 400);
-  if (isForm && (!image || !['image/jpeg', 'image/png', 'image/webp'].includes(image.type) || image.size > 4_000_000)) {
-    return error('Choose a JPEG, PNG, or WebP image under 4 MB.', 400);
-  }
   const message = typeof body.message === 'string' ? body.message.trim() : '';
   if (!message || message.length > 2000) {
     return error('Message must contain 1–2000 characters.', 400);
@@ -179,25 +164,14 @@ export async function POST(request: NextRequest) {
     if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);
     return response;
   }
-  const url = new URL(isForm ? '/v1/chat/image' : '/v1/chat', target.baseUrl);
+  const url = new URL('/v1/chat', target.baseUrl);
   try {
-    let outbound: BodyInit;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${target.apiKey}`,
       'X-Intent-Client': client,
+      'Content-Type': 'application/json',
     };
-    if (isForm && image) {
-      const form = new FormData();
-      form.set('image', image);
-      form.set('message', message);
-      if (sessionId) form.set('session_id', String(sessionId));
-      form.set('search', String(search));
-      form.set('max_tokens', String(maxTokens));
-      outbound = form;
-    } else {
-      headers['Content-Type'] = 'application/json';
-      outbound = JSON.stringify({ message, model, session_id: sessionId ?? null, search, max_tokens: maxTokens });
-    }
+    const outbound = JSON.stringify({ message, model, session_id: sessionId ?? null, search, max_tokens: maxTokens });
     const upstream = await fetch(url, {
       method: 'POST',
       headers,

@@ -6,7 +6,6 @@ import {
   ArrowUp,
   Globe2,
   RotateCcw,
-  ImagePlus,
   X,
   LogOut,
   ShieldCheck,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
+import { enrichSourcesWithPyScript } from '@/lib/pyscript-search';
 import {
   createConversation,
   getPreferences,
@@ -64,7 +64,6 @@ export default function IntentClient({
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
   const [enhancedSearch, setEnhancedSearch] = useState(false);
   const [enhancedMaxTokens, setEnhancedMaxTokens] = useState(160);
-  const [image, setImage] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [quotaRemaining, setQuotaRemaining] = useState<number | null>(20);
@@ -167,31 +166,17 @@ export default function IntentClient({
     if (!text || busy || !availabilityChecked || (model === 'gemma4' ? !gemmaAvailable : !nativeAvailable)) return;
 
     hasSentRef.current = true;
-    setTurns((current) => [...current, { role: 'user', text, imageName: image?.name }]);
+    setTurns((current) => [...current, { role: 'user', text }]);
     setMessage('');
     setError('');
     setBusy(true);
 
     try {
       const maxTokens = model === 'gemma4' && enhancedMaxTokens === 512 ? 320 : 100;
-      const body = image
-        ? new FormData()
-        : JSON.stringify({ message: text, model, session_id: sessionId, search, max_tokens: maxTokens });
-
-      if (body instanceof FormData && image) {
-        body.set('message', text);
-        body.set('model', model);
-        body.set('image', image);
-        if (sessionId) body.set('session_id', sessionId);
-        body.set('max_tokens', String(maxTokens));
-      }
-
       const response = await fetch('/api/intent', {
         method: 'POST',
-        headers: image
-          ? { Authorization: `Bearer ${accessToken}` }
-          : { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body,
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, model, session_id: sessionId, search, max_tokens: maxTokens }),
       });
 
       const remaining = response.headers.get('X-RateLimit-Remaining');
@@ -206,12 +191,13 @@ export default function IntentClient({
       }
 
       const answer = data as ChatResponse;
-      const imageName = image?.name ?? null;
       setSessionId(answer.session_id);
-      setImage(null);
+      const enrichedSources = search && answer.sources?.length
+        ? await enrichSourcesWithPyScript(text, answer.sources)
+        : answer.sources;
       setTurns((current) => [
         ...current,
-        { role: 'assistant', text: answer.answer, sources: answer.sources, warning: answer.warning },
+        { role: 'assistant', text: answer.answer, sources: enrichedSources, warning: answer.warning },
       ]);
 
       if (accountUserId) {
@@ -229,12 +215,11 @@ export default function IntentClient({
           await saveMessage(accessToken, accountUserId, conversationId, {
             role: 'user',
             content: text,
-            image_name: imageName,
           });
           await saveMessage(accessToken, accountUserId, conversationId, {
             role: 'assistant',
             content: answer.answer,
-            sources: answer.sources,
+            sources: enrichedSources,
             warning: answer.warning,
           });
           await updateConversation(accessToken, accountUserId, conversationId, {
@@ -285,7 +270,6 @@ export default function IntentClient({
     setTurns([]);
     setSessionId(null);
     setMessage('');
-    setImage(null);
     setError('');
     textareaRef.current?.focus();
   }
@@ -296,7 +280,6 @@ export default function IntentClient({
     setActiveConversationId(null);
     setModel(next);
     setSearch(false);
-    setImage(null);
     setTurns([]);
     setSessionId(null);
     setError('');
@@ -325,7 +308,6 @@ export default function IntentClient({
       })));
       hasSentRef.current = storedMessages.length > 0;
       setMessage('');
-      setImage(null);
       setError('');
     } catch (cause) {
       setHistoryError(cause instanceof Error ? cause.message : 'Conversation could not be loaded.');
@@ -547,7 +529,7 @@ export default function IntentClient({
                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
                 }`}
               >
-                Enhanced <span className="text-xs text-slate-600">· {gemmaAvailable ? 'multimodal' : availabilityChecked ? 'offline' : 'checking'}</span>
+                Enhanced <span className="text-xs text-slate-600">· {gemmaAvailable ? 'text' : availabilityChecked ? 'offline' : 'checking'}</span>
               </button>
               <button
                 type="button"
@@ -603,7 +585,7 @@ export default function IntentClient({
                     What do you want to investigate?
                   </h2>
                   <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-                    Ask LooseMouth directly, switch models above, attach an image when Enhanced is available, or enable web search when the active model supports it.
+                    Ask LooseMouth directly, switch models above, or enable web search when the active model supports it.
                   </p>
 
                   <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -741,27 +723,7 @@ export default function IntentClient({
                         </label>
                       )}
 
-                      {model === 'gemma4' && (
-                        <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-white hover:text-slate-950">
-                          <ImagePlus size={16} /> Image
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            className="sr-only"
-                            disabled={busy}
-                            onChange={(event) => {
-                              const selected = event.target.files?.[0] || null;
-                              if (selected && selected.size > 4_000_000) {
-                                setError('Image must be under 4 MB.');
-                                setImage(null);
-                              } else {
-                                setError('');
-                                setImage(selected);
-                              }
-                            }}
-                          />
-                        </label>
-                      )}
+
                     </div>
 
                     <button
@@ -773,14 +735,7 @@ export default function IntentClient({
                     </button>
                   </div>
 
-                  {image && (
-                    <div className="flex items-center gap-2 px-2 pt-2 text-xs text-blue-700">
-                      <span className="max-w-64 truncate">{image.name}</span>
-                      <button type="button" onClick={() => setImage(null)} aria-label="Remove image" className="rounded p-1 hover:bg-slate-100">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  )}
+
                 </div>
 
                 <div className="mt-2 flex flex-wrap justify-between gap-2 px-1 text-[11px] text-slate-600">

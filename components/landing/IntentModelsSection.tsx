@@ -17,7 +17,7 @@ export default function IntentModelsSection() {
           {[
             [Boxes,'Architecture research','Explore parameter efficiency, training behavior, reasoning supervision, and model scaling under constrained compute.'],
             [Cpu,'Local execution','Investigate runtimes and model formats intended for operator-controlled hardware rather than mandatory remote inference.'],
-            [MessageSquareText,'LooseMouth','A public research interface that demonstrates GIC-operated inference while clearly distinguishing native INTENT models from enhanced open-model serving.'],
+            [MessageSquareText,'LooseMouth','A public research interface for GIC-operated Native and Enhanced INTENT serving profiles, with capability presented independently from any temporary backend implementation.'],
           ].map(([Icon,title,text]:any)=><article key={title} className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm"><Icon className="h-5 w-5 text-blue-700"/><h3 className="mt-7 text-lg font-semibold text-slate-950">{title}</h3><p className="mt-3 text-sm leading-6 text-slate-600">{text}</p></article>)}
         </div>
       </div>
