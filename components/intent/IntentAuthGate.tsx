@@ -116,10 +116,11 @@ export default function IntentAuthGate() {
   }
 
   function signInWithGoogle() {
-    const redirectTo = intentRedirectUrl();
+    // Let Supabase return to the configured Site URL. LandingPage forwards
+    // the implicit-flow token fragment to /intent after authentication.
+    // This avoids www/non-www redirect allow-list mismatches.
     const authorizeUrl = new URL(`${SUPABASE_URL}/auth/v1/authorize`);
     authorizeUrl.searchParams.set('provider', 'google');
-    authorizeUrl.searchParams.set('redirect_to', redirectTo);
     window.location.assign(authorizeUrl.toString());
   }
 
