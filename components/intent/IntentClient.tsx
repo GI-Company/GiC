@@ -560,7 +560,7 @@ export default function IntentClient({
                 </div>
                 <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
                   <span>Transport</span>
-                  <span className="text-emerald-700">GIC-operated</span>
+                  <span className="text-emerald-700">Operator-hosted</span>
                 </div>
               </div>
             </div>
@@ -598,7 +598,15 @@ export default function IntentClient({
                 />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-slate-950">LooseMouth</p>
-                  <p className="truncate text-[10px] font-medium uppercase tracking-[0.11em] text-blue-700">
+                  <p className="flex items-center gap-1.5 truncate text-[10px] font-medium uppercase tracking-[0.11em] text-slate-500">
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        model === 'intentR-402'
+                          ? intentRAvailable ? 'bg-emerald-500' : 'bg-slate-300'
+                          : nativeAvailable ? 'bg-emerald-500' : 'bg-slate-300'
+                      }`}
+                      aria-hidden="true"
+                    />
                     {model === 'intentR-402' ? 'INTENT-R 402M' : 'Native'}
                   </p>
                 </div>
@@ -614,34 +622,6 @@ export default function IntentClient({
               </button>
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2" role="group" aria-label="Choose model">
-              <button
-                type="button"
-                disabled={busy || !intentRAvailable}
-                onClick={() => switchModel('intentR-402')}
-                aria-pressed={model === 'intentR-402'}
-                className={`min-h-9 rounded-lg border px-2 text-xs font-semibold disabled:opacity-40 ${
-                  model === 'intentR-402'
-                    ? 'border-blue-500 bg-blue-50 text-blue-900'
-                    : 'border-slate-200 bg-white text-slate-600'
-                }`}
-              >
-                Enhanced · {intentRAvailable ? '402M' : availabilityChecked ? 'offline' : 'checking'}
-              </button>
-              <button
-                type="button"
-                disabled={busy || !nativeAvailable}
-                onClick={() => switchModel('native')}
-                aria-pressed={model === 'native'}
-                className={`min-h-9 rounded-lg border px-2 text-xs font-semibold disabled:opacity-40 ${
-                  model === 'native'
-                    ? 'border-blue-500 bg-blue-50 text-blue-900'
-                    : 'border-slate-200 bg-white text-slate-600'
-                }`}
-              >
-                Native · {nativeAvailable ? 'INTENT' : availabilityChecked ? 'offline' : 'checking'}
-              </button>
-            </div>
           </header>
 
           {mobileMenuOpen && (
@@ -670,6 +650,96 @@ export default function IntentClient({
 
                 <div className="mt-5">
                   <IntentPwaControls />
+                </div>
+
+                <div className="mt-6 border-t border-slate-200 pt-5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Model</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2" role="group" aria-label="Choose model">
+                    <button
+                      type="button"
+                      disabled={busy || !intentRAvailable}
+                      onClick={() => switchModel('intentR-402')}
+                      aria-pressed={model === 'intentR-402'}
+                      className={`min-h-11 rounded-xl border px-3 text-xs font-semibold disabled:opacity-40 ${
+                        model === 'intentR-402'
+                          ? 'border-blue-500 bg-blue-50 text-blue-900'
+                          : 'border-slate-200 bg-white text-slate-600'
+                      }`}
+                    >
+                      Enhanced
+                      <span className="mt-0.5 block text-[10px] font-medium text-slate-500">
+                        {intentRAvailable ? 'INTENT-R 402M' : availabilityChecked ? 'Offline' : 'Checking'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || !nativeAvailable}
+                      onClick={() => switchModel('native')}
+                      aria-pressed={model === 'native'}
+                      className={`min-h-11 rounded-xl border px-3 text-xs font-semibold disabled:opacity-40 ${
+                        model === 'native'
+                          ? 'border-blue-500 bg-blue-50 text-blue-900'
+                          : 'border-slate-200 bg-white text-slate-600'
+                      }`}
+                    >
+                      Native
+                      <span className="mt-0.5 block text-[10px] font-medium text-slate-500">
+                        {nativeAvailable ? 'INTENT' : availabilityChecked ? 'Offline' : 'Checking'}
+                      </span>
+                    </button>
+                  </div>
+
+                  {(model === 'native' || enhancedSearch) && (
+                    <div className="mt-4 rounded-xl bg-slate-50 p-3">
+                      <label className="flex min-h-10 items-center justify-between gap-3 text-sm font-medium text-slate-700">
+                        <span className="inline-flex items-center gap-2"><Globe2 size={16} /> Web research</span>
+                        <input
+                          type="checkbox"
+                          checked={search}
+                          onChange={(event) => {
+                            const next = event.target.checked;
+                            setSearch(next);
+                            if (accountUserId) {
+                              void savePreferences(accessToken, accountUserId, {
+                                preferred_model: model,
+                                web_search_enabled: next,
+                              })
+                                .then(() => setHistoryError(''))
+                                .catch((cause) => setHistoryError(
+                                  cause instanceof Error ? cause.message : 'Search preference could not be saved.',
+                                ));
+                            }
+                          }}
+                          className="h-5 w-5 accent-blue-600"
+                        />
+                      </label>
+
+                      {search && (
+                        <div className="mt-2 grid grid-cols-2 gap-2" role="group" aria-label="Web research depth">
+                          <button
+                            type="button"
+                            onClick={() => setSearchDepth('quick')}
+                            aria-pressed={searchDepth === 'quick'}
+                            className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+                              searchDepth === 'quick' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'
+                            }`}
+                          >
+                            Quick
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSearchDepth('deep')}
+                            aria-pressed={searchDepth === 'deep'}
+                            className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+                              searchDepth === 'deep' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500'
+                            }`}
+                          >
+                            Deep
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-6 flex items-center justify-between">
@@ -826,8 +896,8 @@ export default function IntentClient({
               )}
 
               {availabilityChecked && turns.length === 0 && (
-                <div className="mx-auto flex min-h-[44vh] lg:min-h-[58vh] max-w-3xl flex-col justify-center">
-                  <div className="mb-7 flex items-center gap-3">
+                <div className="mx-auto flex min-h-[38vh] max-w-3xl flex-col justify-center lg:min-h-[58vh]">
+                  <div className="mb-4 flex items-center gap-3 sm:mb-7">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-200 bg-blue-50">
                       <Cpu className="h-5 w-5 text-blue-700" />
                     </div>
@@ -837,14 +907,14 @@ export default function IntentClient({
                     </div>
                   </div>
 
-                  <h2 className="max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl">
-                    What do you want to investigate?
+                  <h2 className="max-w-2xl text-2xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl">
+                    Ask LooseMouth
                   </h2>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-                    Ask LooseMouth directly, switch models above, or enable web search when the active model supports it.
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:mt-4 sm:text-base sm:leading-7">
+                    Start a conversation or open the menu for models, search, and saved sessions.
                   </p>
 
-                  <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-5 grid gap-2 sm:mt-8 sm:grid-cols-3 sm:gap-3">
                     {suggestions.map((suggestion) => (
                       <button
                         key={suggestion}
@@ -865,13 +935,13 @@ export default function IntentClient({
               {turns.map((turn, index) => (
                 <article
                   key={index}
-                  className={`mx-auto max-w-4xl ${
+                  className={
                     turn.role === 'user'
-                      ? 'rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4 sm:px-5'
-                      : 'px-1 py-2'
-                  }`}
+                      ? 'ml-auto max-w-[88%] rounded-2xl rounded-br-md bg-blue-600 px-4 py-3 text-white lg:mx-auto lg:max-w-4xl lg:rounded-2xl lg:border lg:border-blue-200 lg:bg-blue-50 lg:px-5 lg:py-4 lg:text-slate-950'
+                      : 'mr-auto w-full max-w-4xl px-1 py-2 lg:mx-auto'
+                  }
                 >
-                  <div className="mb-2 flex items-center gap-2">
+                  <div className={`mb-2 items-center gap-2 ${turn.role === 'user' ? 'hidden lg:flex' : 'flex'}`}>
                     {turn.role === 'user' ? (
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-semibold text-slate-950">
                         {initials}
@@ -886,7 +956,9 @@ export default function IntentClient({
                     </p>
                   </div>
 
-                  <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-slate-800 sm:text-base">{turn.text}</p>
+                  <p className={`whitespace-pre-wrap break-words text-[15px] leading-6 sm:text-base sm:leading-7 ${
+                    turn.role === 'user' ? 'text-white lg:text-slate-800' : 'text-slate-800'
+                  }`}>{turn.text}</p>
 
                   {turn.imageName && <p className="mt-2 text-xs text-blue-700">Image attached: {turn.imageName}</p>}
 
@@ -963,14 +1035,14 @@ export default function IntentClient({
                     onChange={(event) => setMessage(event.target.value)}
                     onKeyDown={onMessageKeyDown}
                     maxLength={2000}
-                    rows={2}
+                    rows={1}
                     disabled={busy}
-                    className="max-h-40 min-h-16 w-full resize-y bg-transparent px-2 py-2 text-base leading-6 text-slate-950 outline-none placeholder:text-slate-600 disabled:opacity-60"
+                    className="max-h-32 min-h-11 w-full resize-none bg-transparent px-2 py-2.5 text-base leading-6 text-slate-950 outline-none placeholder:text-slate-500 disabled:opacity-60 sm:max-h-40 sm:min-h-16 sm:resize-y sm:py-2"
                     placeholder="Message LooseMouth…"
                   />
 
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-1 pt-2">
-                    <div className="flex flex-wrap items-center gap-1">
+                  <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-1 pt-2">
+                    <div className="flex min-w-0 items-center gap-1">
                       {(model === 'native' || enhancedSearch) && (
                         <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-white hover:text-slate-950">
                           <input
@@ -997,7 +1069,7 @@ export default function IntentClient({
                       )}
 
                       {search && (
-                        <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Web research depth">
+                        <div className="hidden rounded-lg border border-slate-200 bg-slate-50 p-1 sm:inline-flex" role="group" aria-label="Web research depth">
                           <button
                             type="button"
                             onClick={() => setSearchDepth('quick')}
@@ -1027,17 +1099,17 @@ export default function IntentClient({
                     <button
                       type="submit"
                       disabled={busy || !message.trim() || !availabilityChecked || (model === 'intentR-402' ? !intentRAvailable : !nativeAvailable)}
-                      className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:gap-2 sm:px-4"
                     >
-                      Send <ArrowUp size={17} />
+                      <span className="hidden sm:inline">Send</span><ArrowUp size={17} />
                     </button>
                   </div>
 
 
                 </div>
 
-                <div className="mt-2 flex flex-wrap justify-between gap-2 px-1 text-[11px] text-slate-600">
-                  <span>Enter to send · Shift+Enter for newline</span>
+                <div className="mt-2 flex justify-center px-1 text-[10px] text-slate-500 sm:justify-between sm:text-[11px] sm:text-slate-600">
+                  <span className="hidden sm:inline">Enter to send · Shift+Enter for newline</span>
                   <span>LooseMouth can make mistakes.</span>
                 </div>
 
