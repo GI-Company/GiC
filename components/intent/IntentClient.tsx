@@ -84,8 +84,8 @@ export default function IntentClient({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [search, setSearch] = useState(false);
   const [searchDepth, setSearchDepth] = useState<'quick' | 'deep'>('quick');
-  const [model, setModel] = useState<'gemma4' | 'native'>('native');
-  const [gemmaAvailable, setGemmaAvailable] = useState(false);
+  const [model, setModel] = useState<'intentR-402' | 'native'>('native');
+  const [intentRAvailable, setIntentRAvailable] = useState(false);
   const [nativeAvailable, setNativeAvailable] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
   const [enhancedSearch, setEnhancedSearch] = useState(false);
@@ -121,17 +121,17 @@ export default function IntentClient({
         const data: { models?: string[]; enhancedSearch?: boolean; enhancedMaxTokens?: number } | null =
           response.ok ? await response.json() : null;
         if (!active) return;
-        const enhanced = data?.models?.includes('gemma4') === true;
-        setGemmaAvailable(enhanced);
+        const enhanced = data?.models?.includes('intentR-402') === true;
+        setIntentRAvailable(enhanced);
         setNativeAvailable(data?.models?.includes('native') === true);
         setEnhancedSearch(data?.enhancedSearch === true);
         setEnhancedMaxTokens(data?.enhancedMaxTokens === 512 ? 512 : 160);
         if (!hasSentRef.current && !preferencesLoadedRef.current && !activeConversationId) {
-          setModel(enhanced ? 'gemma4' : 'native');
+          setModel(enhanced ? 'intentR-402' : 'native');
         }
       } catch {
         if (!active) return;
-        setGemmaAvailable(false);
+        setIntentRAvailable(false);
         setNativeAvailable(false);
       } finally {
         if (active) setAvailabilityChecked(true);
@@ -190,7 +190,7 @@ export default function IntentClient({
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = message.trim();
-    if (!text || busy || !availabilityChecked || (model === 'gemma4' ? !gemmaAvailable : !nativeAvailable)) return;
+    if (!text || busy || !availabilityChecked || (model === 'intentR-402' ? !intentRAvailable : !nativeAvailable)) return;
 
     hasSentRef.current = true;
     setTurns((current) => [...current, { role: 'user', text }]);
@@ -199,7 +199,7 @@ export default function IntentClient({
     setBusy(true);
 
     try {
-      const maxTokens = model === 'gemma4' && enhancedMaxTokens === 512 ? 320 : 100;
+      const maxTokens = model === 'intentR-402' && enhancedMaxTokens === 512 ? 320 : 100;
       const response = await fetch('/api/intent', {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -315,8 +315,8 @@ export default function IntentClient({
     textareaRef.current?.focus();
   }
 
-  function switchModel(next: 'gemma4' | 'native') {
-    if (busy || next === model || (next === 'gemma4' ? !gemmaAvailable : !nativeAvailable)) return;
+  function switchModel(next: 'intentR-402' | 'native') {
+    if (busy || next === model || (next === 'intentR-402' ? !intentRAvailable : !nativeAvailable)) return;
     hasSentRef.current = false;
     setActiveConversationId(null);
     setModel(next);
@@ -504,7 +504,7 @@ export default function IntentClient({
                   >
                     <span className="block truncate text-xs font-medium">{conversation.title}</span>
                     <span className="mt-1 block text-[10px] text-slate-600">
-                      {conversation.model === 'gemma4' ? 'Enhanced' : 'Native'} · {new Date(conversation.updated_at).toLocaleDateString()}
+                      {conversation.model === 'intentR-402' ? 'INTENT-R 402M' : 'Native'} · {new Date(conversation.updated_at).toLocaleDateString()}
                     </span>
                   </button>
                   <button
@@ -600,12 +600,12 @@ export default function IntentClient({
                 <div className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-right sm:block">
                   <p className="text-[10px] uppercase tracking-[0.13em] text-slate-500">Active model</p>
                   <p className="text-xs font-semibold text-slate-950">
-                    {model === 'gemma4' ? 'LooseMouth Enhanced' : 'LooseMouth Native'}
+                    {model === 'intentR-402' ? 'LooseMouth Enhanced · INTENT-R 402M' : 'LooseMouth Native'}
                   </p>
                 </div>
                 <span
                   className={`h-2.5 w-2.5 rounded-full ${
-                    model === 'gemma4' ? (gemmaAvailable ? 'bg-emerald-500' : 'bg-slate-300') : nativeAvailable ? 'bg-emerald-500' : 'bg-slate-300'
+                    model === 'intentR-402' ? (intentRAvailable ? 'bg-emerald-500' : 'bg-slate-300') : nativeAvailable ? 'bg-emerald-500' : 'bg-slate-300'
                   }`}
                   aria-label="Model availability"
                 />
@@ -615,16 +615,16 @@ export default function IntentClient({
             <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Choose model">
               <button
                 type="button"
-                disabled={busy || !gemmaAvailable}
-                onClick={() => switchModel('gemma4')}
-                aria-pressed={model === 'gemma4'}
+                disabled={busy || !intentRAvailable}
+                onClick={() => switchModel('intentR-402')}
+                aria-pressed={model === 'intentR-402'}
                 className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
-                  model === 'gemma4'
+                  model === 'intentR-402'
                     ? 'border-blue-500 bg-blue-50 text-blue-900'
                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
                 }`}
               >
-                Enhanced <span className="text-xs text-slate-600">· {gemmaAvailable ? 'text' : availabilityChecked ? 'offline' : 'checking'}</span>
+                Enhanced <span className="text-xs text-slate-600">· {intentRAvailable ? 'INTENT-R 402M' : availabilityChecked ? 'offline' : 'checking'}</span>
               </button>
               <button
                 type="button"
@@ -658,7 +658,7 @@ export default function IntentClient({
               {!availabilityChecked && turns.length === 0 && (
                 <div className="mx-auto flex min-h-[58vh] max-w-3xl flex-col justify-center">
                   <BrandLoader
-                    label={`Connecting to ${model === 'gemma4' ? 'LooseMouth Enhanced' : 'LooseMouth Native'}…`}
+                    label={`Connecting to ${model === 'intentR-402' ? 'INTENT-R 402M' : 'LooseMouth Native'}…`}
                     size={52}
                   />
                 </div>
@@ -787,9 +787,9 @@ export default function IntentClient({
 
             <div className="sticky bottom-0 border-t border-slate-200 bg-white/96 px-4 py-4 backdrop-blur sm:px-6 lg:px-10">
               <form onSubmit={send} className="mx-auto max-w-4xl">
-                {availabilityChecked && !gemmaAvailable && model === 'gemma4' && (
+                {availabilityChecked && !intentRAvailable && model === 'intentR-402' && (
                   <p role="status" className="mb-3 rounded-lg border border-sky-200/15 bg-sky-200/[0.05] px-3 py-2 text-sm text-slate-700">
-                    LooseMouth Enhanced is offline. {nativeAvailable ? 'Switch to Native to continue.' : 'Please check back soon.'}
+                    INTENT-R 402M is offline. {nativeAvailable ? 'Switch to Native to continue.' : 'Please check back soon.'}
                   </p>
                 )}
 
@@ -865,7 +865,7 @@ export default function IntentClient({
 
                     <button
                       type="submit"
-                      disabled={busy || !message.trim() || !availabilityChecked || (model === 'gemma4' ? !gemmaAvailable : !nativeAvailable)}
+                      disabled={busy || !message.trim() || !availabilityChecked || (model === 'intentR-402' ? !intentRAvailable : !nativeAvailable)}
                       className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Send <ArrowUp size={17} />
