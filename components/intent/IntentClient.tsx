@@ -328,7 +328,11 @@ export default function IntentClient({
       void savePreferences(accessToken, accountUserId, {
         preferred_model: next,
         web_search_enabled: false,
-      }).catch(() => setHistoryError('Model preference could not be saved.'));
+      })
+        .then(() => setHistoryError(''))
+        .catch((cause) => setHistoryError(
+          cause instanceof Error ? cause.message : 'Model preference could not be saved.',
+        ));
     }
   }
 
@@ -818,7 +822,11 @@ export default function IntentClient({
                                 void savePreferences(accessToken, accountUserId, {
                                   preferred_model: model,
                                   web_search_enabled: next,
-                                }).catch(() => setHistoryError('Search preference could not be saved.'));
+                                })
+                                  .then(() => setHistoryError(''))
+                                  .catch((cause) => setHistoryError(
+                                    cause instanceof Error ? cause.message : 'Search preference could not be saved.',
+                                  ));
                               }
                             }}
                             className="h-4 w-4 accent-blue-600"
