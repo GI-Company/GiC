@@ -1,5 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { SUPABASE_URL } from '@/lib/supabase-public';
 
 export const runtime = 'nodejs';
@@ -9,40 +8,11 @@ const jsonHeaders = {
   'Cache-Control': 'no-store, max-age=0',
 };
 
-function secureEqual(provided: string, expected: string) {
-  const providedBytes = Buffer.from(provided, 'utf8');
-  const expectedBytes = Buffer.from(expected, 'utf8');
-  if (providedBytes.length !== expectedBytes.length) return false;
-  return timingSafeEqual(providedBytes, expectedBytes);
-}
-
 function json(body: Record<string, unknown>, status = 200) {
   return NextResponse.json(body, { status, headers: jsonHeaders });
 }
 
-export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_KEEPALIVE_SECRET;
-  if (!cronSecret) {
-    return json(
-      {
-        ok: false,
-        error: 'Keepalive endpoint is not configured.',
-      },
-      503,
-    );
-  }
-
-  const providedSecret = request.headers.get('x-cron-secret') ?? '';
-  if (!providedSecret || !secureEqual(providedSecret, cronSecret)) {
-    return json(
-      {
-        ok: false,
-        error: 'Unauthorized.',
-      },
-      401,
-    );
-  }
-
+export async function GET() {
   const supabaseSecret =
     process.env.SUPABASE_SECRET_KEY ||
     process.env.SUPABASE_SERVICE_ROLE_KEY;
