@@ -82,7 +82,7 @@ export function IntentPwaProvider({ children }: { children: ReactNode }) {
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
     document.addEventListener('visibilitychange', onVisibility);
 
-    void navigator.serviceWorker.register('/chat-sw.js', { scope: '/intent/' })
+    void navigator.serviceWorker.register('/chat-sw.js', { scope: '/intent' })
       .then((nextRegistration) => {
         if (!active) return;
         currentRegistration = nextRegistration;
