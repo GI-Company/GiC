@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import IntentClient from '@/components/intent/IntentClient';
+import IntentPwaControls from '@/components/intent/IntentPwaControls';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
 
 type AuthSession = {
@@ -283,6 +284,11 @@ export default function IntentAuthGate() {
 
           {notice && <p role="status" className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p>}
           {error && <p role="alert" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{error}</p>}
+
+          <div className="mt-6 border-t border-slate-200 pt-5">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Install LooseMouth</p>
+            <IntentPwaControls />
+          </div>
         </section>
       </div>
     </main>
