@@ -11,7 +11,11 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
   },
   icons: {
-    apple: '/images/global-intent-company-icon.png',
+    apple: {
+      url: '/intent/pwa-icon/180',
+      sizes: '180x180',
+      type: 'image/png',
+    },
   },
 };
 
