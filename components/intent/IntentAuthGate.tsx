@@ -237,13 +237,13 @@ export default function IntentAuthGate() {
             </div>
           </div>
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-blue-700">LooseMouth · Research access</p>
-          <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">Sign in to use GIC-operated inference.</h1>
+          <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">Sign in to use operator-hosted LooseMouth inference.</h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
-            LooseMouth is a public research interface for privately operated models. Accounts provide a stable usage boundary and help protect limited inference capacity from automated abuse.
+            LooseMouth is a public research interface backed by an operator-hosted, capacity-limited model runtime. Accounts provide a stable usage boundary and help protect that limited inference capacity from automated abuse.
           </p>
           <div className="mt-8 border-l border-blue-200 pl-5 text-sm leading-7 text-slate-500">
             <p>20 inference requests per account per rolling one-hour window.</p>
-            <p>Your password is handled by Supabase Auth, not stored by Global Intent Company application code.</p>
+            <p>Your password is handled by Supabase Auth rather than Global Intent Company application code; model inference runs on an operator-hosted runtime rather than a multi-tenant cloud model service.</p>
           </div>
         </section>
 
