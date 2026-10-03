@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import IntentClient from '@/components/intent/IntentClient';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
@@ -182,7 +183,7 @@ export default function IntentAuthGate() {
   }
 
   if (!checked) {
-    return <main className="min-h-screen bg-[#090e1b]" aria-busy="true" />;
+    return <main className="min-h-screen bg-white" aria-busy="true" />;
   }
 
   if (session?.access_token) {
@@ -199,57 +200,72 @@ export default function IntentAuthGate() {
   }
 
   return (
-    <main className="min-h-screen bg-[#090e1b] px-4 py-10 text-slate-100 sm:px-6">
+    <main className="min-h-screen bg-white px-4 py-10 text-slate-100 sm:px-6">
       <div className="mx-auto grid min-h-[80vh] max-w-5xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
         <section>
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-300">LooseMouth · Research access</p>
-          <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">Sign in to use GIC-operated inference.</h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-slate-300">
+          <div className="mb-6 flex items-center gap-4">
+            <Image
+              src="/images/loosemouth-model-logo.png"
+              alt="LooseMouth"
+              width={1456}
+              height={1080}
+              priority
+              sizes="88px"
+              className="h-auto w-20"
+            />
+            <div>
+              <p className="text-sm font-semibold text-slate-950">LooseMouth</p>
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-blue-700">INTENT model family</p>
+            </div>
+          </div>
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-blue-700">LooseMouth · Research access</p>
+          <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">Sign in to use GIC-operated inference.</h1>
+          <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
             LooseMouth is a public research interface for privately operated models. Accounts provide a stable usage boundary and help protect limited inference capacity from automated abuse.
           </p>
-          <div className="mt-8 border-l border-sky-300/30 pl-5 text-sm leading-7 text-slate-400">
+          <div className="mt-8 border-l border-blue-200 pl-5 text-sm leading-7 text-slate-500">
             <p>20 inference requests per account per rolling one-hour window.</p>
             <p>Your password is handled by Supabase Auth, not stored by Global Intent Company application code.</p>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-[#10192a] p-6 shadow-2xl sm:p-8">
-          <div className="flex rounded-lg bg-white/5 p-1">
-            <button type="button" onClick={() => { setMode('signin'); setError(''); setNotice(''); }} className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold ${mode === 'signin' ? 'bg-white text-slate-950' : 'text-slate-300'}`}>Sign in</button>
-            <button type="button" onClick={() => { setMode('signup'); setError(''); setNotice(''); }} className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold ${mode === 'signup' ? 'bg-white text-slate-950' : 'text-slate-300'}`}>Create account</button>
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-8">
+          <div className="flex rounded-lg bg-slate-100 p-1">
+            <button type="button" onClick={() => { setMode('signin'); setError(''); setNotice(''); }} className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold ${mode === 'signin' ? 'bg-white text-slate-950' : 'text-slate-600'}`}>Sign in</button>
+            <button type="button" onClick={() => { setMode('signup'); setError(''); setNotice(''); }} className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold ${mode === 'signup' ? 'bg-white text-slate-950' : 'text-slate-600'}`}>Create account</button>
           </div>
 
           <button
             type="button"
             onClick={signInWithGoogle}
-            className="mt-6 flex w-full items-center justify-center gap-3 rounded-lg border border-white/15 bg-white px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100"
+            className="mt-6 flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100"
           >
             <span aria-hidden="true" className="text-base font-bold">G</span>
             Continue with Google
           </button>
 
           <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.12em] text-slate-500">
-            <span className="h-px flex-1 bg-white/10" />
+            <span className="h-px flex-1 bg-slate-200" />
             <span>or use email</span>
-            <span className="h-px flex-1 bg-white/10" />
+            <span className="h-px flex-1 bg-slate-200" />
           </div>
 
           <form onSubmit={submit} className="space-y-4">
             <label className="block">
-              <span className="text-sm font-medium text-slate-200">Email</span>
-              <input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 w-full rounded-lg border border-white/15 bg-[#0b1425] px-3 py-3 text-white outline-none focus:border-sky-300" />
+              <span className="text-sm font-medium text-slate-700">Email</span>
+              <input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-slate-950 outline-none focus:border-blue-500" />
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-slate-200">Password</span>
-              <input type="password" required minLength={8} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-white/15 bg-[#0b1425] px-3 py-3 text-white outline-none focus:border-sky-300" />
+              <span className="text-sm font-medium text-slate-700">Password</span>
+              <input type="password" required minLength={8} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-slate-950 outline-none focus:border-blue-500" />
             </label>
-            <button disabled={busy} type="submit" className="w-full rounded-lg bg-sky-400 px-4 py-3 text-sm font-semibold text-[#071425] hover:bg-sky-300 disabled:opacity-50">
+            <button disabled={busy} type="submit" className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
               {busy ? 'Working…' : mode === 'signup' ? 'Create account' : 'Sign in'}
             </button>
           </form>
 
-          {notice && <p role="status" className="mt-4 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">{notice}</p>}
-          {error && <p role="alert" className="mt-4 rounded-lg border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{error}</p>}
+          {notice && <p role="status" className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p>}
+          {error && <p role="alert" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{error}</p>}
         </section>
       </div>
     </main>
