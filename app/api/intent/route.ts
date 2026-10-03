@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
+import { buildCalculatorAgentMessage, calculatorRoutingMetadata, routeMathIntent } from '@/lib/intent-math-router';
 
 export const runtime = 'nodejs';
 
@@ -151,13 +152,18 @@ export async function POST(request: NextRequest) {
   if (!message || message.length > 2000) {
     return error('Message must contain 1–2000 characters.', 400);
   }
+  const mathRoute = routeMathIntent(message);
+  const routedMessage = mathRoute.intent === 'math'
+    ? buildCalculatorAgentMessage(message, mathRoute)
+    : message;
   const sessionId = body.session_id;
   if (sessionId != null && (typeof sessionId !== 'string' || !/^[0-9a-f-]{36}$/.test(sessionId))) {
     return error('Invalid session ID.', 400);
   }
   const search = body.search === true || body.search === 'true';
+  const effectiveSearch = mathRoute.intent === 'chat' ? search : false;
   const searchDepth = body.search_depth === 'deep' ? 'deep' : 'quick';
-  const research = search
+  const research = effectiveSearch
     ? searchDepth === 'deep'
       ? {
           enabled: true,
@@ -216,10 +222,10 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     };
     const outbound = JSON.stringify({
-      message,
+      message: routedMessage,
       model,
       session_id: sessionId ?? null,
-      search,
+      search: effectiveSearch,
       research,
       max_tokens: maxTokens,
     });
@@ -235,7 +241,12 @@ export async function POST(request: NextRequest) {
       const detail = data && typeof data === 'object' && 'detail' in data ? String(data.detail) : 'INTENT request failed.';
       return error(detail, upstream.status);
     }
-    const response = NextResponse.json(data, { headers: jsonHeaders });
+    const responseData = data && typeof data === 'object' && !Array.isArray(data)
+      ? { ...data as Record<string, unknown>, routing: calculatorRoutingMetadata(mathRoute) }
+      : data;
+    const response = NextResponse.json(responseData, { headers: jsonHeaders });
+    response.headers.set('X-Intent-Route', mathRoute.intent === 'math' ? 'calculator' : 'model');
+    if (mathRoute.intent === 'math') response.headers.set('X-Intent-Calculator', mathRoute.status);
     response.headers.set('X-RateLimit-Limit', '20');
     response.headers.set('X-RateLimit-Remaining', String(quota.remaining));
     if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);

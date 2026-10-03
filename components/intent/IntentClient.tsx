@@ -12,16 +12,18 @@ import {
   Gauge,
   Cpu,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
 import { enrichSourcesWithPyScript } from '@/lib/pyscript-search';
 import {
   createConversation,
+  deleteConversation,
   getPreferences,
   listConversations,
   loadMessages,
-  saveMessage,
+  saveExchange,
   savePreferences,
   updateConversation,
   type PersistedConversation,
@@ -96,6 +98,7 @@ export default function IntentClient({
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [historyReady, setHistoryReady] = useState(false);
   const [historyError, setHistoryError] = useState('');
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasSentRef = useRef(false);
@@ -249,15 +252,11 @@ export default function IntentClient({
             setActiveConversationId(conversationId);
           }
 
-          await saveMessage(accessToken, accountUserId, conversationId, {
-            role: 'user',
-            content: text,
-          });
-          await saveMessage(accessToken, accountUserId, conversationId, {
-            role: 'assistant',
-            content: answer.answer,
-            sources: enrichedSources,
-            warning: answer.warning,
+          await saveExchange(accessToken, accountUserId, conversationId, {
+            userContent: text,
+            assistantContent: answer.answer,
+            assistantSources: enrichedSources,
+            assistantWarning: answer.warning,
           });
           await updateConversation(accessToken, accountUserId, conversationId, {
             model,
@@ -280,6 +279,11 @@ export default function IntentClient({
             nextConversation,
             ...current.filter((entry) => entry.id !== conversationId),
           ]);
+
+          // Re-read the canonical list so Recent sessions reflects persisted state,
+          // not only optimistic client state.
+          const refreshedConversations = await listConversations(accessToken, accountUserId);
+          setConversations(refreshedConversations);
           setHistoryError('');
         } catch (cause) {
           setHistoryError(cause instanceof Error ? cause.message : 'This response could not be saved to history.');
@@ -348,6 +352,37 @@ export default function IntentClient({
       setError('');
     } catch (cause) {
       setHistoryError(cause instanceof Error ? cause.message : 'Conversation could not be loaded.');
+    }
+  }
+
+  async function removeConversation(conversation: PersistedConversation) {
+    if (!accountUserId || busy || deletingConversationId) return;
+
+    const confirmed = window.confirm(`Delete “${conversation.title}” and its saved messages?`);
+    if (!confirmed) return;
+
+    setDeletingConversationId(conversation.id);
+    setHistoryError('');
+
+    try {
+      await deleteConversation(accessToken, accountUserId, conversation.id);
+      setConversations((current) => current.filter((entry) => entry.id !== conversation.id));
+
+      if (activeConversationId === conversation.id) {
+        hasSentRef.current = false;
+        setActiveConversationId(null);
+        setTurns([]);
+        setSessionId(null);
+        setMessage('');
+        setError('');
+      }
+
+      const refreshedConversations = await listConversations(accessToken, accountUserId);
+      setConversations(refreshedConversations);
+    } catch (cause) {
+      setHistoryError(cause instanceof Error ? cause.message : 'Conversation could not be deleted.');
+    } finally {
+      setDeletingConversationId(null);
     }
   }
 
@@ -438,22 +473,29 @@ export default function IntentClient({
 
           </div>
 
-          <div className="mt-6 hidden space-y-5 lg:block">
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Recent sessions</p>
-                <span className="text-[10px] text-slate-600">{historyReady ? 'Synced' : 'Syncing…'}</span>
-              </div>
-              <div className="mt-2 space-y-1">
-                {conversations.slice(0, 8).map((conversation) => (
+          <div className="mt-6">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Recent sessions</p>
+              <span className="text-[10px] text-slate-600">{historyReady ? 'Synced' : 'Syncing…'}</span>
+            </div>
+            <div className="mt-2 space-y-1">
+              {conversations.slice(0, 12).map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className={`group flex items-stretch rounded-lg transition ${
+                    activeConversationId === conversation.id
+                      ? 'bg-blue-50'
+                      : 'hover:bg-white'
+                  }`}
+                >
                   <button
-                    key={conversation.id}
                     type="button"
                     onClick={() => void openConversation(conversation)}
-                    className={`w-full rounded-lg px-3 py-2.5 text-left transition ${
+                    disabled={busy || deletingConversationId === conversation.id}
+                    className={`min-w-0 flex-1 rounded-l-lg px-3 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-55 ${
                       activeConversationId === conversation.id
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-slate-600 hover:bg-white hover:text-slate-950'
+                        ? 'text-blue-700'
+                        : 'text-slate-600 hover:text-slate-950'
                     }`}
                   >
                     <span className="block truncate text-xs font-medium">{conversation.title}</span>
@@ -461,13 +503,25 @@ export default function IntentClient({
                       {conversation.model === 'gemma4' ? 'Enhanced' : 'Native'} · {new Date(conversation.updated_at).toLocaleDateString()}
                     </span>
                   </button>
-                ))}
-                {historyReady && conversations.length === 0 && (
-                  <p className="px-3 py-2 text-xs text-slate-600">Your saved conversations will appear here.</p>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => void removeConversation(conversation)}
+                    disabled={busy || deletingConversationId != null}
+                    aria-label={`Delete session: ${conversation.title}`}
+                    title="Delete session"
+                    className="flex min-h-11 w-11 shrink-0 items-center justify-center rounded-r-lg text-slate-400 transition hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+              {historyReady && conversations.length === 0 && (
+                <p className="px-3 py-2 text-xs text-slate-600">Your saved conversations will appear here.</p>
+              )}
             </div>
+          </div>
 
+          <div className="mt-6 hidden space-y-5 lg:block">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Inference allowance</p>
               <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
