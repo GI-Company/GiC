@@ -9,6 +9,7 @@ import PLMNSection from '@/components/landing/PLMNSection';
 import ResearchEngineSection from '@/components/landing/ResearchEngineSection';
 import PrinciplesSection from '@/components/landing/PrinciplesSection';
 import CompanyFounderSection from '@/components/landing/CompanyFounderSection';
+import ApparelSection from '@/components/landing/ApparelSection';
 import LandingFooterCTA from '@/components/landing/LandingFooterCTA';
 import LandingAuthRedirect from '@/components/landing/LandingAuthRedirect';
 
@@ -27,6 +28,7 @@ export default function LandingPage() {
         <ResearchEngineSection />
         <PrinciplesSection />
         <CompanyFounderSection />
+        <ApparelSection />
       </main>
       <LandingFooterCTA />
     </div>
