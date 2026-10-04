@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         {children}
-        <PostHogAnalytics />
+        <PostHogAnalytics token={process.env.NEXT_POSTHOG_PROJECT_TOKEN} host={process.env.NEXT_POSTHOG_HOST} />
         <Analytics />
       </body>
     </html>
