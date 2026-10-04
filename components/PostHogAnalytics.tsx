@@ -10,12 +10,15 @@ declare global {
   }
 }
 
-const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
-const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
-const assetHost = host.replace('.i.posthog.com', '-assets.i.posthog.com');
+type PostHogAnalyticsProps = {
+  token?: string;
+  host?: string;
+};
 
-export default function PostHogAnalytics() {
+export default function PostHogAnalytics({ token, host = 'https://us.i.posthog.com' }: PostHogAnalyticsProps) {
   if (!token) return null;
+
+  const assetHost = host.replace('.i.posthog.com', '-assets.i.posthog.com');
 
   return (
     <Script
