@@ -31,6 +31,7 @@ export default function LandingNav() {
           <a href="#the-stack" className="hover:text-slate-950">Technology</a>
           <a href="#company" className="hover:text-slate-950">Company</a>
           <Link href="/systems" className="hover:text-slate-950">Systems</Link>
+          <a href="#apparel" className="hover:text-slate-950">Shop</a>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -50,6 +51,7 @@ export default function LandingNav() {
             <Link href="/research" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Research</Link>
             <a href="#the-stack" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Technology</a>
             <a href="#company" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Company</a>
+            <a href="#apparel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Shop</a>
             <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="mt-2 rounded-lg bg-slate-950 px-3 py-2.5 text-center font-semibold text-white">Contact</a>
           </div>
         </nav>
