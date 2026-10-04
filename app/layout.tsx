@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
+import PostHogAnalytics from '@/components/PostHogAnalytics';
 import './globals.css';
 
 const siteUrl = 'https://globalintentcompany.space';
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         {children}
+        <PostHogAnalytics />
         <Analytics />
       </body>
     </html>
