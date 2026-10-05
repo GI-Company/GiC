@@ -4,6 +4,7 @@ import LandingHero from '@/components/landing/LandingHero';
 import ProblemSection from '@/components/landing/ProblemSection';
 import StackArchitectureSection from '@/components/landing/StackArchitectureSection';
 import IntentModelsSection from '@/components/landing/IntentModelsSection';
+import BitVisionSection from '@/components/landing/BitVisionSection';
 import PLMHSection from '@/components/landing/PLMHSection';
 import PLMNSection from '@/components/landing/PLMNSection';
 import ResearchEngineSection from '@/components/landing/ResearchEngineSection';
@@ -23,6 +24,7 @@ export default function LandingPage() {
         <ProblemSection />
         <StackArchitectureSection />
         <IntentModelsSection />
+        <BitVisionSection />
         <PLMHSection />
         <PLMNSection />
         <ResearchEngineSection />
