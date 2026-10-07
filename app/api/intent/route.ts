@@ -133,6 +133,7 @@ export async function POST(request: NextRequest) {
     return error('Invalid JSON body.', 400);
   }
 
+  const requestStartedAt = Date.now();
   const message = typeof body.message === 'string' ? body.message.trim() : '';
   if (!message || message.length > 4000) return error('Message must contain 1–4000 characters.', 400);
 
@@ -163,6 +164,9 @@ export async function POST(request: NextRequest) {
   if (!groqKey) return error('LooseMouth hosted inference is not configured yet.', 503);
 
   const mode = modeFrom(body.model ?? body.mode);
+  const searchEnabled = body.search === true || body.search === 'true';
+  const searchDepth = body.search_depth === 'deep' ? 'deep' : 'quick';
+  const dataCollectionEnabled = body.data_collection_enabled !== false;
   const imageUrl = body.image_url == null ? null : validImageUrl(body.image_url);
   if (body.image_url != null && !imageUrl) return error('Image must be a supported HTTPS URL or JPEG/PNG/WebP data URL.', 400);
 
@@ -170,7 +174,9 @@ export async function POST(request: NextRequest) {
   const routedMessage = mathRoute.intent === 'math' ? buildCalculatorAgentMessage(message, mathRoute) : message;
   const active = await activeGroqModels(groqKey);
   let candidates = GROQ_MODELS[mode].filter((model) => active.has(model));
+  if (searchEnabled) candidates = candidates.filter((model) => model === 'openai/gpt-oss-20b' || model === 'openai/gpt-oss-120b');
   if (imageUrl) candidates = candidates.filter((model) => model === 'qwen/qwen3.8-27b');
+  if (searchEnabled && imageUrl) return error('Web research and image analysis cannot be combined in the same request yet.', 400);
   if (!candidates.length && imageUrl && active.has('qwen/qwen3.8-27b')) candidates = ['qwen/qwen3.8-27b'];
   if (!candidates.length) return error('No compatible LooseMouth model is available right now.', 503);
 
@@ -198,7 +204,12 @@ export async function POST(request: NextRequest) {
         temperature: mode === 'fast' ? 0.6 : 0.7,
       };
       if (model === 'openai/gpt-oss-20b' || model === 'openai/gpt-oss-120b') {
-        payload.reasoning_effort = mode === 'enhanced' ? 'high' : mode === 'medium' ? 'medium' : 'low';
+        payload.reasoning_effort = searchEnabled ? (searchDepth === 'deep' ? 'high' : 'low') : (mode === 'enhanced' ? 'high' : mode === 'medium' ? 'medium' : 'low');
+        if (searchEnabled) {
+          payload.tools = [{ type: 'browser_search' }];
+          payload.tool_choice = 'required';
+          payload.citation_options = 'enabled';
+        }
       } else if (model === 'qwen/qwen3.8-27b') {
         payload.reasoning_effort = mode === 'enhanced' ? 'high' : mode === 'medium' ? 'medium' : 'none';
       }
@@ -212,7 +223,7 @@ export async function POST(request: NextRequest) {
       });
 
       const data = await upstream.json() as {
-        choices?: Array<{ message?: { content?: string } }>;
+        choices?: Array<{ message?: { content?: string; executed_tools?: Array<{ search_results?: { results?: Array<{ title?: string; url?: string; content?: string; published_date?: string }> } | Array<{ title?: string; url?: string; content?: string; published_date?: string }> }> } }>;
         error?: { message?: string };
       };
       if (!upstream.ok) {
@@ -225,14 +236,65 @@ export async function POST(request: NextRequest) {
       const answer = data.choices?.[0]?.message?.content?.trim();
       if (!answer) continue;
 
+      const rawSearchResults = (data.choices?.[0]?.message?.executed_tools || []).flatMap((tool) => {
+        const value = tool.search_results;
+        if (Array.isArray(value)) return value;
+        return value?.results || [];
+      });
+      const seenUrls = new Set<string>();
+      const sources = rawSearchResults
+        .filter((item) => typeof item.url === 'string' && item.url.startsWith('http') && !seenUrls.has(item.url) && seenUrls.add(item.url))
+        .slice(0, searchDepth === 'deep' ? 12 : 6)
+        .map((item) => ({
+          title: item.title || new URL(item.url!).hostname,
+          snippet: (item.content || '').slice(0, searchDepth === 'deep' ? 1200 : 600),
+          date: item.published_date || '',
+          url: item.url!,
+        }));
+
+      const responseSessionId = typeof body.session_id === 'string' ? body.session_id : randomUUID();
+      if (authenticated && dataCollectionEnabled) {
+        const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (secret) {
+          try {
+            await fetch(new URL('/rest/v1/loosemouth_usage_events', SUPABASE_URL), {
+              method: 'POST',
+              headers: { apikey: secret, Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+              body: JSON.stringify({
+                user_id: user!.id,
+                session_id: /^[0-9a-f-]{36}$/i.test(responseSessionId) ? responseSessionId : null,
+                mode,
+                provider: 'groq',
+                provider_model: model,
+                search_enabled: searchEnabled,
+                search_depth: searchEnabled ? searchDepth : null,
+                input_chars: message.length,
+                output_chars: answer.length,
+                latency_ms: Date.now() - requestStartedAt,
+              }),
+              cache: 'no-store',
+              signal: AbortSignal.timeout(5_000),
+            });
+          } catch {
+            // Telemetry must never block inference.
+          }
+        }
+      }
+
       const response = NextResponse.json({
-        session_id: typeof body.session_id === 'string' ? body.session_id : randomUUID(),
+        session_id: responseSessionId,
         answer,
-        sources: [],
+        sources,
         warning: null,
         mode,
         model,
         provider: 'groq',
+        research: searchEnabled ? {
+          depth: searchDepth,
+          fetched_pages: sources.length,
+          sources_considered: rawSearchResults.length,
+          elapsed_ms: Date.now() - requestStartedAt,
+        } : undefined,
         routing: calculatorRoutingMetadata(mathRoute),
       }, { headers: jsonHeaders });
       response.headers.set('X-LooseMouth-Mode', mode);
