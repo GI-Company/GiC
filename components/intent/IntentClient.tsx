@@ -1172,7 +1172,17 @@ export default function IntentClient({
         </section>
       </div>
       {workbenchOpen && accessToken && accountUserId && (
-        <LooseMouthWorkbench accessToken={accessToken} userId={accountUserId} conversationId={activeConversationId} onClose={() => setWorkbenchOpen(false)} />
+        <LooseMouthWorkbench
+          accessToken={accessToken}
+          userId={accountUserId}
+          conversationId={activeConversationId}
+          conversationTurns={turns.map((turn) => ({
+            role: turn.role,
+            text: turn.text,
+            sources: turn.sources?.map((source) => ({ title: source.title, url: source.url })),
+          }))}
+          onClose={() => setWorkbenchOpen(false)}
+        />
       )}
     </main>
   );
