@@ -32,6 +32,8 @@ type Props = {
     text: string;
     sources?: Array<{ title: string; url: string }>;
   }>;
+  initialKind?: ArtifactKind;
+  initialPrompt?: string;
   onClose: () => void;
 };
 
@@ -280,9 +282,17 @@ function ReportPreview({ markdown }: { markdown: string }) {
   return <div>{nodes}</div>;
 }
 
-export default function LooseMouthWorkbench({ accessToken, userId, conversationId, conversationTurns = [], onClose }: Props) {
-  const [kind, setKind] = useState<ArtifactKind>('report');
-  const [prompt, setPrompt] = useState('');
+export default function LooseMouthWorkbench({
+  accessToken,
+  userId,
+  conversationId,
+  conversationTurns = [],
+  initialKind = 'report',
+  initialPrompt = '',
+  onClose,
+}: Props) {
+  const [kind, setKind] = useState<ArtifactKind>(initialKind);
+  const [prompt, setPrompt] = useState(initialPrompt);
   const [items, setItems] = useState<LooseMouthArtifact[]>([]);
   const [active, setActive] = useState<LooseMouthArtifact | null>(null);
   const [draft, setDraft] = useState<Record<string, unknown> | null>(null);
@@ -293,6 +303,17 @@ export default function LooseMouthWorkbench({ accessToken, userId, conversationI
   const [activeFile, setActiveFile] = useState('index.html');
   const [compiledPreview, setCompiledPreview] = useState('');
   const [includeConversation, setIncludeConversation] = useState(Boolean(conversationTurns.length));
+
+  useEffect(() => {
+    setKind(initialKind);
+    setPrompt(initialPrompt);
+    setActive(null);
+    setDraft(null);
+    setError('');
+    setReportMode('preview');
+    setActiveFile('index.html');
+    setCompiledPreview('');
+  }, [initialKind, initialPrompt]);
 
   useEffect(() => {
     let active = true;
