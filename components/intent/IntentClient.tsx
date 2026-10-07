@@ -15,6 +15,7 @@ import {
   Trash2,
   Menu,
   FileText,
+  Code2,
 } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
@@ -108,6 +109,10 @@ export default function IntentClient({
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [workbenchOpen, setWorkbenchOpen] = useState(false);
+  const [workbenchSeed, setWorkbenchSeed] = useState<{
+    kind: 'report' | 'applet';
+    prompt: string;
+  }>({ kind: 'report', prompt: '' });
   const transcriptRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasSentRef = useRef(false);
@@ -313,6 +318,15 @@ export default function IntentClient({
     }
   }
 
+  function openWorkbench(kind: 'report' | 'applet' = 'report', prompt = '') {
+    if (!accessToken || !accountUserId) {
+      onRequireAuth?.();
+      return;
+    }
+    setWorkbenchSeed({ kind, prompt });
+    setWorkbenchOpen(true);
+  }
+
   function newChat() {
     hasSentRef.current = false;
     setActiveConversationId(null);
@@ -439,7 +453,7 @@ export default function IntentClient({
 
           <div className="mt-5 space-y-2">
             {accessToken && accountUserId && (
-              <button type="button" onClick={() => setWorkbenchOpen(true)}
+              <button type="button" onClick={() => openWorkbench()}
                 className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-800 hover:bg-blue-100">
                 Workbench · Reports & Applets
               </button>
@@ -687,7 +701,7 @@ export default function IntentClient({
                 {accessToken && accountUserId && (
                   <button
                     type="button"
-                    onClick={() => { setMobileMenuOpen(false); setWorkbenchOpen(true); }}
+                    onClick={() => { setMobileMenuOpen(false); openWorkbench(); }}
                     className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-800 hover:bg-blue-100"
                   >
                     <FileText size={15} /> Open Workbench
@@ -877,7 +891,7 @@ export default function IntentClient({
                 {accessToken && accountUserId && (
                   <button
                     type="button"
-                    onClick={() => setWorkbenchOpen(true)}
+                    onClick={() => openWorkbench()}
                     className="hidden min-h-10 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-800 hover:bg-blue-100 sm:inline-flex"
                   >
                     <FileText size={14} /> Workbench
@@ -1051,6 +1065,33 @@ export default function IntentClient({
                       {turn.warning}
                     </p>
                   )}
+
+                  {turn.role === 'assistant' && accessToken && accountUserId && (
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => openWorkbench(
+                          'report',
+                          turn.sources?.length
+                            ? 'Turn this conversation and the cited web research into a polished report. Preserve relevant source links and separate established facts from analysis.'
+                            : 'Turn this conversation into a polished report with clear sections, concise analysis, and actionable conclusions.',
+                        )}
+                        className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+                      >
+                        <FileText size={13} /> Make report
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openWorkbench(
+                          'applet',
+                          'Build a useful interactive browser applet from this conversation. Choose an interface that helps the user inspect, calculate, compare, visualize, or interact with the subject instead of merely reproducing the text.',
+                        )}
+                        className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+                      >
+                        <Code2 size={13} /> Build applet
+                      </button>
+                    </div>
+                  )}
                 </article>
               ))}
 
@@ -1181,6 +1222,8 @@ export default function IntentClient({
             text: turn.text,
             sources: turn.sources?.map((source) => ({ title: source.title, url: source.url })),
           }))}
+          initialKind={workbenchSeed.kind}
+          initialPrompt={workbenchSeed.prompt}
           onClose={() => setWorkbenchOpen(false)}
         />
       )}
