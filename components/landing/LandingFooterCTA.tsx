@@ -195,6 +195,8 @@ export default function LandingFooterCTA() {
             <div className="mt-4 grid gap-3">
               <a href="#company">Company overview</a>
               <a href="#vision">Company vision</a>
+              <a href="#plans">Plans & pricing</a>
+              <a href="#fund-research">Fund the research</a>
               <a href="#contact">Contact</a>
             </div>
           </div>
