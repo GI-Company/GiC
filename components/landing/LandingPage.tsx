@@ -12,6 +12,7 @@ import PrinciplesSection from '@/components/landing/PrinciplesSection';
 import CompanyFounderSection from '@/components/landing/CompanyFounderSection';
 import CompanyVisionSection from '@/components/landing/CompanyVisionSection';
 import ApparelSection from '@/components/landing/ApparelSection';
+import BillingSection from '@/components/landing/BillingSection';
 import LandingFooterCTA from '@/components/landing/LandingFooterCTA';
 import LandingAuthRedirect from '@/components/landing/LandingAuthRedirect';
 
@@ -32,6 +33,7 @@ export default function LandingPage() {
         <PrinciplesSection />
         <CompanyFounderSection />
         <CompanyVisionSection />
+        <BillingSection />
         <ApparelSection />
       </main>
       <LandingFooterCTA />
