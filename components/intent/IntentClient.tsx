@@ -53,6 +53,7 @@ type ResearchDiagnostics = {
   elapsed_ms?: number;
 };
 
+type BillingStatus={authenticated:boolean;tier:'free'|'paid'|'enhanced';status?:string|null;trial_end?:string|null;current_period_end?:string|null;cancel_at_period_end?:boolean;limit:number;workbench?:'none'|'reports'|'full'};
 type ChatResponse = {
   session_id: string;
   answer: string;
@@ -144,7 +145,9 @@ export default function IntentClient({
   const [enhancedMaxTokens] = useState(1200);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(20);
+  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(accessToken?20:5);
+  const [billing,setBilling]=useState<BillingStatus>({authenticated:Boolean(accessToken),tier:'free',limit:accessToken?20:5,workbench:'none'});
+  const [billingBusy,setBillingBusy]=useState(false);
   const [quotaResetAt, setQuotaResetAt] = useState<string | null>(null);
   const [conversations, setConversations] = useState<PersistedConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -201,6 +204,8 @@ export default function IntentClient({
       window.clearInterval(interval);
     };
   }, [accessToken, activeConversationId]);
+
+  useEffect(()=>{let active=true;async function loadBilling(){if(!accessToken){setBilling({authenticated:false,tier:'free',limit:5,workbench:'none'});return;}try{const r=await fetch('/api/billing/status',{headers:{Authorization:`Bearer ${accessToken}`},cache:'no-store'});if(r.ok&&active){const data=await r.json() as BillingStatus;setBilling(data);setQuotaRemaining((current)=>current===20&&data.limit!==20?data.limit:current);}}catch{}}void loadBilling();return()=>{active=false};},[accessToken]);
 
   useEffect(() => {
     let active = true;
@@ -389,9 +394,13 @@ export default function IntentClient({
       onRequireAuth?.();
       return;
     }
+    if(billing.workbench==='none'){window.location.href='/#pricing';return;}
+    if(kind==='applet'&&billing.workbench!=='full'){window.location.href='/#pricing';return;}
     setWorkbenchSeed({ kind, prompt });
     setWorkbenchOpen(true);
   }
+
+  async function manageBilling(){if(!accessToken||billingBusy)return;setBillingBusy(true);try{const r=await fetch('/api/billing/portal',{method:'POST',headers:{Authorization:`Bearer ${accessToken}`}});const data=await r.json() as {url?:string;error?:string};if(!r.ok||!data.url)throw new Error(data.error||'Billing portal unavailable.');window.location.href=data.url;}catch(cause){setError(cause instanceof Error?cause.message:'Billing portal unavailable.');setBillingBusy(false);}}
 
   function newChat() {
     hasSentRef.current = false;
@@ -515,9 +524,9 @@ export default function IntentClient({
             </div>
             <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 text-xs">
               <span className="inline-flex items-center gap-1.5 text-emerald-700">
-                <ShieldCheck size={14} /> {accessToken ? 'Authenticated' : 'Guest · 5 messages'}
+                <ShieldCheck size={14} /> {accessToken ? `${billing.tier === 'enhanced' ? 'Enhanced' : billing.tier === 'paid' ? 'Paid' : 'Free'} account` : 'Guest · 5 messages'}
               </span>
-              <span className="text-slate-500">{accessToken ? (accountProvider === 'google' ? 'Google' : 'Email') : 'Trial'}</span>
+              <span className="text-slate-500">{billing.status === 'trialing' ? '30-day trial' : accessToken ? (accountProvider === 'google' ? 'Google' : 'Email') : 'Guest'}</span>
             </div>
           </div>
 
@@ -525,7 +534,7 @@ export default function IntentClient({
             {accessToken && accountUserId && (
               <button type="button" onClick={() => openWorkbench()}
                 className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-800 hover:bg-blue-100">
-                Workbench · Reports & Applets
+                {billing.workbench === 'full' ? 'Workbench · Reports & Applets' : billing.workbench === 'reports' ? 'Workbench · Reports' : 'Upgrade for Workbench'}
               </button>
             )}
 
@@ -640,6 +649,8 @@ export default function IntentClient({
             </button>
           )}
 
+          {accessToken && billing.tier!=='free' && <button type="button" disabled={billingBusy} onClick={()=>void manageBilling()} className="mt-5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{billingBusy?'Opening billing…':'Manage subscription'}</button>}
+          {billing.status==='trialing'&&billing.trial_end&&<p className="mt-2 px-1 text-[11px] text-slate-500">Free trial ends {new Date(billing.trial_end).toLocaleDateString()}.</p>}
           <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-600">
             <p className="font-semibold text-slate-900">Support private AI R&amp;D · $4.99/month</p>
             <p className="mt-1">Support helps fund Global Intent Company research into privately operated models, compute, and verifiable AI infrastructure.</p>
@@ -660,11 +671,11 @@ export default function IntentClient({
                 <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
                   <div
                     className="h-full rounded-full bg-blue-600 transition-all"
-                    style={{ width: `${Math.max(0, Math.min(100, ((quotaRemaining ?? 20) / 20) * 100))}%` }}
+                    style={{ width: `${Math.max(0, Math.min(100, ((quotaRemaining ?? billing.limit) / billing.limit) * 100))}%` }}
                   />
                 </div>
                 <p className="mt-3 text-[11px] text-slate-500">
-                  20 requests / hour{resetLabel ? ` · resets around ${resetLabel}` : ''}
+                  {billing.limit} requests / hour{resetLabel ? ` · resets around ${resetLabel}` : ''}
                 </p>
               </div>
             </div>
