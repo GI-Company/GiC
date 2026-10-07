@@ -76,6 +76,7 @@ async function user(req: NextRequest) {
   }
 }
 
+async function entitlement(userId:string){const secret=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;if(!secret)return 'free' as const;try{const url=new URL('/rest/v1/loosemouth_billing_entitlements',SUPABASE_URL);url.searchParams.set('select','tier,subscription_status');url.searchParams.set('user_id',`eq.${userId}`);url.searchParams.set('limit','1');const r=await fetch(url,{headers:{apikey:secret,Authorization:`Bearer ${secret}`},cache:'no-store'});if(!r.ok)return 'free' as const;const rows=await r.json() as Array<{tier?:string;subscription_status?:string}>;const row=rows[0];if(!row||!['active','trialing'].includes(row.subscription_status||''))return 'free' as const;return row.tier==='enhanced'?'enhanced' as const:row.tier==='paid'?'paid' as const:'free' as const;}catch{return 'free' as const;}}
 function extractJson(text: string) {
   const trimmed = text.trim();
   const candidates = [
@@ -175,6 +176,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sign in to use the LooseMouth Workbench.' }, { status: 401 });
   }
 
+  const tier=await entitlement(me.id);
+  if(tier==='free') return NextResponse.json({error:'LooseMouth Workbench requires a Paid or Enhanced account.',upgrade_required:true},{status:403});
   const quota = await consumeWorkbenchQuota(me.id);
   if (!quota.configured) {
     return NextResponse.json({ error: 'Workbench access is being configured. Please try again shortly.' }, { status: 503 });
@@ -204,6 +207,7 @@ export async function POST(req: NextRequest) {
   }
 
   const kind: 'report' | 'applet' = body.kind === 'applet' ? 'applet' : 'report';
+  if(kind==='applet'&&tier!=='enhanced') return NextResponse.json({error:'Runnable applets require Enhanced Workspace.',upgrade_required:true},{status:403});
   const prompt = typeof body.prompt === 'string' ? body.prompt.trim().slice(0, 12_000) : '';
   if (!prompt) {
     return NextResponse.json({ error: 'Describe what you want LooseMouth to build.' }, { status: 400 });
