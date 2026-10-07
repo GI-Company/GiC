@@ -167,6 +167,7 @@ export async function saveExchange(
   conversationId: string,
   values: {
     userContent: string;
+    userImageName?: string | null;
     assistantContent: string;
     assistantSources?: PersistedMessage['sources'];
     assistantWarning?: string | null;
@@ -187,7 +188,7 @@ export async function saveExchange(
         user_id: userId,
         role: 'user',
         content: values.userContent,
-        image_name: null,
+        image_name: values.userImageName ?? null,
         sources: [],
         warning: null,
       },
