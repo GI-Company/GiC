@@ -18,6 +18,7 @@ import {
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
 import IntentPwaControls from '@/components/intent/IntentPwaControls';
+import LooseMouthWorkbench from '@/components/intent/LooseMouthWorkbench';
 import { enrichSourcesWithPyScript } from '@/lib/pyscript-search';
 import {
   createConversation,
@@ -105,6 +106,7 @@ export default function IntentClient({
   const [historyError, setHistoryError] = useState('');
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [workbenchOpen, setWorkbenchOpen] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasSentRef = useRef(false);
@@ -435,6 +437,13 @@ export default function IntentClient({
           </div>
 
           <div className="mt-5 space-y-2">
+            {accessToken && accountUserId && (
+              <button type="button" onClick={() => setWorkbenchOpen(true)}
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-800 hover:bg-blue-100">
+                Workbench · Reports & Applets
+              </button>
+            )}
+
             <button
               type="button"
               onClick={newChat}
@@ -1142,6 +1151,9 @@ export default function IntentClient({
           </div>
         </section>
       </div>
+      {workbenchOpen && accessToken && accountUserId && (
+        <LooseMouthWorkbench accessToken={accessToken} userId={accountUserId} conversationId={activeConversationId} onClose={() => setWorkbenchOpen(false)} />
+      )}
     </main>
   );
 }
