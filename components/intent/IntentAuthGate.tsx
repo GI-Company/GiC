@@ -45,6 +45,7 @@ export default function IntentAuthGate() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [showAuth, setShowAuth] = useState(false);
 
   const persist = useCallback((next: AuthSession | null) => {
     setSession(next);
@@ -202,6 +203,15 @@ export default function IntentAuthGate() {
     );
   }
 
+  if (!showAuth) {
+    return (
+      <IntentClient
+        accountName="Guest"
+        onRequireAuth={() => setShowAuth(true)}
+      />
+    );
+  }
+
   return (
     <main className="min-h-screen bg-white px-4 py-6 text-slate-950 sm:px-6">
       <div className="mx-auto max-w-5xl">
@@ -237,13 +247,13 @@ export default function IntentAuthGate() {
             </div>
           </div>
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-blue-700">LooseMouth · Research access</p>
-          <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">Sign in to use operator-hosted LooseMouth inference.</h1>
+          <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">Continue with a free account.</h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
-            LooseMouth is a public research interface backed by an operator-hosted, capacity-limited model runtime. Accounts provide a stable usage boundary and help protect that limited inference capacity from automated abuse.
+            You can try 5 guest messages before creating a free account. Signing in unlocks continued LooseMouth access, saved conversations, and a stable usage boundary.
           </p>
           <div className="mt-8 border-l border-blue-200 pl-5 text-sm leading-7 text-slate-500">
-            <p>20 inference requests per account per rolling one-hour window.</p>
-            <p>Your password is handled by Supabase Auth rather than Global Intent Company application code; model inference runs on an operator-hosted runtime rather than a multi-tenant cloud model service.</p>
+            <p>Guest access includes 5 messages. Authenticated accounts currently receive 20 inference requests per rolling one-hour window.</p>
+            <p>Your password is handled by Supabase Auth. Hosted inference is currently provided through Groq while Global Intent Company develops private AI models and infrastructure.</p>
           </div>
         </section>
 
