@@ -120,11 +120,10 @@ export default function IntentAuthGate() {
     return `${window.location.origin}/intent`;
   }
 
-  function signInWithProvider(provider: 'google' | 'github' | 'azure') {
+  function signInWithGoogle() {
     const authorizeUrl = new URL(`${SUPABASE_URL}/auth/v1/authorize`);
-    authorizeUrl.searchParams.set('provider', provider);
+    authorizeUrl.searchParams.set('provider', 'google');
     authorizeUrl.searchParams.set('redirect_to', intentRedirectUrl());
-    if (provider === 'azure') authorizeUrl.searchParams.set('scopes', 'openid email profile');
     window.location.assign(authorizeUrl.toString());
   }
 
@@ -264,17 +263,12 @@ export default function IntentAuthGate() {
 
           <button
             type="button"
-            onClick={() => signInWithProvider('google')}
+            onClick={signInWithGoogle}
             className="mt-6 flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100"
           >
             <span aria-hidden="true" className="text-base font-bold">G</span>
             Continue with Google
           </button>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <button type="button" onClick={() => signInWithProvider('github')} className="flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100">Continue with GitHub</button>
-            <button type="button" onClick={() => signInWithProvider('azure')} className="flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100">Microsoft / Outlook</button>
-          </div>
-          <p className="mt-3 text-xs leading-5 text-slate-500">Yahoo addresses can continue with email today. Yahoo OAuth will appear here after a custom OIDC/OAuth provider is configured.</p>
 
           <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-[0.12em] text-slate-500">
             <span className="h-px flex-1 bg-slate-200" />
