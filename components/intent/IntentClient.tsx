@@ -496,7 +496,7 @@ export default function IntentClient({
                   >
                     <span className="block truncate text-xs font-medium">{conversation.title}</span>
                     <span className="mt-1 block text-[10px] text-slate-600">
-                      {conversation.model === 'intentR-402' ? 'Enhanced' : 'Fast'} · {new Date(conversation.updated_at).toLocaleDateString()}
+                      {conversation.model === 'enhanced' ? 'Enhanced' : conversation.model === 'medium' ? 'Medium' : 'Fast'} · {new Date(conversation.updated_at).toLocaleDateString()}
                     </span>
                   </button>
                   <button
@@ -606,13 +606,11 @@ export default function IntentClient({
                   <p className="flex items-center gap-1.5 truncate text-[10px] font-medium uppercase tracking-[0.11em] text-slate-500">
                     <span
                       className={`h-1.5 w-1.5 rounded-full ${
-                        model === 'intentR-402'
-                          ? intentRAvailable ? 'bg-emerald-500' : 'bg-slate-300'
-                          : nativeAvailable ? 'bg-emerald-500' : 'bg-slate-300'
+                        availableModes.includes(model) ? 'bg-emerald-500' : 'bg-slate-300'
                       }`}
                       aria-hidden="true"
                     />
-                    {model === 'intentR-402' ? 'INTENT-R 402M' : 'Native'}
+                    {model === 'enhanced' ? 'Enhanced' : model === 'medium' ? 'Medium' : 'Fast'}
                   </p>
                 </div>
               </div>
@@ -659,39 +657,26 @@ export default function IntentClient({
 
                 <div className="mt-6 border-t border-slate-200 pt-5">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Model</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2" role="group" aria-label="Choose model">
-                    <button
-                      type="button"
-                      disabled={busy || !intentRAvailable}
-                      onClick={() => switchModel('intentR-402')}
-                      aria-pressed={model === 'intentR-402'}
-                      className={`min-h-11 rounded-xl border px-3 text-xs font-semibold disabled:opacity-40 ${
-                        model === 'intentR-402'
-                          ? 'border-blue-500 bg-blue-50 text-blue-900'
-                          : 'border-slate-200 bg-white text-slate-600'
-                      }`}
-                    >
-                      Enhanced
-                      <span className="mt-0.5 block text-[10px] font-medium text-slate-500">
-                        {intentRAvailable ? 'INTENT-R 402M' : availabilityChecked ? 'Offline' : 'Checking'}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy || !nativeAvailable}
-                      onClick={() => switchModel('native')}
-                      aria-pressed={model === 'native'}
-                      className={`min-h-11 rounded-xl border px-3 text-xs font-semibold disabled:opacity-40 ${
-                        model === 'native'
-                          ? 'border-blue-500 bg-blue-50 text-blue-900'
-                          : 'border-slate-200 bg-white text-slate-600'
-                      }`}
-                    >
-                      Native
-                      <span className="mt-0.5 block text-[10px] font-medium text-slate-500">
-                        {nativeAvailable ? 'INTENT' : availabilityChecked ? 'Offline' : 'Checking'}
-                      </span>
-                    </button>
+                  <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label="Choose model">
+                    {(['fast', 'medium', 'enhanced'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        disabled={busy || !availableModes.includes(mode)}
+                        onClick={() => switchModel(mode)}
+                        aria-pressed={model === mode}
+                        className={`min-h-11 rounded-xl border px-2 text-xs font-semibold capitalize disabled:opacity-40 ${
+                          model === mode
+                            ? 'border-blue-500 bg-blue-50 text-blue-900'
+                            : 'border-slate-200 bg-white text-slate-600'
+                        }`}
+                      >
+                        {mode}
+                        <span className="mt-0.5 block text-[9px] font-medium text-slate-500">
+                          {availableModes.includes(mode) ? 'Available' : availabilityChecked ? 'Offline' : 'Checking'}
+                        </span>
+                      </button>
+                    ))}
                   </div>
 
                   {enhancedSearch && (
@@ -706,7 +691,7 @@ export default function IntentClient({
                             setSearch(next);
                             if (accountUserId) {
                               void savePreferences(accessToken!, accountUserId, {
-                                preferred_model: 'native',
+                                preferred_model: model,
                                 web_search_enabled: next,
                               })
                                 .then(() => setHistoryError(''))
@@ -772,7 +757,7 @@ export default function IntentClient({
                       >
                         <span className="block truncate text-xs font-semibold text-slate-800">{conversation.title}</span>
                         <span className="mt-1 block text-[10px] text-slate-500">
-                          {conversation.model === 'intentR-402' ? 'Enhanced' : 'Fast'} · {new Date(conversation.updated_at).toLocaleDateString()}
+                          {conversation.model === 'enhanced' ? 'Enhanced' : conversation.model === 'medium' ? 'Medium' : 'Fast'} · {new Date(conversation.updated_at).toLocaleDateString()}
                         </span>
                       </button>
                       <button
