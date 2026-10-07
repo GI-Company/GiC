@@ -27,6 +27,11 @@ type Props = {
   accessToken: string;
   userId: string;
   conversationId?: string | null;
+  conversationTurns?: Array<{
+    role: 'user' | 'assistant';
+    text: string;
+    sources?: Array<{ title: string; url: string }>;
+  }>;
   onClose: () => void;
 };
 
@@ -275,7 +280,7 @@ function ReportPreview({ markdown }: { markdown: string }) {
   return <div>{nodes}</div>;
 }
 
-export default function LooseMouthWorkbench({ accessToken, userId, conversationId, onClose }: Props) {
+export default function LooseMouthWorkbench({ accessToken, userId, conversationId, conversationTurns = [], onClose }: Props) {
   const [kind, setKind] = useState<ArtifactKind>('report');
   const [prompt, setPrompt] = useState('');
   const [items, setItems] = useState<LooseMouthArtifact[]>([]);
@@ -287,6 +292,7 @@ export default function LooseMouthWorkbench({ accessToken, userId, conversationI
   const [reportMode, setReportMode] = useState<'preview' | 'edit'>('preview');
   const [activeFile, setActiveFile] = useState('index.html');
   const [compiledPreview, setCompiledPreview] = useState('');
+  const [includeConversation, setIncludeConversation] = useState(Boolean(conversationTurns.length));
 
   useEffect(() => {
     let active = true;
@@ -336,7 +342,18 @@ export default function LooseMouthWorkbench({ accessToken, userId, conversationI
       const response = await fetch('/api/intent/artifact', {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, prompt, current: draft }),
+        body: JSON.stringify({
+          kind,
+          prompt,
+          current: draft,
+          conversation_context: includeConversation && conversationTurns.length
+            ? conversationTurns.slice(-16).map((turn) => ({
+                role: turn.role,
+                text: turn.text.slice(0, 4000),
+                sources: turn.sources?.slice(0, 8),
+              }))
+            : undefined,
+        }),
       });
       const data = await response.json() as { error?: string; artifact?: Record<string, unknown> };
       if (!response.ok || !data.artifact) throw new Error(data.error || 'Generation failed.');
@@ -533,6 +550,21 @@ export default function LooseMouthWorkbench({ accessToken, userId, conversationI
                 className="mt-2 h-40 w-full resize-none rounded-xl border border-slate-300 bg-white p-3 text-sm leading-6 text-slate-950 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
 
+              {conversationTurns.length > 0 && (
+                <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={includeConversation}
+                    onChange={(event) => setIncludeConversation(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-blue-600"
+                  />
+                  <span>
+                    <span className="block font-semibold text-slate-900">Use current conversation</span>
+                    <span className="block">Include the recent chat and its source links as context for this build.</span>
+                  </span>
+                </label>
+              )}
+
               <button
                 type="button"
                 onClick={generate}
@@ -589,7 +621,7 @@ export default function LooseMouthWorkbench({ accessToken, userId, conversationI
                   : 'Applets are assembled into a self-contained HTML document and run in an isolated browser sandbox with scripts enabled but no parent-page access.'}
               </div>
 
-              {conversationId && <p className="mt-3 text-[10px] text-slate-400">This build can be linked to the active saved conversation.</p>}
+              {conversationId && <p className="mt-3 text-[10px] text-slate-400">Saved builds stay linked to the active conversation for workspace continuity.</p>}
               {error && <p role="alert" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">{error}</p>}
             </div>
 
