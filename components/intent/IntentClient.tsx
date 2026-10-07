@@ -249,7 +249,7 @@ export default function IntentClient({
 
           if (!conversationId) {
             const title = text.length > 72 ? `${text.slice(0, 69)}…` : text;
-            conversation = await createConversation(accessToken!, accountUserId, { title, model: 'native' });
+            conversation = await createConversation(accessToken!, accountUserId, { title, model });
             conversationId = conversation.id;
             setActiveConversationId(conversationId);
           }
@@ -261,7 +261,7 @@ export default function IntentClient({
             assistantWarning: answer.warning,
           });
           await updateConversation(accessToken!, accountUserId, conversationId, {
-            model: 'native',
+            model,
             inference_session_id: answer.session_id,
           });
 
@@ -272,7 +272,7 @@ export default function IntentClient({
                 id: conversationId,
                 user_id: accountUserId,
                 title: text.slice(0, 72) || 'New conversation',
-                model: 'native',
+                model,
             inference_session_id: answer.session_id,
                 created_at: updatedAt,
                 updated_at: updatedAt,
@@ -821,12 +821,12 @@ export default function IntentClient({
                 <div className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-right sm:block">
                   <p className="text-[10px] uppercase tracking-[0.13em] text-slate-500">Active model</p>
                   <p className="text-xs font-semibold text-slate-950">
-                    {model === 'intentR-402' ? 'LooseMouth Enhanced · INTENT-R 402M' : 'LooseMouth Native'}
+                    {model === 'enhanced' ? 'LooseMouth Enhanced' : model === 'medium' ? 'LooseMouth Medium' : 'LooseMouth Fast'}
                   </p>
                 </div>
                 <span
                   className={`h-2.5 w-2.5 rounded-full ${
-                    model === 'intentR-402' ? (intentRAvailable ? 'bg-emerald-500' : 'bg-slate-300') : nativeAvailable ? 'bg-emerald-500' : 'bg-slate-300'
+                    availableModes.includes(model) ? 'bg-emerald-500' : 'bg-slate-300'
                   }`}
                   aria-label="Model availability"
                 />
@@ -1029,7 +1029,7 @@ export default function IntentClient({
                               setSearch(next);
                               if (accountUserId) {
                                 void savePreferences(accessToken!, accountUserId, {
-                                  preferred_model: 'native',
+                                  preferred_model,
                                   web_search_enabled: next,
                                 })
                                   .then(() => setHistoryError(''))
