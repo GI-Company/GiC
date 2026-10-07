@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
 
@@ -5,6 +6,49 @@ export const runtime = 'nodejs';
 
 const GROQ_BASE = 'https://api.groq.com/openai/v1';
 const WORKBENCH_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'] as const;
+const WORKBENCH_LIMIT = 8;
+const WORKBENCH_WINDOW_SECONDS = 3600;
+
+async function consumeWorkbenchQuota(userId: string) {
+  const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) return { allowed: false, remaining: 0, resetAt: null as string | null, configured: false };
+
+  const actorKey = `artifact:${createHash('sha256').update(userId).digest('hex')}`;
+  try {
+    const response = await fetch(new URL('/rest/v1/rpc/consume_inference_quota', SUPABASE_URL), {
+      method: 'POST',
+      headers: {
+        apikey: secret,
+        Authorization: `Bearer ${secret}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        p_actor_key: actorKey,
+        p_limit: WORKBENCH_LIMIT,
+        p_window_seconds: WORKBENCH_WINDOW_SECONDS,
+      }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(5_000),
+    });
+
+    if (!response.ok) return { allowed: false, remaining: 0, resetAt: null as string | null, configured: true };
+    const data: unknown = await response.json();
+    const row = Array.isArray(data) ? data[0] : null;
+    if (!row || typeof row !== 'object') {
+      return { allowed: false, remaining: 0, resetAt: null as string | null, configured: true };
+    }
+
+    const value = row as Record<string, unknown>;
+    return {
+      allowed: value.allowed === true,
+      remaining: Number(value.remaining ?? 0),
+      resetAt: typeof value.reset_at === 'string' ? value.reset_at : null,
+      configured: true,
+    };
+  } catch {
+    return { allowed: false, remaining: 0, resetAt: null as string | null, configured: true };
+  }
+}
 
 type ConversationTurn = {
   role?: unknown;
@@ -131,6 +175,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sign in to use the LooseMouth Workbench.' }, { status: 401 });
   }
 
+  const quota = await consumeWorkbenchQuota(me.id);
+  if (!quota.configured) {
+    return NextResponse.json({ error: 'Workbench access is being configured. Please try again shortly.' }, { status: 503 });
+  }
+  if (!quota.allowed) {
+    const response = NextResponse.json(
+      { error: 'Workbench generation limit reached. Please try again after the current hourly window resets.' },
+      { status: 429 },
+    );
+    response.headers.set('X-RateLimit-Limit', String(WORKBENCH_LIMIT));
+    response.headers.set('X-RateLimit-Remaining', '0');
+    if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);
+    return response;
+  }
+
   let body: {
     kind?: unknown;
     prompt?: unknown;
@@ -219,7 +278,11 @@ export async function POST(req: NextRequest) {
       try {
         const raw = extractJson(data.choices?.[0]?.message?.content || '');
         const artifact = normalizeArtifact(kind, raw);
-        return NextResponse.json({ kind, artifact, model });
+        const response = NextResponse.json({ kind, artifact, model });
+        response.headers.set('X-RateLimit-Limit', String(WORKBENCH_LIMIT));
+        response.headers.set('X-RateLimit-Remaining', String(quota.remaining));
+        if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);
+        return response;
       } catch {
         lastError = 'LooseMouth returned an invalid artifact. Try again.';
         lastStatus = 502;
