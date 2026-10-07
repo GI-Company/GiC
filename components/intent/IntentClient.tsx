@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Trash2,
   Menu,
+  FileText,
 } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
@@ -593,7 +594,7 @@ export default function IntentClient({
                 </div>
                 <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
                   <span>Transport</span>
-                  <span className="text-emerald-700">Operator-hosted</span>
+                  <span className="text-emerald-700">Hosted via Groq</span>
                 </div>
               </div>
             </div>
@@ -682,6 +683,16 @@ export default function IntentClient({
                 <div className="mt-5">
                   <IntentPwaControls />
                 </div>
+
+                {accessToken && accountUserId && (
+                  <button
+                    type="button"
+                    onClick={() => { setMobileMenuOpen(false); setWorkbenchOpen(true); }}
+                    className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-800 hover:bg-blue-100"
+                  >
+                    <FileText size={15} /> Open Workbench
+                  </button>
+                )}
 
                 <div className="mt-6 border-t border-slate-200 pt-5">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Model</p>
@@ -858,11 +869,20 @@ export default function IntentClient({
                       Signed-in workspace
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">Private inference access through the INTENT model family.</p>
+                  <p className="mt-1 text-sm text-slate-600">Hosted AI workspace for GIC research, reports, applets, and web-assisted work.</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
+                {accessToken && accountUserId && (
+                  <button
+                    type="button"
+                    onClick={() => setWorkbenchOpen(true)}
+                    className="hidden min-h-10 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-800 hover:bg-blue-100 sm:inline-flex"
+                  >
+                    <FileText size={14} /> Workbench
+                  </button>
+                )}
                 <div className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-right sm:block">
                   <p className="text-[10px] uppercase tracking-[0.13em] text-slate-500">Active model</p>
                   <p className="text-xs font-semibold text-slate-950">
