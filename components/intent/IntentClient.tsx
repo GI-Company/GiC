@@ -406,10 +406,10 @@ export default function IntentClient({
             </Link>
             <button
               type="button"
-              onClick={() => onSignOut?.()}
+              onClick={() => accessToken ? onSignOut?.() : onRequireAuth?.()}
               className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950 lg:hidden"
             >
-              <LogOut size={14} /> Sign out
+              <LogOut size={14} /> {accessToken ? 'Sign out' : 'Sign in'}
             </button>
           </div>
 
@@ -425,9 +425,9 @@ export default function IntentClient({
             </div>
             <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 text-xs">
               <span className="inline-flex items-center gap-1.5 text-emerald-700">
-                <ShieldCheck size={14} /> Authenticated
+                <ShieldCheck size={14} /> {accessToken ? 'Authenticated' : 'Guest · 5 messages'}
               </span>
-              <span className="text-slate-500">{accountProvider === 'google' ? 'Google' : 'Email'}</span>
+              <span className="text-slate-500">{accessToken ? (accountProvider === 'google' ? 'Google' : 'Email') : 'Trial'}</span>
             </div>
           </div>
 
@@ -515,6 +515,22 @@ export default function IntentClient({
                 <p className="px-3 py-2 text-xs text-slate-600">Your saved conversations will appear here.</p>
               )}
             </div>
+          </div>
+
+          {!accessToken && (
+            <button
+              type="button"
+              onClick={() => onRequireAuth?.()}
+              className="mt-5 w-full rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800 hover:bg-blue-100"
+            >
+              Create a free account to continue
+            </button>
+          )}
+
+          <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-600">
+            <p className="font-semibold text-slate-900">Support private AI R&amp;D · $4.99/month</p>
+            <p className="mt-1">Support helps fund Global Intent Company research into privately operated models, compute, and verifiable AI infrastructure.</p>
+            <p className="mt-2 text-[10px] text-slate-500">Current hosted LooseMouth inference is provided through Groq.</p>
           </div>
 
           <div className="mt-6 hidden space-y-5 lg:block">
