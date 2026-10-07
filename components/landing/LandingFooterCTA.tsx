@@ -166,7 +166,7 @@ export default function LandingFooterCTA() {
           </div>
         </div>
 
-        <div className="grid gap-8 border-b border-white/10 py-10 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 border-b border-white/10 py-10 text-sm sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <p className="font-semibold text-white">Models</p>
             <div className="mt-4 grid gap-3">
@@ -188,6 +188,14 @@ export default function LandingFooterCTA() {
               <Link href="/research">Research index</Link>
               <Link href="/research/log">Research chronology</Link>
               <Link href="/virtual-lab">Virtual Lab</Link>
+            </div>
+          </div>
+          <div>
+            <p className="font-semibold text-white">Company</p>
+            <div className="mt-4 grid gap-3">
+              <a href="#company">Company overview</a>
+              <a href="#vision">Company vision</a>
+              <a href="#contact">Contact</a>
             </div>
           </div>
           <div>
