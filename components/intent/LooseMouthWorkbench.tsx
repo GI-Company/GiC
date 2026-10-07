@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Code2,
   Download,
@@ -288,13 +288,14 @@ export default function LooseMouthWorkbench({ accessToken, userId, conversationI
   const [activeFile, setActiveFile] = useState('index.html');
   const [compiledPreview, setCompiledPreview] = useState('');
 
-  useState(() => {
+  useEffect(() => {
+    let active = true;
     void listArtifacts(accessToken, userId)
-      .then(setItems)
-      .catch((cause) => setError(cause instanceof Error ? cause.message : 'Saved builds could not be loaded.'))
-      .finally(() => setLoadingItems(false));
-    return 0;
-  });
+      .then((next) => { if (active) setItems(next); })
+      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : 'Saved builds could not be loaded.'); })
+      .finally(() => { if (active) setLoadingItems(false); });
+    return () => { active = false; };
+  }, [accessToken, userId]);
 
   const files = useMemo(() => appletFiles(draft), [draft]);
   const reportMarkdown = typeof draft?.markdown === 'string' ? draft.markdown : '';
