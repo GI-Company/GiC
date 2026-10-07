@@ -59,6 +59,23 @@ async function authenticatedUser(request: NextRequest): Promise<{ id: string; em
   }
 }
 
+async function billingTier(userId: string): Promise<'free' | 'paid' | 'enhanced'> {
+  const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) return 'free';
+  try {
+    const url = new URL('/rest/v1/loosemouth_billing_entitlements', SUPABASE_URL);
+    url.searchParams.set('select', 'tier,subscription_status');
+    url.searchParams.set('user_id', `eq.${userId}`);
+    url.searchParams.set('limit', '1');
+    const response = await fetch(url, { headers: { apikey: secret, Authorization: `Bearer ${secret}` }, cache: 'no-store', signal: AbortSignal.timeout(5_000) });
+    if (!response.ok) return 'free';
+    const rows = await response.json() as Array<{ tier?: string; subscription_status?: string | null }>;
+    const row = rows[0];
+    if (!row || !['active', 'trialing'].includes(row.subscription_status || '')) return 'free';
+    return row.tier === 'enhanced' ? 'enhanced' : row.tier === 'paid' ? 'paid' : 'free';
+  } catch { return 'free'; }
+}
+
 function anonymousActor(request: NextRequest) {
   const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const ua = request.headers.get('user-agent') || 'unknown';
@@ -142,7 +159,8 @@ export async function POST(request: NextRequest) {
   const actor = authenticated
     ? `user:${createHash('sha256').update(user!.id).digest('hex')}`
     : `anon:${anonymousActor(request)}`;
-  const quotaLimit = authenticated ? 20 : 5;
+  const tier = user ? await billingTier(user.id) : 'free';
+  const quotaLimit = !authenticated ? 5 : tier === 'enhanced' ? 300 : tier === 'paid' ? 100 : 20;
   const quotaWindow = authenticated ? 3600 : 2_592_000;
   const quota = await consumeQuota(actor, quotaLimit, quotaWindow);
   if (!quota.configured) return error('Inference access is being configured. Please try again shortly.', 503);
@@ -163,7 +181,8 @@ export async function POST(request: NextRequest) {
   const groqKey = process.env.GROQ_API;
   if (!groqKey) return error('LooseMouth hosted inference is not configured yet.', 503);
 
-  const mode = modeFrom(body.model ?? body.mode);
+  const requestedMode = modeFrom(body.model ?? body.mode);
+  const mode: LooseMouthMode = tier === 'enhanced' ? requestedMode : requestedMode === 'enhanced' ? 'medium' : requestedMode;
   const searchEnabled = body.search === true || body.search === 'true';
   const searchDepth = body.search_depth === 'deep' ? 'deep' : 'quick';
   const dataCollectionEnabled = body.data_collection_enabled !== false;
@@ -289,6 +308,7 @@ export async function POST(request: NextRequest) {
         mode,
         model,
         provider: 'groq',
+        account_tier: tier,
         research: searchEnabled ? {
           depth: searchDepth,
           fetched_pages: sources.length,
