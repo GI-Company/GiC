@@ -16,6 +16,7 @@ import {
   Menu,
   FileText,
   Code2,
+  ImagePlus,
 } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
@@ -77,6 +78,49 @@ const suggestions = [
   'Summarize GIC\'s private AI architecture.',
 ];
 
+async function optimizeImageFile(file: File) {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    throw new Error('Use a JPEG, PNG, or WebP image.');
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    throw new Error('Image is too large. Use an image under 15 MB.');
+  }
+
+  const source = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Image could not be read.'));
+    reader.onerror = () => reject(new Error('Image could not be read.'));
+    reader.readAsDataURL(file);
+  });
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const next = new window.Image();
+    next.onload = () => resolve(next);
+    next.onerror = () => reject(new Error('Image could not be decoded.'));
+    next.src = source;
+  });
+
+  const maxSide = 1600;
+  const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Image preparation is unavailable in this browser.');
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  let quality = 0.84;
+  let dataUrl = canvas.toDataURL('image/webp', quality);
+  while (dataUrl.length > 3_600_000 && quality > 0.5) {
+    quality -= 0.08;
+    dataUrl = canvas.toDataURL('image/webp', quality);
+  }
+  if (dataUrl.length > 3_900_000) {
+    throw new Error('Image is still too large after optimization. Try a smaller image.');
+  }
+  return dataUrl;
+}
+
 export default function IntentClient({
   accessToken,
   accountUserId,
@@ -113,8 +157,10 @@ export default function IntentClient({
     kind: 'report' | 'applet';
     prompt: string;
   }>({ kind: 'report', prompt: '' });
+  const [imageAttachment, setImageAttachment] = useState<{ name: string; dataUrl: string } | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const hasSentRef = useRef(false);
   const preferencesLoadedRef = useRef(false);
 
@@ -203,9 +249,11 @@ export default function IntentClient({
     const text = message.trim();
     if (!text || busy || !availabilityChecked || !availableModes.includes(model)) return;
 
+    const attachedImage = imageAttachment;
     hasSentRef.current = true;
-    setTurns((current) => [...current, { role: 'user', text }]);
+    setTurns((current) => [...current, { role: 'user', text, imageName: attachedImage?.name }]);
     setMessage('');
+    setImageAttachment(null);
     setError('');
     setBusy(true);
 
@@ -222,6 +270,7 @@ export default function IntentClient({
           search_depth: search ? searchDepth : undefined,
           max_tokens: maxTokens,
           data_collection_enabled: dataCollectionEnabled,
+          image_url: attachedImage?.dataUrl,
         }),
       });
 
@@ -267,6 +316,7 @@ export default function IntentClient({
 
           await saveExchange(accessToken!, accountUserId, conversationId, {
             userContent: text,
+            userImageName: attachedImage?.name,
             assistantContent: answer.answer,
             assistantSources: enrichedSources,
             assistantWarning: answer.warning,
@@ -305,6 +355,7 @@ export default function IntentClient({
     } catch (cause) {
       setTurns((current) => current.slice(0, -1));
       setMessage(text);
+      setImageAttachment(attachedImage);
       setError(cause instanceof Error ? cause.message : 'Request failed.');
     } finally {
       setBusy(false);
@@ -315,6 +366,21 @@ export default function IntentClient({
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       event.currentTarget.form?.requestSubmit();
+    }
+  }
+
+  async function attachImage(file: File | null) {
+    if (!file) return;
+    setError('');
+    try {
+      const dataUrl = await optimizeImageFile(file);
+      setImageAttachment({ name: file.name.slice(0, 180), dataUrl });
+      setSearch(false);
+    } catch (cause) {
+      setImageAttachment(null);
+      setError(cause instanceof Error ? cause.message : 'Image could not be attached.');
+    } finally {
+      if (imageInputRef.current) imageInputRef.current.value = '';
     }
   }
 
@@ -333,6 +399,7 @@ export default function IntentClient({
     setTurns([]);
     setSessionId(null);
     setMessage('');
+    setImageAttachment(null);
     setError('');
     textareaRef.current?.focus();
   }
@@ -365,6 +432,7 @@ export default function IntentClient({
       })));
       hasSentRef.current = storedMessages.length > 0;
       setMessage('');
+      setImageAttachment(null);
       setError('');
     } catch (cause) {
       setHistoryError(cause instanceof Error ? cause.message : 'Conversation could not be loaded.');
@@ -1109,14 +1177,35 @@ export default function IntentClient({
                 
 
                 <label htmlFor="intent-message" className="sr-only">Message LooseMouth</label>
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(event) => void attachImage(event.target.files?.[0] || null)}
+                />
                 <div className="rounded-2xl border border-slate-300 bg-white p-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.24)] transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+                  {imageAttachment && (
+                    <div className="mb-2 flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+                      <ImagePlus size={15} className="shrink-0" />
+                      <span className="min-w-0 flex-1 truncate">{imageAttachment.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setImageAttachment(null)}
+                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg hover:bg-blue-100"
+                        aria-label="Remove attached image"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
                   <textarea
                     ref={textareaRef}
                     id="intent-message"
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
                     onKeyDown={onMessageKeyDown}
-                    maxLength={2000}
+                    maxLength={4000}
                     rows={1}
                     disabled={busy}
                     className="max-h-32 min-h-11 w-full resize-none bg-transparent px-2 py-2.5 text-base leading-6 text-slate-950 outline-none placeholder:text-slate-500 disabled:opacity-60 sm:max-h-40 sm:min-h-16 sm:resize-y sm:py-2"
@@ -1125,11 +1214,24 @@ export default function IntentClient({
 
                   <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-1 pt-2">
                     <div className="flex min-w-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        disabled={busy || !multimodal}
+                        className="inline-flex min-h-9 items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+                        title={multimodal ? 'Attach an image' : 'Vision model is currently unavailable'}
+                        aria-label="Attach image"
+                      >
+                        <ImagePlus size={16} />
+                        <span className="hidden sm:inline">Image</span>
+                      </button>
+
                       {enhancedSearch && (
                         <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-white hover:text-slate-950">
                           <input
                             type="checkbox"
                             checked={search}
+                            disabled={Boolean(imageAttachment)}
                             onChange={(event) => {
                               const next = event.target.checked;
                               setSearch(next);
