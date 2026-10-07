@@ -412,8 +412,9 @@ export default function IntentClient({
     setSearch(false);
     setTurns([]);
     setSessionId(null);
+    setImageAttachment(null);
     setError('');
-      }
+  }
 
   async function openConversation(conversation: PersistedConversation) {
     if (!accountUserId || busy) return;
@@ -458,6 +459,7 @@ export default function IntentClient({
         setTurns([]);
         setSessionId(null);
         setMessage('');
+        setImageAttachment(null);
         setError('');
       }
 
@@ -1247,7 +1249,7 @@ export default function IntentClient({
                                   ));
                               }
                             }}
-                            className="h-4 w-4 accent-blue-600"
+                            className="h-4 w-4 accent-blue-600 disabled:opacity-40"
                           />
                           <Globe2 size={16} /> Web
                         </label>
