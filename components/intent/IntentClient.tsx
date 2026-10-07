@@ -59,12 +59,13 @@ type ChatResponse = {
 };
 
 type IntentClientProps = {
-  accessToken: string;
+  accessToken?: string;
   accountUserId?: string;
   accountEmail?: string;
   accountName?: string;
   accountProvider?: string;
-  onSignOut: () => void;
+  onSignOut?: () => void;
+  onRequireAuth?: () => void;
 };
 
 const suggestions = [
@@ -80,18 +81,19 @@ export default function IntentClient({
   accountName,
   accountProvider,
   onSignOut,
+  onRequireAuth,
 }: IntentClientProps) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [message, setMessage] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [search, setSearch] = useState(false);
   const [searchDepth, setSearchDepth] = useState<'quick' | 'deep'>('quick');
-  const [model, setModel] = useState<'intentR-402' | 'native'>('native');
-  const [intentRAvailable, setIntentRAvailable] = useState(false);
-  const [nativeAvailable, setNativeAvailable] = useState(false);
+  const [model, setModel] = useState<'fast' | 'medium' | 'enhanced'>('fast');
+  const [availableModes, setAvailableModes] = useState<string[]>([]);
+  const [multimodal, setMultimodal] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
-  const [enhancedSearch, setEnhancedSearch] = useState(false);
-  const [enhancedMaxTokens, setEnhancedMaxTokens] = useState(160);
+  const [enhancedSearch] = useState(false);
+  const [enhancedMaxTokens] = useState(1200);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [quotaRemaining, setQuotaRemaining] = useState<number | null>(20);
@@ -107,7 +109,7 @@ export default function IntentClient({
   const hasSentRef = useRef(false);
   const preferencesLoadedRef = useRef(false);
 
-  const displayName = accountName?.trim() || accountEmail?.split('@')[0] || 'Signed-in user';
+  const displayName = accountName?.trim() || accountEmail?.split('@')[0] || 'Guest';
   const initials = useMemo(() => {
     const parts = displayName.split(/\s+/).filter(Boolean);
     return (parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : displayName.slice(0, 2)).toUpperCase();
@@ -119,23 +121,19 @@ export default function IntentClient({
       try {
         const response = await fetch('/api/intent', {
           cache: 'no-store',
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         });
-        const data: { models?: string[]; enhancedSearch?: boolean; enhancedMaxTokens?: number } | null =
-          response.ok ? await response.json() : null;
+        const data: { models?: string[]; multimodal?: boolean } | null = response.ok ? await response.json() : null;
         if (!active) return;
-        const enhanced = data?.models?.includes('intentR-402') === true;
-        setIntentRAvailable(enhanced);
-        setNativeAvailable(data?.models?.includes('native') === true);
-        setEnhancedSearch(data?.enhancedSearch === true);
-        setEnhancedMaxTokens(data?.enhancedMaxTokens === 512 ? 512 : 160);
-        if (!hasSentRef.current && !preferencesLoadedRef.current && !activeConversationId) {
-          setModel(enhanced ? 'intentR-402' : 'native');
+        const modes = data?.models || [];
+        setAvailableModes(modes);
+        setMultimodal(data?.multimodal === true);
+        if (!hasSentRef.current && !activeConversationId) {
+          setModel(modes.includes('fast') ? 'fast' : modes.includes('medium') ? 'medium' : 'enhanced');
         }
       } catch {
         if (!active) return;
-        setIntentRAvailable(false);
-        setNativeAvailable(false);
+        setAvailableModes([]);
       } finally {
         if (active) setAvailabilityChecked(true);
       }
@@ -160,14 +158,14 @@ export default function IntentClient({
 
       try {
         const [storedConversations, preferences] = await Promise.all([
-          listConversations(accessToken, accountUserId),
-          getPreferences(accessToken, accountUserId),
+          listConversations(accessToken!, accountUserId),
+          getPreferences(accessToken!, accountUserId),
         ]);
         if (!active) return;
         setConversations(storedConversations);
         if (preferences) {
           preferencesLoadedRef.current = true;
-          setModel(preferences.preferred_model);
+          setModel('fast');
           setSearch(preferences.web_search_enabled);
         } else {
           preferencesLoadedRef.current = true;
@@ -193,7 +191,7 @@ export default function IntentClient({
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = message.trim();
-    if (!text || busy || !availabilityChecked || (model === 'intentR-402' ? !intentRAvailable : !nativeAvailable)) return;
+    if (!text || busy || !availabilityChecked || !availableModes.includes(model)) return;
 
     hasSentRef.current = true;
     setTurns((current) => [...current, { role: 'user', text }]);
@@ -202,10 +200,10 @@ export default function IntentClient({
     setBusy(true);
 
     try {
-      const maxTokens = model === 'intentR-402' && enhancedMaxTokens === 512 ? 320 : 100;
+      const maxTokens = model === 'enhanced' ? 1200 : model === 'medium' ? 900 : 600;
       const response = await fetch('/api/intent', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
           model,
@@ -224,6 +222,7 @@ export default function IntentClient({
       const data = await response.json();
       if (!response.ok) {
         if (response.status === 429) setQuotaRemaining(0);
+        if (data.auth_required && onRequireAuth) onRequireAuth();
         throw new Error(data.error || 'Request failed.');
       }
 
@@ -250,19 +249,19 @@ export default function IntentClient({
 
           if (!conversationId) {
             const title = text.length > 72 ? `${text.slice(0, 69)}…` : text;
-            conversation = await createConversation(accessToken, accountUserId, { title, model });
+            conversation = await createConversation(accessToken!, accountUserId, { title, model: 'native' });
             conversationId = conversation.id;
             setActiveConversationId(conversationId);
           }
 
-          await saveExchange(accessToken, accountUserId, conversationId, {
+          await saveExchange(accessToken!, accountUserId, conversationId, {
             userContent: text,
             assistantContent: answer.answer,
             assistantSources: enrichedSources,
             assistantWarning: answer.warning,
           });
-          await updateConversation(accessToken, accountUserId, conversationId, {
-            model,
+          await updateConversation(accessToken!, accountUserId, conversationId, {
+            model: 'native',
             inference_session_id: answer.session_id,
           });
 
@@ -273,8 +272,8 @@ export default function IntentClient({
                 id: conversationId,
                 user_id: accountUserId,
                 title: text.slice(0, 72) || 'New conversation',
-                model,
-                inference_session_id: answer.session_id,
+                model: 'native',
+            inference_session_id: answer.session_id,
                 created_at: updatedAt,
                 updated_at: updatedAt,
               };
@@ -285,7 +284,7 @@ export default function IntentClient({
 
           // Re-read the canonical list so Recent sessions reflects persisted state,
           // not only optimistic client state.
-          const refreshedConversations = await listConversations(accessToken, accountUserId);
+          const refreshedConversations = await listConversations(accessToken!, accountUserId);
           setConversations(refreshedConversations);
           setHistoryError('');
         } catch (cause) {
@@ -318,8 +317,8 @@ export default function IntentClient({
     textareaRef.current?.focus();
   }
 
-  function switchModel(next: 'intentR-402' | 'native') {
-    if (busy || next === model || (next === 'intentR-402' ? !intentRAvailable : !nativeAvailable)) return;
+  function switchModel(next: 'fast' | 'medium' | 'enhanced') {
+    if (busy || next === model || !availableModes.includes(next)) return;
     hasSentRef.current = false;
     setActiveConversationId(null);
     setModel(next);
@@ -327,23 +326,13 @@ export default function IntentClient({
     setTurns([]);
     setSessionId(null);
     setError('');
-    if (accountUserId) {
-      void savePreferences(accessToken, accountUserId, {
-        preferred_model: next,
-        web_search_enabled: false,
-      })
-        .then(() => setHistoryError(''))
-        .catch((cause) => setHistoryError(
-          cause instanceof Error ? cause.message : 'Model preference could not be saved.',
-        ));
-    }
-  }
+      }
 
   async function openConversation(conversation: PersistedConversation) {
     if (!accountUserId || busy) return;
     setHistoryError('');
     try {
-      const storedMessages = await loadMessages(accessToken, accountUserId, conversation.id);
+      const storedMessages = await loadMessages(accessToken!, accountUserId, conversation.id);
       setActiveConversationId(conversation.id);
       setModel(conversation.model);
       setSessionId(conversation.inference_session_id);
@@ -372,7 +361,7 @@ export default function IntentClient({
     setHistoryError('');
 
     try {
-      await deleteConversation(accessToken, accountUserId, conversation.id);
+      await deleteConversation(accessToken!, accountUserId, conversation.id);
       setConversations((current) => current.filter((entry) => entry.id !== conversation.id));
 
       if (activeConversationId === conversation.id) {
@@ -384,7 +373,7 @@ export default function IntentClient({
         setError('');
       }
 
-      const refreshedConversations = await listConversations(accessToken, accountUserId);
+      const refreshedConversations = await listConversations(accessToken!, accountUserId);
       setConversations(refreshedConversations);
     } catch (cause) {
       setHistoryError(cause instanceof Error ? cause.message : 'Conversation could not be deleted.');
@@ -417,7 +406,7 @@ export default function IntentClient({
             </Link>
             <button
               type="button"
-              onClick={onSignOut}
+              onClick={() => onSignOut?.()}
               className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950 lg:hidden"
             >
               <LogOut size={14} /> Sign out
@@ -507,7 +496,7 @@ export default function IntentClient({
                   >
                     <span className="block truncate text-xs font-medium">{conversation.title}</span>
                     <span className="mt-1 block text-[10px] text-slate-600">
-                      {conversation.model === 'intentR-402' ? 'INTENT-R 402M' : 'Native'} · {new Date(conversation.updated_at).toLocaleDateString()}
+                      {conversation.model === 'intentR-402' ? 'Enhanced' : 'Fast'} · {new Date(conversation.updated_at).toLocaleDateString()}
                     </span>
                   </button>
                   <button
@@ -689,7 +678,7 @@ export default function IntentClient({
                     </button>
                   </div>
 
-                  {(model === 'native' || enhancedSearch) && (
+                  {enhancedSearch && (
                     <div className="mt-4 rounded-xl bg-slate-50 p-3">
                       <label className="flex min-h-10 items-center justify-between gap-3 text-sm font-medium text-slate-700">
                         <span className="inline-flex items-center gap-2"><Globe2 size={16} /> Web research</span>
@@ -700,8 +689,8 @@ export default function IntentClient({
                             const next = event.target.checked;
                             setSearch(next);
                             if (accountUserId) {
-                              void savePreferences(accessToken, accountUserId, {
-                                preferred_model: model,
+                              void savePreferences(accessToken!, accountUserId, {
+                                preferred_model: 'native',
                                 web_search_enabled: next,
                               })
                                 .then(() => setHistoryError(''))
@@ -767,7 +756,7 @@ export default function IntentClient({
                       >
                         <span className="block truncate text-xs font-semibold text-slate-800">{conversation.title}</span>
                         <span className="mt-1 block text-[10px] text-slate-500">
-                          {conversation.model === 'intentR-402' ? 'INTENT-R 402M' : 'Native'} · {new Date(conversation.updated_at).toLocaleDateString()}
+                          {conversation.model === 'intentR-402' ? 'Enhanced' : 'Fast'} · {new Date(conversation.updated_at).toLocaleDateString()}
                         </span>
                       </button>
                       <button
@@ -843,36 +832,26 @@ export default function IntentClient({
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Choose model">
-              <button
-                type="button"
-                disabled={busy || !intentRAvailable}
-                onClick={() => switchModel('intentR-402')}
-                aria-pressed={model === 'intentR-402'}
-                className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
-                  model === 'intentR-402'
-                    ? 'border-blue-500 bg-blue-50 text-blue-900'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
-                }`}
-              >
-                Enhanced <span className="text-xs text-slate-600">· {intentRAvailable ? 'INTENT-R 402M' : availabilityChecked ? 'offline' : 'checking'}</span>
-              </button>
-              <button
-                type="button"
-                disabled={busy || !nativeAvailable}
-                onClick={() => switchModel('native')}
-                aria-pressed={model === 'native'}
-                className={`rounded-lg border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
-                  model === 'native'
-                    ? 'border-blue-500 bg-blue-50 text-blue-900'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
-                }`}
-              >
-                Native <span className="text-xs text-slate-600">· {nativeAvailable ? 'INTENT' : availabilityChecked ? 'offline' : 'checking'}</span>
-              </button>
-
+            <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Choose LooseMouth mode">
+              {(['fast', 'medium', 'enhanced'] as const).map((choice) => (
+                <button
+                  key={choice}
+                  type="button"
+                  disabled={busy || !availableModes.includes(choice)}
+                  onClick={() => switchModel(choice)}
+                  aria-pressed={model === choice}
+                  className={`rounded-lg border px-3 py-2 text-sm capitalize disabled:cursor-not-allowed disabled:opacity-45 ${
+                    model === choice
+                      ? 'border-blue-500 bg-blue-50 text-blue-900'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
+                  }`}
+                >
+                  {choice}{choice === 'fast' ? ' ⚡' : choice === 'enhanced' ? ' ✨' : ' 🧠'}
+                </button>
+              ))}
+              {multimodal && <span className="px-2 text-xs text-slate-500">Vision ready</span>}
               <div className="ml-auto flex items-center gap-3 text-xs text-slate-500 lg:hidden">
-                <span>{quotaRemaining ?? '—'} / 20 left</span>
+                <span>{quotaRemaining ?? '—'} left</span>
               </div>
             </div>
           </header>
@@ -889,7 +868,7 @@ export default function IntentClient({
               {!availabilityChecked && turns.length === 0 && (
                 <div className="mx-auto flex min-h-[44vh] lg:min-h-[58vh] max-w-3xl flex-col justify-center">
                   <BrandLoader
-                    label={`Connecting to ${model === 'intentR-402' ? 'INTENT-R 402M' : 'LooseMouth Native'}…`}
+                    label={`Connecting to LooseMouth ${model.charAt(0).toUpperCase() + model.slice(1)}…`}
                     size={52}
                   />
                 </div>
@@ -1020,11 +999,7 @@ export default function IntentClient({
 
             <div className="shrink-0 border-t border-slate-200 bg-white/96 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-6 sm:py-4 lg:px-10">
               <form onSubmit={send} className="mx-auto max-w-4xl">
-                {availabilityChecked && !intentRAvailable && model === 'intentR-402' && (
-                  <p role="status" className="mb-3 rounded-lg border border-sky-200/15 bg-sky-200/[0.05] px-3 py-2 text-sm text-slate-700">
-                    INTENT-R 402M is offline. {nativeAvailable ? 'Switch to Native to continue.' : 'Please check back soon.'}
-                  </p>
-                )}
+                
 
                 <label htmlFor="intent-message" className="sr-only">Message LooseMouth</label>
                 <div className="rounded-2xl border border-slate-300 bg-white p-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.24)] transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
@@ -1043,7 +1018,7 @@ export default function IntentClient({
 
                   <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-1 pt-2">
                     <div className="flex min-w-0 items-center gap-1">
-                      {(model === 'native' || enhancedSearch) && (
+                      {enhancedSearch && (
                         <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-600 hover:bg-white hover:text-slate-950">
                           <input
                             type="checkbox"
@@ -1052,8 +1027,8 @@ export default function IntentClient({
                               const next = event.target.checked;
                               setSearch(next);
                               if (accountUserId) {
-                                void savePreferences(accessToken, accountUserId, {
-                                  preferred_model: model,
+                                void savePreferences(accessToken!, accountUserId, {
+                                  preferred_model: 'native',
                                   web_search_enabled: next,
                                 })
                                   .then(() => setHistoryError(''))
@@ -1098,7 +1073,7 @@ export default function IntentClient({
 
                     <button
                       type="submit"
-                      disabled={busy || !message.trim() || !availabilityChecked || (model === 'intentR-402' ? !intentRAvailable : !nativeAvailable)}
+                      disabled={busy || !message.trim() || !availabilityChecked || !availableModes.includes(model)}
                       className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:gap-2 sm:px-4"
                     >
                       <span className="hidden sm:inline">Send</span><ArrowUp size={17} />
