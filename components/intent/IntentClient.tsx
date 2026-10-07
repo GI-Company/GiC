@@ -88,6 +88,7 @@ export default function IntentClient({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [search, setSearch] = useState(false);
   const [searchDepth, setSearchDepth] = useState<'quick' | 'deep'>('quick');
+  const [dataCollectionEnabled, setDataCollectionEnabled] = useState(true);
   const [model, setModel] = useState<'fast' | 'medium' | 'enhanced'>('fast');
   const [availableModes, setAvailableModes] = useState<string[]>([]);
   const [multimodal, setMultimodal] = useState(false);
@@ -167,6 +168,7 @@ export default function IntentClient({
           preferencesLoadedRef.current = true;
           setModel('fast');
           setSearch(preferences.web_search_enabled);
+          setDataCollectionEnabled(preferences.data_collection_enabled !== false);
         } else {
           preferencesLoadedRef.current = true;
         }
@@ -211,6 +213,7 @@ export default function IntentClient({
           search,
           search_depth: search ? searchDepth : undefined,
           max_tokens: maxTokens,
+          data_collection_enabled: dataCollectionEnabled,
         }),
       });
 
@@ -1031,6 +1034,7 @@ export default function IntentClient({
                                 void savePreferences(accessToken!, accountUserId, {
                                   preferred_model: model,
                                   web_search_enabled: next,
+                                  data_collection_enabled: dataCollectionEnabled,
                                 })
                                   .then(() => setHistoryError(''))
                                   .catch((cause) => setHistoryError(
