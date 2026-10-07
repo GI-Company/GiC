@@ -244,3 +244,23 @@ export async function deleteConversation(accessToken: string, userId: string, co
     headers: authHeaders(accessToken, { Prefer: 'return=minimal' }),
   }));
 }
+
+export type LooseMouthEntitlement = {
+  user_id: string;
+  tier: 'free' | 'paid' | 'enhanced';
+  subscription_status: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+};
+
+export async function getBillingEntitlement(accessToken: string, userId: string) {
+  const url = new URL('/rest/v1/loosemouth_billing_entitlements', SUPABASE_URL);
+  url.searchParams.set('select', 'user_id,tier,subscription_status,current_period_end,cancel_at_period_end');
+  url.searchParams.set('user_id', `eq.${userId}`);
+  url.searchParams.set('limit', '1');
+  const rows = await checked<LooseMouthEntitlement[]>(await fetch(url, {
+    headers: authHeaders(accessToken),
+    cache: 'no-store',
+  }));
+  return rows[0] || null;
+}
