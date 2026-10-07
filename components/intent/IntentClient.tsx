@@ -92,7 +92,7 @@ export default function IntentClient({
   const [availableModes, setAvailableModes] = useState<string[]>([]);
   const [multimodal, setMultimodal] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
-  const [enhancedSearch] = useState(false);
+  const enhancedSearch = true;
   const [enhancedMaxTokens] = useState(1200);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
