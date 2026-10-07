@@ -472,6 +472,22 @@ export default function IntentClient({
 
           </div>
 
+          <div className="mt-5 rounded-xl border border-slate-200 bg-white p-3">
+            <label className="flex items-center justify-between gap-3 text-xs font-medium text-slate-700">
+              <span><span className="block font-semibold text-slate-900">Usage data</span><span className="mt-0.5 block text-[10px] font-normal text-slate-500">Performance metadata only; never prompt or response text.</span></span>
+              <input
+                type="checkbox"
+                checked={dataCollectionEnabled}
+                onChange={(event) => {
+                  const next = event.target.checked;
+                  setDataCollectionEnabled(next);
+                  if (accountUserId) void savePreferences(accessToken!, accountUserId, { preferred_model: model, web_search_enabled: search, data_collection_enabled: next }).catch(() => setHistoryError('Privacy preference could not be saved.'));
+                }}
+                className="h-4 w-4 accent-blue-600"
+              />
+            </label>
+          </div>
+
           <div className="mt-6">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Recent sessions</p>
@@ -696,6 +712,7 @@ export default function IntentClient({
                               void savePreferences(accessToken!, accountUserId, {
                                 preferred_model: model,
                                 web_search_enabled: next,
+                              data_collection_enabled: dataCollectionEnabled,
                               })
                                 .then(() => setHistoryError(''))
                                 .catch((cause) => setHistoryError(
@@ -733,6 +750,22 @@ export default function IntentClient({
                       )}
                     </div>
                   )}
+                </div>
+
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <label className="flex min-h-10 items-center justify-between gap-3 text-sm font-medium text-slate-700">
+                    <span><span className="block">Share usage data</span><span className="block text-[10px] font-normal text-slate-500">Performance metadata only; prompt/response text is not collected.</span></span>
+                    <input
+                      type="checkbox"
+                      checked={dataCollectionEnabled}
+                      onChange={(event) => {
+                        const next = event.target.checked;
+                        setDataCollectionEnabled(next);
+                        if (accountUserId) void savePreferences(accessToken!, accountUserId, { preferred_model: model, web_search_enabled: search, data_collection_enabled: next }).catch(() => setHistoryError('Privacy preference could not be saved.'));
+                      }}
+                      className="h-5 w-5 accent-blue-600"
+                    />
+                  </label>
                 </div>
 
                 <div className="mt-6 flex items-center justify-between">
