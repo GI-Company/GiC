@@ -1,4 +1,7 @@
+'use client';
+
 import { ArrowRight, Check, Heart } from 'lucide-react';
+import { useState } from 'react';
 
 const PAID_URL = 'https://buy.stripe.com/14A4gr1Wdd5gfy2f8g1sQ00';
 const ENHANCED_URL = 'https://buy.stripe.com/28EcMX30h3uG0D88JS1sQ01';
@@ -36,6 +39,15 @@ const tiers = [
 ];
 
 export default function BillingSection() {
+  const [busy,setBusy]=useState<string|null>(null);
+  async function subscribe(tier:'paid'|'enhanced'){
+    const raw=localStorage.getItem('gic-loosemouth-session');
+    if(!raw){window.location.href='/intent';return;}
+    let token='';try{token=JSON.parse(raw).access_token||'';}catch{}
+    if(!token){window.location.href='/intent';return;}
+    setBusy(tier);
+    try{const res=await fetch('/api/billing/checkout',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({tier})});const data=await res.json();if(!res.ok||!data.url)throw new Error(data.error||'Checkout unavailable');window.location.href=data.url;}catch(e){alert(e instanceof Error?e.message:'Checkout unavailable');setBusy(null);}
+  }
   return (
     <section id="plans" className="border-b border-slate-200 bg-slate-50 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -51,7 +63,7 @@ export default function BillingSection() {
               <div className="mt-4 flex items-baseline gap-1"><span className="text-4xl font-semibold tracking-tight text-slate-950">{tier.price}</span><span className="text-sm text-slate-500">{tier.cadence}</span></div>
               <p className="mt-4 min-h-14 text-sm leading-6 text-slate-600">{tier.description}</p>
               <div className="mt-6 space-y-3">{tier.features.map((feature) => <p key={feature} className="flex gap-2 text-sm text-slate-700"><Check className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" />{feature}</p>)}</div>
-              <a href={tier.href} className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition ${tier.featured ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-slate-300 text-slate-950 hover:bg-slate-50'}`}>{tier.action}<ArrowRight className="h-4 w-4" /></a>
+              {tier.name==='Paid'||tier.name==='Enhanced Workspace'?<button type="button" disabled={busy!==null} onClick={()=>subscribe(tier.name==='Paid'?'paid':'enhanced')} className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition disabled:opacity-60 ${tier.featured?'bg-blue-600 text-white hover:bg-blue-700':'border border-slate-300 text-slate-950 hover:bg-slate-50'}`}>{busy===(tier.name==='Paid'?'paid':'enhanced')?'Opening checkout…':tier.action}<ArrowRight className="h-4 w-4" /></button>:<a href={tier.href} className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-50">{tier.action}<ArrowRight className="h-4 w-4" /></a>}
             </article>
           ))}
         </div>
