@@ -28,6 +28,7 @@ export type LooseMouthPreferences = {
   user_id: string;
   preferred_model: LooseMouthModel;
   web_search_enabled: boolean;
+  data_collection_enabled: boolean;
   updated_at: string;
 };
 
@@ -205,7 +206,7 @@ export async function saveExchange(
 
 export async function getPreferences(accessToken: string, userId: string) {
   const url = new URL('/rest/v1/loosemouth_user_preferences', SUPABASE_URL);
-  url.searchParams.set('select', 'user_id,preferred_model,web_search_enabled,updated_at');
+  url.searchParams.set('select', 'user_id,preferred_model,web_search_enabled,data_collection_enabled,updated_at');
   url.searchParams.set('user_id', `eq.${userId}`);
   url.searchParams.set('limit', '1');
   const rows = await checked<Array<Omit<LooseMouthPreferences, 'preferred_model'> & { preferred_model: string }>>(await fetch(url, {
@@ -219,7 +220,7 @@ export async function getPreferences(accessToken: string, userId: string) {
 export async function savePreferences(
   accessToken: string,
   userId: string,
-  values: { preferred_model: LooseMouthModel; web_search_enabled: boolean },
+  values: { preferred_model: LooseMouthModel; web_search_enabled: boolean; data_collection_enabled: boolean },
 ) {
   const url = new URL('/rest/v1/loosemouth_user_preferences', SUPABASE_URL);
   url.searchParams.set('on_conflict', 'user_id');
