@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BrainCircuit, Crosshair, Gauge, LockKeyhole } from 'lucide-react';
 
 export default function BitVisionSection() {
@@ -18,6 +19,20 @@ export default function BitVisionSection() {
               In self-play, BitVision learns to make decisions, pursue objectives, adapt to an opponent, and improve measurable task
               performance without needing to become a general-purpose model. The architecture and implementation details remain proprietary.
             </p>
+
+            <div className="mt-6 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">New live experiment</p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                BitVision-Cell v0.2 runs an 8.75M-parameter checkpoint directly in the browser and lets the learned policy control a
+                synthetic tissue/pathogen environment in real time.
+              </p>
+              <Link
+                href="/virtual-lab/bitvision-cell"
+                className="mt-4 inline-flex rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-semibold text-slate-950 hover:bg-cyan-200"
+              >
+                Launch live checkpoint inference
+              </Link>
+            </div>
 
             <div className="mt-9 grid gap-4 sm:grid-cols-2">
               {[
