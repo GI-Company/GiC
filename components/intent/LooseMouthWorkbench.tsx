@@ -1,30 +1,684 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import { Code2, FileText, Download, Play, Save, Trash2, X } from 'lucide-react';
-import { createArtifact, deleteArtifact, listArtifacts, updateArtifact, type ArtifactKind, type LooseMouthArtifact } from '@/lib/loosemouth-artifacts';
 
-type Props={accessToken:string;userId:string;conversationId?:string|null;onClose:()=>void};
-function appletDoc(content:Record<string,unknown>){
- const files=Array.isArray(content.files)?content.files as Array<{path?:string;content?:string}>:[];
- const get=(p:string)=>files.find(f=>f.path===p)?.content||'';
- const html=get('index.html')||'<main id="app"></main>',css=get('style.css'),js=get('app.js');
- return html.replace(/<\/head>/i,`<style>${css}</style></head>`).replace(/<\/body>/i,`<script>${js.replace(/<\/script/gi,'<\\/script')}<\/script></body>`);
+import { useMemo, useState, type ReactNode } from 'react';
+import {
+  Code2,
+  Download,
+  Eye,
+  FileText,
+  PencilLine,
+  Play,
+  Printer,
+  RefreshCw,
+  Save,
+  Trash2,
+  X,
+} from 'lucide-react';
+import {
+  createArtifact,
+  deleteArtifact,
+  listArtifacts,
+  updateArtifact,
+  type ArtifactKind,
+  type LooseMouthArtifact,
+} from '@/lib/loosemouth-artifacts';
+
+type Props = {
+  accessToken: string;
+  userId: string;
+  conversationId?: string | null;
+  onClose: () => void;
+};
+
+type AppletFile = { path: string; content: string };
+
+function appletFiles(content: Record<string, unknown> | null): AppletFile[] {
+  if (!content || !Array.isArray(content.files)) return [];
+  return content.files
+    .filter((file): file is { path?: string; content?: string } => Boolean(file && typeof file === 'object'))
+    .map((file) => ({
+      path: typeof file.path === 'string' ? file.path : 'untitled.txt',
+      content: typeof file.content === 'string' ? file.content : '',
+    }));
 }
-export default function LooseMouthWorkbench({accessToken,userId,conversationId,onClose}:Props){
- const [kind,setKind]=useState<ArtifactKind>('report');const [prompt,setPrompt]=useState('');const [items,setItems]=useState<LooseMouthArtifact[]>([]);const [active,setActive]=useState<LooseMouthArtifact|null>(null);const [draft,setDraft]=useState<Record<string,unknown>|null>(null);const [busy,setBusy]=useState(false);const [error,setError]=useState('');
- useEffect(()=>{void listArtifacts(accessToken,userId).then(setItems).catch(e=>setError(e.message));},[accessToken,userId]);
- const preview=useMemo(()=>draft&&kind==='applet'?appletDoc(draft):'',[draft,kind]);
- async function generate(){if(!prompt.trim()||busy)return;setBusy(true);setError('');try{const r=await fetch('/api/intent/artifact',{method:'POST',headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},body:JSON.stringify({kind,prompt,current:draft})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Generation failed.');setDraft(d.artifact);}catch(e){setError(e instanceof Error?e.message:'Generation failed.');}finally{setBusy(false);}}
- async function save(){if(!draft)return;setBusy(true);try{const title=String(draft.title||active?.title||'Untitled artifact').slice(0,160);let saved;if(active){saved=await updateArtifact(accessToken,userId,active.id,{title,prompt,content:draft,version:active.version+1});}else{saved=await createArtifact(accessToken,userId,{conversation_id:conversationId,kind,title,prompt,content:draft});}setActive(saved);setItems(await listArtifacts(accessToken,userId));}catch(e){setError(e instanceof Error?e.message:'Save failed.');}finally{setBusy(false);}}
- function download(){if(!draft)return;if(kind==='report'){const blob=new Blob([String(draft.markdown||'')],{type:'text/markdown'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${String(draft.title||'loosemouth-report').replace(/[^a-z0-9-_]+/gi,'-')}.md`;a.click();URL.revokeObjectURL(a.href);return;}const blob=new Blob([preview],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${String(draft.title||'loosemouth-applet').replace(/[^a-z0-9-_]+/gi,'-')}.html`;a.click();URL.revokeObjectURL(a.href);}
- return <section className="fixed inset-0 z-50 bg-slate-950/30 p-0 backdrop-blur-sm lg:p-6">
-  <div className="mx-auto grid h-full max-w-[1500px] overflow-hidden bg-white shadow-2xl lg:grid-cols-[250px_1fr] lg:rounded-2xl lg:border lg:border-slate-200">
-   <aside className="hidden border-r border-slate-200 bg-slate-50 p-4 lg:block"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-blue-700">LooseMouth Workbench</p><p className="mt-2 text-sm text-slate-600">Saved builds</p><div className="mt-4 space-y-1">{items.map(i=><button key={i.id} onClick={()=>{setActive(i);setKind(i.kind);setDraft(i.content);setPrompt(i.prompt)}} className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-white"><span className="block truncate font-medium">{i.title}</span><span className="text-[10px] uppercase text-slate-500">{i.kind} · v{i.version}</span></button>)}</div></aside>
-   <div className="flex min-w-0 flex-col"><header className="flex items-center justify-between border-b border-slate-200 px-4 py-3"><div><p className="text-sm font-semibold">LooseMouth Workbench</p><p className="text-xs text-slate-500">Build, inspect, revise, keep.</p></div><button onClick={onClose} className="rounded-lg p-2 hover:bg-slate-100" aria-label="Close workbench"><X size={18}/></button></header>
-   <div className="flex gap-2 border-b border-slate-200 p-3"><button onClick={()=>{setKind('report');setActive(null);setDraft(null)}} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${kind==='report'?'bg-slate-950 text-white':'bg-slate-100'}`}><FileText size={15}/>Report</button><button onClick={()=>{setKind('applet');setActive(null);setDraft(null)}} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${kind==='applet'?'bg-slate-950 text-white':'bg-slate-100'}`}><Code2 size={15}/>Applet</button></div>
-   <div className="grid min-h-0 flex-1 lg:grid-cols-[380px_1fr]"><div className="border-r border-slate-200 p-4"><textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder={kind==='report'?'Describe the report you want…':'Describe the applet you want to build…'} className="h-40 w-full resize-none rounded-xl border border-slate-300 p-3 text-sm outline-none focus:border-blue-500"/><button onClick={generate} disabled={busy||!prompt.trim()} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"><Play size={15}/>{busy?'Building…':draft?'Revise build':'Build'}</button>{error&&<p className="mt-3 text-xs text-amber-700">{error}</p>}<div className="mt-4 flex gap-2"><button onClick={save} disabled={!draft||busy} className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border p-2 text-sm"><Save size={14}/>Save</button><button onClick={download} disabled={!draft} className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border p-2 text-sm"><Download size={14}/>Download</button>{active&&<button onClick={async()=>{await deleteArtifact(accessToken,userId,active.id);setActive(null);setDraft(null);setItems(await listArtifacts(accessToken,userId));}} className="rounded-lg border p-2" aria-label="Delete"><Trash2 size={14}/></button>}</div></div>
-   <div className="min-h-0 overflow-auto bg-slate-100 p-4">{!draft?<div className="flex h-full items-center justify-center text-center text-sm text-slate-500">Your {kind} will open here.</div>:kind==='report'?<article className="mx-auto min-h-full max-w-4xl whitespace-pre-wrap rounded-xl bg-white p-6 text-sm leading-7 shadow-sm">{String(draft.markdown||'')}</article>:<iframe title="LooseMouth applet preview" sandbox="allow-scripts" srcDoc={preview} className="h-full min-h-[520px] w-full rounded-xl border border-slate-200 bg-white shadow-sm"/>}</div></div>
-   </div>
-  </div>
- </section>;
+
+function appletDoc(content: Record<string, unknown>) {
+  const files = appletFiles(content);
+  const get = (path: string) => files.find((file) => file.path === path)?.content || '';
+  let html = get('index.html') || '<main id="app"></main>';
+  const css = get('style.css');
+  const js = get('app.js').replace(/<\/script/gi, '<\\/script');
+
+  if (!/<html[\s>]/i.test(html)) html = `<!doctype html><html><head></head><body>${html}</body></html>`;
+  if (!/<head[\s>]/i.test(html)) html = html.replace(/<html([^>]*)>/i, '<html$1><head></head>');
+  if (!/<body[\s>]/i.test(html)) html = html.replace(/<\/head>/i, '</head><body></body>');
+
+  const styleTag = `<style>${css}</style>`;
+  html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${styleTag}</head>`) : `${styleTag}${html}`;
+
+  const scriptTag = `<script>${js}<\/script>`;
+  html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${scriptTag}</body>`) : `${html}${scriptTag}`;
+  return html;
+}
+
+function safeFilename(value: string, fallback: string) {
+  const cleaned = value.trim().replace(/[^a-z0-9-_]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 90);
+  return cleaned || fallback;
+}
+
+function downloadBlob(filename: string, type: string, value: string) {
+  const blob = new Blob([value], { type });
+  const href = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = href;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(href);
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function reportBodyHtml(markdown: string) {
+  const lines = markdown.replace(/\r/g, '').split('\n');
+  const output: string[] = [];
+  let inCode = false;
+  let code: string[] = [];
+  let listType: 'ul' | 'ol' | null = null;
+
+  const closeList = () => {
+    if (listType) output.push(`</${listType}>`);
+    listType = null;
+  };
+
+  for (const raw of lines) {
+    if (raw.trim().startsWith('```')) {
+      closeList();
+      if (inCode) {
+        output.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
+        code = [];
+      }
+      inCode = !inCode;
+      continue;
+    }
+    if (inCode) {
+      code.push(raw);
+      continue;
+    }
+
+    const line = raw.trim();
+    if (!line) {
+      closeList();
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      closeList();
+      const level = heading[1].length;
+      output.push(`<h${level}>${escapeHtml(heading[2])}</h${level}>`);
+      continue;
+    }
+
+    const bullet = line.match(/^[-*]\s+(.+)$/);
+    if (bullet) {
+      if (listType !== 'ul') {
+        closeList();
+        output.push('<ul>');
+        listType = 'ul';
+      }
+      output.push(`<li>${escapeHtml(bullet[1])}</li>`);
+      continue;
+    }
+
+    const numbered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (numbered) {
+      if (listType !== 'ol') {
+        closeList();
+        output.push('<ol>');
+        listType = 'ol';
+      }
+      output.push(`<li>${escapeHtml(numbered[1])}</li>`);
+      continue;
+    }
+
+    closeList();
+    if (line.startsWith('> ')) {
+      output.push(`<blockquote>${escapeHtml(line.slice(2))}</blockquote>`);
+      continue;
+    }
+    output.push(`<p>${escapeHtml(line)}</p>`);
+  }
+
+  if (inCode && code.length) output.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
+  closeList();
+  return output.join('\n');
+}
+
+function reportDocument(title: string, markdown: string) {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHtml(title)}</title>
+<style>
+  :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#0f172a;background:#f8fafc}
+  *{box-sizing:border-box}body{margin:0;padding:48px 20px}.page{max-width:900px;margin:0 auto;background:white;padding:56px;border:1px solid #e2e8f0;border-radius:20px;box-shadow:0 18px 60px rgba(15,23,42,.08)}
+  h1{font-size:34px;line-height:1.15;margin:0 0 28px}h2{font-size:24px;margin:34px 0 12px}h3{font-size:18px;margin:26px 0 10px}p,li{font-size:15px;line-height:1.8;color:#334155}ul,ol{padding-left:24px}blockquote{margin:22px 0;padding:14px 18px;border-left:3px solid #2563eb;background:#eff6ff;color:#334155}
+  pre{overflow:auto;border-radius:12px;background:#0f172a;color:#e2e8f0;padding:18px;font-size:13px;line-height:1.6}@media print{body{background:white;padding:0}.page{border:0;box-shadow:none;max-width:none;padding:0}}
+</style>
+</head>
+<body><main class="page">${reportBodyHtml(markdown)}</main></body>
+</html>`;
+}
+
+function renderInline(line: string): ReactNode {
+  const pieces = line.split(/(`[^`]+`|\*\*[^*]+\*\*)/g).filter(Boolean);
+  return pieces.map((piece, index) => {
+    if (piece.startsWith('`') && piece.endsWith('`')) {
+      return <code key={index} className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-800">{piece.slice(1, -1)}</code>;
+    }
+    if (piece.startsWith('**') && piece.endsWith('**')) {
+      return <strong key={index} className="font-semibold text-slate-950">{piece.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{piece}</span>;
+  });
+}
+
+function ReportPreview({ markdown }: { markdown: string }) {
+  const lines = markdown.replace(/\r/g, '').split('\n');
+  const nodes: ReactNode[] = [];
+  let inCode = false;
+  let code: string[] = [];
+  let bullets: string[] = [];
+  let numbered: string[] = [];
+
+  const flushLists = () => {
+    if (bullets.length) {
+      nodes.push(<ul key={`ul-${nodes.length}`} className="my-4 list-disc space-y-1.5 pl-6 text-slate-700">{bullets.map((item, index) => <li key={index}>{renderInline(item)}</li>)}</ul>);
+      bullets = [];
+    }
+    if (numbered.length) {
+      nodes.push(<ol key={`ol-${nodes.length}`} className="my-4 list-decimal space-y-1.5 pl-6 text-slate-700">{numbered.map((item, index) => <li key={index}>{renderInline(item)}</li>)}</ol>);
+      numbered = [];
+    }
+  };
+
+  lines.forEach((raw, index) => {
+    if (raw.trim().startsWith('```')) {
+      flushLists();
+      if (inCode) {
+        nodes.push(<pre key={`code-${index}`} className="my-5 overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100"><code>{code.join('\n')}</code></pre>);
+        code = [];
+      }
+      inCode = !inCode;
+      return;
+    }
+    if (inCode) {
+      code.push(raw);
+      return;
+    }
+
+    const line = raw.trim();
+    if (!line) {
+      flushLists();
+      return;
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      flushLists();
+      const level = heading[1].length;
+      if (level === 1) nodes.push(<h1 key={index} className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-slate-950">{renderInline(heading[2])}</h1>);
+      else if (level === 2) nodes.push(<h2 key={index} className="mt-8 text-xl font-semibold tracking-[-0.02em] text-slate-950">{renderInline(heading[2])}</h2>);
+      else nodes.push(<h3 key={index} className="mt-6 text-base font-semibold text-slate-950">{renderInline(heading[2])}</h3>);
+      return;
+    }
+
+    const bullet = line.match(/^[-*]\s+(.+)$/);
+    if (bullet) {
+      if (numbered.length) flushLists();
+      bullets.push(bullet[1]);
+      return;
+    }
+
+    const ordered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (ordered) {
+      if (bullets.length) flushLists();
+      numbered.push(ordered[1]);
+      return;
+    }
+
+    flushLists();
+    if (line.startsWith('> ')) {
+      nodes.push(<blockquote key={index} className="my-5 border-l-4 border-blue-300 bg-blue-50 px-4 py-3 text-sm leading-7 text-slate-700">{renderInline(line.slice(2))}</blockquote>);
+      return;
+    }
+
+    nodes.push(<p key={index} className="mt-3 text-[15px] leading-7 text-slate-700">{renderInline(line)}</p>);
+  });
+
+  flushLists();
+  if (inCode && code.length) {
+    nodes.push(<pre key="code-final" className="my-5 overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100"><code>{code.join('\n')}</code></pre>);
+  }
+
+  return <div>{nodes}</div>;
+}
+
+export default function LooseMouthWorkbench({ accessToken, userId, conversationId, onClose }: Props) {
+  const [kind, setKind] = useState<ArtifactKind>('report');
+  const [prompt, setPrompt] = useState('');
+  const [items, setItems] = useState<LooseMouthArtifact[]>([]);
+  const [active, setActive] = useState<LooseMouthArtifact | null>(null);
+  const [draft, setDraft] = useState<Record<string, unknown> | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [loadingItems, setLoadingItems] = useState(true);
+  const [error, setError] = useState('');
+  const [reportMode, setReportMode] = useState<'preview' | 'edit'>('preview');
+  const [activeFile, setActiveFile] = useState('index.html');
+  const [compiledPreview, setCompiledPreview] = useState('');
+
+  useState(() => {
+    void listArtifacts(accessToken, userId)
+      .then(setItems)
+      .catch((cause) => setError(cause instanceof Error ? cause.message : 'Saved builds could not be loaded.'))
+      .finally(() => setLoadingItems(false));
+    return 0;
+  });
+
+  const files = useMemo(() => appletFiles(draft), [draft]);
+  const reportMarkdown = typeof draft?.markdown === 'string' ? draft.markdown : '';
+  const artifactTitle = String(draft?.title || active?.title || (kind === 'report' ? 'Untitled report' : 'Untitled applet'));
+
+  function resetBuild(nextKind: ArtifactKind = kind) {
+    setKind(nextKind);
+    setPrompt('');
+    setActive(null);
+    setDraft(null);
+    setError('');
+    setReportMode('preview');
+    setActiveFile('index.html');
+    setCompiledPreview('');
+  }
+
+  function openArtifact(item: LooseMouthArtifact) {
+    setActive(item);
+    setKind(item.kind);
+    setDraft(item.content);
+    setPrompt(item.prompt);
+    setError('');
+    setReportMode('preview');
+    const nextFiles = appletFiles(item.content);
+    setActiveFile(nextFiles[0]?.path || 'index.html');
+    setCompiledPreview(item.kind === 'applet' ? appletDoc(item.content) : '');
+  }
+
+  async function refreshItems() {
+    setItems(await listArtifacts(accessToken, userId));
+  }
+
+  async function generate() {
+    if (!prompt.trim() || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch('/api/intent/artifact', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, prompt, current: draft }),
+      });
+      const data = await response.json() as { error?: string; artifact?: Record<string, unknown> };
+      if (!response.ok || !data.artifact) throw new Error(data.error || 'Generation failed.');
+      setDraft(data.artifact);
+      if (kind === 'applet') {
+        const nextFiles = appletFiles(data.artifact);
+        setActiveFile(nextFiles[0]?.path || 'index.html');
+        setCompiledPreview(appletDoc(data.artifact));
+      } else {
+        setReportMode('preview');
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Generation failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save() {
+    if (!draft || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const title = String(draft.title || active?.title || 'Untitled artifact').slice(0, 160);
+      let saved: LooseMouthArtifact;
+      if (active) {
+        saved = await updateArtifact(accessToken, userId, active.id, {
+          title,
+          prompt,
+          content: draft,
+          version: active.version + 1,
+        });
+      } else {
+        saved = await createArtifact(accessToken, userId, {
+          conversation_id: conversationId,
+          kind,
+          title,
+          prompt,
+          content: draft,
+        });
+      }
+      setActive(saved);
+      await refreshItems();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Save failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!active || busy) return;
+    if (!window.confirm(`Delete “${active.title}”?`)) return;
+    setBusy(true);
+    setError('');
+    try {
+      await deleteArtifact(accessToken, userId, active.id);
+      await refreshItems();
+      resetBuild(kind);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Delete failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function updateReport(markdown: string) {
+    setDraft((current) => ({ ...(current || {}), title: String(current?.title || artifactTitle), markdown }));
+  }
+
+  function updateAppletFile(path: string, value: string) {
+    setDraft((current) => {
+      const currentFiles = appletFiles(current);
+      const nextFiles = currentFiles.map((file) => file.path === path ? { ...file, content: value } : file);
+      return { ...(current || {}), files: nextFiles };
+    });
+  }
+
+  function compileApplet() {
+    if (!draft) return;
+    setCompiledPreview(appletDoc(draft));
+  }
+
+  function downloadPrimary() {
+    if (!draft) return;
+    const base = safeFilename(artifactTitle, kind === 'report' ? 'loosemouth-report' : 'loosemouth-applet');
+    if (kind === 'report') {
+      downloadBlob(`${base}.html`, 'text/html;charset=utf-8', reportDocument(artifactTitle, reportMarkdown));
+      return;
+    }
+    downloadBlob(`${base}.html`, 'text/html;charset=utf-8', appletDoc(draft));
+  }
+
+  function downloadMarkdown() {
+    if (!draft || kind !== 'report') return;
+    downloadBlob(`${safeFilename(artifactTitle, 'loosemouth-report')}.md`, 'text/markdown;charset=utf-8', reportMarkdown);
+  }
+
+  function printReport() {
+    if (!draft || kind !== 'report') return;
+    const popup = window.open('', '_blank', 'noopener,noreferrer');
+    if (!popup) {
+      setError('Your browser blocked the print window. Allow popups for this site and try again.');
+      return;
+    }
+    popup.document.open();
+    popup.document.write(reportDocument(artifactTitle, reportMarkdown));
+    popup.document.close();
+    popup.addEventListener('load', () => {
+      popup.focus();
+      popup.print();
+    });
+  }
+
+  const currentFile = files.find((file) => file.path === activeFile) || files[0];
+
+  return (
+    <section className="fixed inset-0 z-50 bg-slate-950/35 backdrop-blur-sm lg:p-5">
+      <div className="mx-auto grid h-full max-w-[1600px] overflow-hidden bg-white shadow-2xl lg:grid-cols-[260px_1fr] lg:rounded-2xl lg:border lg:border-slate-200">
+        <aside className="hidden min-h-0 border-r border-slate-200 bg-slate-50 p-4 lg:flex lg:flex-col">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[.18em] text-blue-700">LooseMouth Workbench</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Reports and runnable browser applets kept with your workspace.</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => resetBuild()}
+            className="mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            <RefreshCw size={14} /> New build
+          </button>
+
+          <div className="mt-6 min-h-0 flex-1 overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-slate-500">Saved builds</p>
+              <span className="text-[10px] text-slate-400">{loadingItems ? 'Loading…' : items.length}</span>
+            </div>
+            <div className="mt-2 space-y-1">
+              {items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => openArtifact(item)}
+                  className={`w-full rounded-xl px-3 py-2.5 text-left transition ${active?.id === item.id ? 'bg-blue-50 text-blue-900' : 'hover:bg-white'}`}
+                >
+                  <span className="block truncate text-sm font-medium">{item.title}</span>
+                  <span className="mt-1 block text-[10px] uppercase tracking-[.1em] text-slate-500">{item.kind} · v{item.version}</span>
+                </button>
+              ))}
+              {!loadingItems && items.length === 0 && <p className="rounded-xl bg-white px-3 py-3 text-xs leading-5 text-slate-500">Saved reports and applets will appear here.</p>}
+            </div>
+          </div>
+        </aside>
+
+        <div className="flex min-w-0 flex-col">
+          <header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-5">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-950">LooseMouth Workbench</p>
+              <p className="truncate text-xs text-slate-500">Build · inspect · edit · run · export</p>
+            </div>
+            <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100" aria-label="Close workbench">
+              <X size={18} />
+            </button>
+          </header>
+
+          <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-slate-200 p-3">
+            <button
+              type="button"
+              onClick={() => resetBuild('report')}
+              className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-semibold ${kind === 'report' ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-700'}`}
+            >
+              <FileText size={15} /> Report
+            </button>
+            <button
+              type="button"
+              onClick={() => resetBuild('applet')}
+              className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-semibold ${kind === 'applet' ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-700'}`}
+            >
+              <Code2 size={15} /> Applet
+            </button>
+            {active && <span className="ml-auto shrink-0 text-xs text-slate-500">Saved · v{active.version}</span>}
+          </div>
+
+          <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[360px_1fr] lg:overflow-hidden">
+            <div className="border-b border-slate-200 p-4 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+              <p className="text-xs font-semibold uppercase tracking-[.13em] text-slate-500">{kind === 'report' ? 'Report brief' : 'Applet brief'}</p>
+              <textarea
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder={kind === 'report'
+                  ? 'Describe the report you want. You can ask for an executive summary, technical brief, research memo, comparison, or documentation.'
+                  : 'Describe the applet you want. Explain the interface, controls, calculations, visualization, or interaction you need.'}
+                className="mt-2 h-40 w-full resize-none rounded-xl border border-slate-300 bg-white p-3 text-sm leading-6 text-slate-950 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+
+              <button
+                type="button"
+                onClick={generate}
+                disabled={busy || !prompt.trim()}
+                className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                <Play size={15} /> {busy ? 'Building…' : draft ? 'Revise with LooseMouth' : kind === 'report' ? 'Generate report' : 'Generate applet'}
+              </button>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={save}
+                  disabled={!draft || busy}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                >
+                  <Save size={14} /> Save
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadPrimary}
+                  disabled={!draft}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                >
+                  <Download size={14} /> {kind === 'report' ? 'HTML' : 'Download'}
+                </button>
+              </div>
+
+              {kind === 'report' && draft && (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={downloadMarkdown} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                    <Download size={13} /> Markdown
+                  </button>
+                  <button type="button" onClick={printReport} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                    <Printer size={13} /> Print / PDF
+                  </button>
+                </div>
+              )}
+
+              {active && (
+                <button
+                  type="button"
+                  onClick={() => void remove()}
+                  disabled={busy}
+                  className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-red-200 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
+                >
+                  <Trash2 size={13} /> Delete saved build
+                </button>
+              )}
+
+              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+                {kind === 'report'
+                  ? 'Reports stay editable in the workspace and can be exported as HTML, Markdown, or printed to PDF.'
+                  : 'Applets are assembled into a self-contained HTML document and run in an isolated browser sandbox with scripts enabled but no parent-page access.'}
+              </div>
+
+              {conversationId && <p className="mt-3 text-[10px] text-slate-400">This build can be linked to the active saved conversation.</p>}
+              {error && <p role="alert" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">{error}</p>}
+            </div>
+
+            <div className="min-h-[52vh] bg-slate-100 p-3 sm:p-4 lg:min-h-0 lg:overflow-hidden">
+              {!draft ? (
+                <div className="flex h-full min-h-[480px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-center">
+                  <div className="max-w-sm px-6">
+                    {kind === 'report' ? <FileText className="mx-auto h-8 w-8 text-blue-700" /> : <Code2 className="mx-auto h-8 w-8 text-blue-700" />}
+                    <p className="mt-4 font-semibold text-slate-900">{kind === 'report' ? 'Your report canvas will open here.' : 'Your applet workspace will open here.'}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">{kind === 'report' ? 'Generate a polished document, edit the Markdown, then export it.' : 'Generate HTML, CSS, and JavaScript, edit the files, compile, and run the result here.'}</p>
+                  </div>
+                </div>
+              ) : kind === 'report' ? (
+                <div className="flex h-full min-h-[520px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-950">{artifactTitle}</p>
+                      <p className="text-[10px] uppercase tracking-[.12em] text-slate-400">LooseMouth report</p>
+                    </div>
+                    <div className="inline-flex rounded-lg bg-slate-100 p-1">
+                      <button type="button" onClick={() => setReportMode('preview')} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold ${reportMode === 'preview' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}><Eye size={13} /> Preview</button>
+                      <button type="button" onClick={() => setReportMode('edit')} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold ${reportMode === 'edit' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}><PencilLine size={13} /> Edit</button>
+                    </div>
+                  </div>
+                  {reportMode === 'preview' ? (
+                    <article className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-8 lg:p-10">
+                      <div className="mx-auto max-w-4xl"><ReportPreview markdown={reportMarkdown} /></div>
+                    </article>
+                  ) : (
+                    <textarea
+                      value={reportMarkdown}
+                      onChange={(event) => updateReport(event.target.value)}
+                      className="min-h-[480px] flex-1 resize-none bg-white p-5 font-mono text-sm leading-7 text-slate-800 outline-none sm:p-8"
+                      spellCheck
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="flex h-full min-h-[560px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 px-3 py-2">
+                    <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+                      {files.map((file) => (
+                        <button
+                          key={file.path}
+                          type="button"
+                          onClick={() => setActiveFile(file.path)}
+                          className={`shrink-0 rounded-lg px-3 py-2 font-mono text-xs ${currentFile?.path === file.path ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-600'}`}
+                        >
+                          {file.path}
+                        </button>
+                      ))}
+                    </div>
+                    <button type="button" onClick={compileApplet} className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700">
+                      <Play size={13} /> Compile &amp; run
+                    </button>
+                  </div>
+
+                  <div className="grid min-h-0 flex-1 lg:grid-cols-2">
+                    <div className="min-h-[300px] border-b border-slate-200 lg:min-h-0 lg:border-b-0 lg:border-r">
+                      {currentFile ? (
+                        <textarea
+                          value={currentFile.content}
+                          onChange={(event) => updateAppletFile(currentFile.path, event.target.value)}
+                          className="h-full min-h-[300px] w-full resize-none bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100 outline-none"
+                          spellCheck={false}
+                          aria-label={`Edit ${currentFile.path}`}
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm text-slate-500">No applet files were generated.</div>
+                      )}
+                    </div>
+                    <div className="min-h-[360px] bg-slate-50 p-3 lg:min-h-0">
+                      {compiledPreview ? (
+                        <iframe
+                          title="LooseMouth applet preview"
+                          sandbox="allow-scripts"
+                          srcDoc={compiledPreview}
+                          className="h-full min-h-[340px] w-full rounded-xl border border-slate-200 bg-white"
+                        />
+                      ) : (
+                        <div className="flex h-full min-h-[340px] items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white text-sm text-slate-500">Compile the applet to run the preview.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
