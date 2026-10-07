@@ -9,9 +9,9 @@ BitVision-Cell v0.2 is a research simulator for studying whether a compact reinf
 - Live demo: https://www.globalintentcompany.space/virtual-lab/bitvision-cell
 - Training source: https://github.com/GI-Company/GiC/blob/main/research/bitvision-cell/v0.2/bitvision_cell_v02.py
 - Browser inference source: https://github.com/GI-Company/GiC/blob/main/public/bitvision-cell-live.html
-- Deployed checkpoint: update 500, FP16 ONNX
-- Model SHA-256: `a4ede7825b0ae77c366c5a335ab518d2acbc2270add51f3766611e5e6bb15247`
-- Model size: 17,649,139 bytes (16.83 MiB)
+- Deployed checkpoint: update 500, FP32 ONNX
+- Model SHA-256: `8f95be67f3e27355bcde14a7696453459578ab75520153df0ac0b3444457fb3f`
+- Model size: 35,100,504 bytes (33.47 MiB)
 - Trainable parameters: 8,751,415
 
 ## Training configuration
@@ -141,6 +141,6 @@ It is not the browser render frame rate and does not include the intentional pol
 
 ## Reproducibility boundary
 
-The training source and browser inference source are published so visitors can inspect the simulator, policy interface, action semantics, and deployed inference path. The ONNX model is served separately to keep the web page small and is identified by the SHA-256 above.
+The training source and browser inference source are published so visitors can inspect the simulator, policy interface, action semantics, and deployed inference path. The ONNX model is served separately to keep the web page small and is identified by the SHA-256 above. The production browser artifact uses FP32 because the earlier blanket FP16 conversion produced an ONNX Runtime type mismatch in a Cast node; the FP32 graph passes ONNX Runtime session creation with float inputs/outputs.
 
 The artifact demonstrates learned control inside the published synthetic rules. It should not be represented as evidence of a medical treatment, a biological digital twin, or validated therapeutic discovery.
