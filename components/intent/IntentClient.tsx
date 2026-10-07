@@ -1029,7 +1029,7 @@ export default function IntentClient({
                               setSearch(next);
                               if (accountUserId) {
                                 void savePreferences(accessToken!, accountUserId, {
-                                  preferred_model,
+                                  preferred_model: model,
                                   web_search_enabled: next,
                                 })
                                   .then(() => setHistoryError(''))
