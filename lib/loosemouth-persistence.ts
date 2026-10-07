@@ -1,6 +1,6 @@
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
 
-export type LooseMouthModel = 'native' | 'intentR-402';
+export type LooseMouthModel = 'fast' | 'medium' | 'enhanced';
 
 export type PersistedConversation = {
   id: string;
@@ -63,7 +63,7 @@ async function checked<T>(response: Response): Promise<T> {
 }
 
 function normalizeStoredModel(value: unknown): LooseMouthModel {
-  return value === 'native' ? 'native' : 'intentR-402';
+  return value === 'medium' || value === 'enhanced' ? value : 'fast';
 }
 
 export async function listConversations(accessToken: string, userId: string) {
