@@ -17,6 +17,11 @@ import {
   FileText,
   Code2,
   ImagePlus,
+  Copy,
+  ThumbsUp,
+  ThumbsDown,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import BrandLoader from '@/components/BrandLoader';
@@ -44,6 +49,9 @@ type Turn = {
   sources?: Source[];
   warning?: string | null;
   research?: ResearchDiagnostics;
+  feedbackId?: string;
+  feedbackRating?: 'positive' | 'negative';
+  mode?: 'fast' | 'medium' | 'enhanced';
 };
 type ResearchDiagnostics = {
   depth?: 'quick' | 'deep';
@@ -163,6 +171,11 @@ export default function IntentClient({
   const [historyError, setHistoryError] = useState('');
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [copiedTurnId, setCopiedTurnId] = useState<string | null>(null);
+  const [feedbackDraft, setFeedbackDraft] = useState<{ key: string; reason: string; comment: string } | null>(null);
+  const [feedbackSendingKey, setFeedbackSendingKey] = useState<string | null>(null);
+  const [feedbackError, setFeedbackError] = useState<{ key: string; message: string } | null>(null);
   const [workbenchWindows, setWorkbenchWindows] = useState<WorkbenchWindow[]>([]);
   const [activeWorkbenchId, setActiveWorkbenchId] = useState<string | null>(null);
   const lastWorkbenchIdRef = useRef<string | null>(null);
@@ -188,6 +201,87 @@ export default function IntentClient({
     lastWorkbenchIdRef.current = null;
     nextWorkbenchNumberRef.current = 0;
   }, [accountUserId]);
+
+  useEffect(() => {
+    if (!accountUserId) {
+      setSidebarCollapsed(false);
+      return;
+    }
+    try {
+      setSidebarCollapsed(localStorage.getItem('gic-sidebar-collapsed:' + accountUserId) === 'true');
+    } catch {
+      setSidebarCollapsed(false);
+    }
+  }, [accountUserId]);
+
+  function toggleSidebar() {
+    // Guest mode intentionally keeps its standard navigation.
+    if (!accessToken || !accountUserId) return;
+    setSidebarCollapsed((current) => {
+      const next = !current;
+      try { localStorage.setItem('gic-sidebar-collapsed:' + accountUserId, String(next)); } catch { /* private browsing */ }
+      return next;
+    });
+  }
+
+  async function copyTurn(text: string, id: string) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const scratch = document.createElement('textarea');
+        scratch.value = text;
+        scratch.style.position = 'fixed';
+        scratch.style.opacity = '0';
+        document.body.appendChild(scratch);
+        scratch.select();
+        const copied = document.execCommand('copy');
+        scratch.remove();
+        if (!copied) throw new Error('Clipboard unavailable.');
+      }
+      setCopiedTurnId(id);
+      window.setTimeout(() => setCopiedTurnId((current) => current === id ? null : current), 2000);
+    } catch {
+      setError('Could not copy text. Please select and copy the message manually.');
+    }
+  }
+
+  async function submitFeedback(turn: Turn, rating: 'positive' | 'negative', reason?: string, comment = '') {
+    if (turn.role !== 'assistant' || !turn.feedbackId || feedbackSendingKey) return;
+    const id = turn.feedbackId;
+    setFeedbackSendingKey(id);
+    setFeedbackError(null);
+    try {
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(turn.text));
+      const responseHash = Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
+      const response = await fetch('/api/intent/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: 'Bearer ' + accessToken } : {}),
+        },
+        body: JSON.stringify({
+          feedback_key: id,
+          response_hash: responseHash,
+          conversation_id: accountUserId ? activeConversationId : null,
+          model: turn.mode || model,
+          rating,
+          reason: rating === 'negative' ? reason : null,
+          comment: rating === 'negative' ? comment.trim() : '',
+        }),
+      });
+      const payload = await response.json() as { recorded?: boolean; error?: string };
+      if (!response.ok || !payload.recorded) throw new Error(payload.error || 'Unable to save feedback.');
+      setTurns((current) => current.map((item) =>
+        item.feedbackId === id ? { ...item, feedbackRating: rating } : item,
+      ));
+      setFeedbackDraft((current) => current?.key === id ? null : current);
+    } catch (cause) {
+      setFeedbackError({ key: id, message: cause instanceof Error ? cause.message : 'Feedback could not be saved.' });
+    } finally {
+      setFeedbackSendingKey(null);
+    }
+  }
 
   const displayName = accountName?.trim() || accountEmail?.split('@')[0] || 'Guest';
   const initials = useMemo(() => {
@@ -391,6 +485,8 @@ export default function IntentClient({
         {
           role: 'assistant',
           text: answer.answer,
+          feedbackId: crypto.randomUUID(),
+          mode: answer.mode === 'enhanced' || answer.mode === 'medium' ? answer.mode : 'fast',
           sources: enrichedSources,
           warning: answer.warning,
           research: answer.research,
@@ -532,6 +628,8 @@ export default function IntentClient({
   async function manageBilling(){if(!accessToken||billingBusy)return;setBillingBusy(true);try{const r=await fetch('/api/billing/portal',{method:'POST',headers:{Authorization:`Bearer ${accessToken}`}});const data=await r.json() as {url?:string;error?:string};if(!r.ok||!data.url)throw new Error(data.error||'Billing portal unavailable.');window.location.href=data.url;}catch(cause){setError(cause instanceof Error?cause.message:'Billing portal unavailable.');setBillingBusy(false);}}
 
   function newChat() {
+    setFeedbackDraft(null);
+    setFeedbackError(null);
     hasSentRef.current = false;
     setActiveConversationId(null);
     setTurns([]);
@@ -544,6 +642,8 @@ export default function IntentClient({
 
   function switchModel(next: 'fast' | 'medium' | 'enhanced') {
     if (busy || next === model || !availableModes.includes(next)) return;
+    setFeedbackDraft(null);
+    setFeedbackError(null);
     hasSentRef.current = false;
     setActiveConversationId(null);
     setModel(next);
@@ -556,6 +656,8 @@ export default function IntentClient({
 
   async function openConversation(conversation: PersistedConversation) {
     if (!accountUserId || busy) return;
+    setFeedbackDraft(null);
+    setFeedbackError(null);
     setHistoryError('');
     try {
       const storedMessages = await loadMessages(accessToken!, accountUserId, conversation.id);
@@ -568,6 +670,8 @@ export default function IntentClient({
         imageName: entry.image_name || undefined,
         sources: entry.sources,
         warning: entry.warning,
+        feedbackId: entry.role === 'assistant' ? crypto.randomUUID() : undefined,
+        mode: conversation.model,
       })));
       hasSentRef.current = storedMessages.length > 0;
       setMessage('');
@@ -615,9 +719,9 @@ export default function IntentClient({
     : null;
 
   return (
-    <main className="h-[100dvh] overflow-hidden bg-white text-slate-950 lg:h-auto lg:min-h-screen lg:overflow-visible">
-      <div className="mx-auto grid h-full max-w-[1500px] lg:min-h-screen lg:grid-cols-[270px_1fr]">
-        <aside className="hidden border-r border-slate-200 bg-slate-50 px-5 py-6 lg:block">
+    <main className="h-[100dvh] min-h-0 overflow-hidden bg-white text-slate-950">
+      <div className={`mx-auto grid h-full min-h-0 max-w-[1500px] overflow-hidden ${accessToken && sidebarCollapsed ? 'lg:grid-cols-[minmax(0,1fr)]' : 'lg:grid-cols-[270px_minmax(0,1fr)]'}`}>
+        <aside aria-label="Workspace sidebar" className={`${accessToken && sidebarCollapsed ? 'hidden' : 'hidden lg:block'} h-full min-h-0 overflow-y-auto overscroll-contain border-r border-slate-200 bg-slate-50 px-5 py-6`}>
           <div className="flex items-center justify-between gap-4 lg:block">
             <Link href="/" className="inline-flex items-center gap-3">
               <Image
@@ -640,6 +744,13 @@ export default function IntentClient({
               <LogOut size={14} /> {accessToken ? 'Sign out' : 'Sign in'}
             </button>
           </div>
+
+          {accessToken && accountUserId && (
+            <button type="button" onClick={toggleSidebar}
+              className="mt-4 hidden min-h-9 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 lg:inline-flex">
+              <PanelLeftClose size={15} /> Collapse sidebar
+            </button>
+          )}
 
           <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-3">
@@ -833,7 +944,7 @@ export default function IntentClient({
           </div>
         </aside>
 
-        <section className="flex h-full min-w-0 flex-col lg:min-h-screen">
+        <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
           {billingNotice&&<div role="status" className="border-b border-blue-200 bg-blue-50 px-4 py-2 text-center text-xs font-medium text-blue-800">{billingNotice}</div>}
           {accessToken && billing.tier !== 'free' && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-900">
@@ -1092,9 +1203,15 @@ export default function IntentClient({
             </>
           )}
 
-          <header className="hidden border-b border-slate-200 bg-white/95 px-8 py-4 backdrop-blur lg:block">
+          <header className="hidden shrink-0 border-b border-slate-200 bg-white/95 px-8 py-4 backdrop-blur lg:block">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-4">
+                {accessToken && accountUserId && sidebarCollapsed && (
+                  <button type="button" onClick={toggleSidebar} aria-label="Expand sidebar" title="Expand sidebar"
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-100">
+                    <PanelLeftOpen size={19} />
+                  </button>
+                )}
                 <Image
                   src="/images/loosemouth-model-logo.png"
                   alt="LooseMouth model logo"
@@ -1171,7 +1288,7 @@ export default function IntentClient({
               aria-label="Conversation"
               aria-live="polite"
               aria-relevant="additions text"
-              className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 sm:py-6 lg:min-h-[420px] lg:px-10"
+              className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 sm:py-6 lg:px-10"
             >
               {!availabilityChecked && turns.length === 0 && (
                 <div className="mx-auto flex min-h-[44vh] lg:min-h-[58vh] max-w-3xl flex-col justify-center">
@@ -1294,6 +1411,91 @@ export default function IntentClient({
                     </p>
                   )}
 
+                  <div className={`mt-3 flex flex-wrap items-center gap-2 text-xs ${turn.role === 'user' ? 'text-blue-50 lg:text-slate-600' : 'text-slate-600'}`}>
+                    <button
+                      type="button"
+                      onClick={() => void copyTurn(turn.text, turn.feedbackId || `user-${index}`)}
+                      className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 py-1 font-semibold transition ${turn.role === 'user' ? 'hover:bg-blue-500 lg:hover:bg-blue-100' : 'hover:bg-slate-100'}`}
+                      title={turn.role === 'user' ? 'Copy your prompt' : 'Copy response'}
+                    >
+                      <Copy size={14} /> {copiedTurnId === (turn.feedbackId || `user-${index}`) ? 'Copied' : 'Copy'}
+                    </button>
+                    {turn.role === 'assistant' && turn.feedbackId && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={feedbackSendingKey === turn.feedbackId}
+                          aria-pressed={turn.feedbackRating === 'positive'}
+                          title="Mark this response helpful"
+                          onClick={() => void submitFeedback(turn, 'positive')}
+                          className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 py-1 font-semibold transition hover:bg-emerald-50 disabled:opacity-50 ${turn.feedbackRating === 'positive' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}
+                        >
+                          <ThumbsUp size={14} /> Helpful
+                        </button>
+                        <button
+                          type="button"
+                          disabled={feedbackSendingKey === turn.feedbackId}
+                          aria-pressed={turn.feedbackRating === 'negative'}
+                          title="Report an issue with this response"
+                          onClick={() => {
+                            setFeedbackError(null);
+                            setFeedbackDraft((current) => current?.key === turn.feedbackId ? null : { key: turn.feedbackId!, reason: 'incorrect', comment: '' });
+                          }}
+                          className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 py-1 font-semibold transition hover:bg-amber-50 disabled:opacity-50 ${turn.feedbackRating === 'negative' ? 'bg-amber-50 text-amber-800' : 'text-slate-600'}`}
+                        >
+                          <ThumbsDown size={14} /> Needs work
+                        </button>
+                        {turn.feedbackRating && (
+                          <span role="status" className="text-[11px] text-emerald-700">Feedback saved</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {turn.role === 'assistant' && turn.feedbackId && feedbackDraft?.key === turn.feedbackId && (
+                    <form
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void submitFeedback(turn, 'negative', feedbackDraft.reason, feedbackDraft.comment);
+                      }}
+                      className="mt-2 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:max-w-lg"
+                    >
+                      <label className="text-xs font-semibold text-slate-700" htmlFor={`feedback-reason-${turn.feedbackId}`}>What needs improvement?</label>
+                      <select
+                        id={`feedback-reason-${turn.feedbackId}`}
+                        value={feedbackDraft.reason}
+                        onChange={(event) => setFeedbackDraft((current) => current && current.key === turn.feedbackId ? { ...current, reason: event.target.value } : current)}
+                        className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800"
+                      >
+                        <option value="incorrect">Incorrect information</option>
+                        <option value="incomplete">Missing important details</option>
+                        <option value="irrelevant">Did not follow my request</option>
+                        <option value="formatting">Hard to read or poorly formatted</option>
+                        <option value="unsafe">Safety or reliability concern</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <textarea
+                        value={feedbackDraft.comment}
+                        maxLength={600}
+                        rows={2}
+                        placeholder="Optional: tell us what should change."
+                        aria-label="Additional feedback"
+                        onChange={(event) => setFeedbackDraft((current) => current && current.key === turn.feedbackId ? { ...current, comment: event.target.value } : current)}
+                        className="min-h-20 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                      />
+                      <p className="text-[11px] leading-4 text-slate-500">Feedback records your rating, reason, optional comment, model, and account/session metadata. It does not store a separate copy of the message text.</p>
+                      <div className="flex items-center justify-end gap-2">
+                        <button type="button" onClick={() => setFeedbackDraft(null)} className="min-h-9 rounded-lg px-3 text-xs font-semibold text-slate-600 hover:bg-slate-200">Cancel</button>
+                        <button type="submit" disabled={feedbackSendingKey === turn.feedbackId} className="min-h-9 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+                          {feedbackSendingKey === turn.feedbackId ? 'Saving…' : 'Send feedback'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                  {turn.role === 'assistant' && turn.feedbackId && feedbackError?.key === turn.feedbackId && (
+                    <p role="alert" className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">{feedbackError.message}</p>
+                  )}
+
                   {turn.role === 'assistant' && accessToken && accountUserId && (
                     <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
                       <button
@@ -1332,7 +1534,7 @@ export default function IntentClient({
               )}
             </div>
 
-            <div className="shrink-0 border-t border-slate-200 bg-white/96 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-6 sm:py-4 lg:px-10">
+            <div className="relative z-10 shrink-0 border-t border-slate-200 bg-white px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-4 lg:px-10">
               <form onSubmit={send} className="mx-auto max-w-4xl">
                 
 

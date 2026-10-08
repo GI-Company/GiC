@@ -34,11 +34,18 @@ export default function LandingFooterCTA() {
         }),
       });
 
-      const payload = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(payload.error || 'Unable to send your inquiry.');
+      const payload = await response.json() as {
+        success?: boolean;
+        delivered?: boolean;
+        status?: 'queued' | 'sent';
+        error?: string;
+      };
+      if (!response.ok || !payload.success || (payload.status !== 'queued' && payload.status !== 'sent')) throw new Error(payload.error || 'Unable to confirm delivery. Please use the direct email link.');
 
       setSubmitState('sent');
-      setStatusMessage('Message sent to Global Intent Company.');
+      setStatusMessage(payload.delivered
+        ? 'Your inquiry has been emailed successfully.'
+        : 'Your inquiry was received and saved. Email delivery is pending; you can also use the direct email link.');
       form.reset();
     } catch (error) {
       setSubmitState('error');

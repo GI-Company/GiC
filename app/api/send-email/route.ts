@@ -1,4 +1,6 @@
+import { createHash, randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { SUPABASE_URL } from '@/lib/supabase-public';
 import { getResend } from '@/lib/resend';
 import { escapeHtml, safeTextToHtml, checkRateLimit } from '@/lib/security';
 
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest) {
     const rawSubject = typeof subject === 'string' ? subject.trim() : '';
     const rawName = typeof name === 'string' ? name.trim() : '';
 
-    if (!rawEmail || !EMAIL_REGEX.test(rawEmail)) {
+    if (!rawEmail || rawEmail.length > 254 || !EMAIL_REGEX.test(rawEmail)) {
       return NextResponse.json(
         { error: 'Please provide a valid email address.' },
         { status: 400 }
@@ -171,38 +173,150 @@ Dispatched via Resend • Global Intent Company
       </div>
     `.trim();
 
-    const resend = getResend();
+    // Accept the inquiry into a private, durable queue before contacting Resend.
+    // If email delivery fails, the message remains available to the site operator.
+    const inquiryId = randomUUID();
+    const serviceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const endpoint = new URL('/rest/v1/gic_contact_inquiries', SUPABASE_URL);
+    let stored = false;
 
-    const { data, error } = await resend.emails.send({
-      from: fromAddress,
-      to: toAddress,
-      replyTo: rawEmail,
-      subject: rawSubject || 'Technical Inquiry — Global Intent Company',
-      html: formattedHtml,
-      text: plainTextContent,
-    });
+    if (serviceKey) {
+      // Rate limiting in Postgres works across all serverless instances.
+      try {
+        const actor = createHash('sha256').update('contact:' + clientIp).digest('hex');
+        const rate = await fetch(new URL('/rest/v1/rpc/consume_inference_quota', SUPABASE_URL), {
+          method: 'POST',
+          headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_actor_key: 'contact:' + actor, p_limit: 5, p_window_seconds: 600 }),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(5000),
+        });
+        if (rate.ok) {
+          const payload: unknown = await rate.json();
+          const result = Array.isArray(payload) ? payload[0] as { allowed?: boolean; reset_at?: string } | undefined : undefined;
+          if (result?.allowed === false) {
+            return NextResponse.json({
+              error: 'Too many inquiries. Please wait 10 minutes and try again.',
+            }, { status: 429 });
+          }
+        } else {
+          console.warn('[Contact intake] Database quota unavailable, using local rate limit:', rate.status);
+        }
+      } catch {
+        console.warn('[Contact intake] Database quota unavailable, using local rate limit.');
+      }
+    }
 
-    if (error) {
-      console.error('[Resend Error]:', error);
-      return NextResponse.json(
-        {
-          error: 'Failed to send your inquiry. Please try again later.',
-        },
-        { status: 502 }
-      );
+    if (serviceKey) {
+      try {
+        const queued = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            apikey: serviceKey,
+            Authorization: 'Bearer ' + serviceKey,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({
+            id: inquiryId,
+            sender_name: rawName,
+            sender_email: rawEmail,
+            subject: rawSubject,
+            message: rawMessage,
+            delivery_status: 'pending',
+          }),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(7000),
+        });
+        stored = queued.ok;
+        if (!queued.ok) console.error('[Contact intake] Supabase write failed:', queued.status);
+      } catch (cause) {
+        console.error('[Contact intake] Unable to persist inquiry:', cause instanceof Error ? cause.name : 'unknown');
+      }
+    } else {
+      console.error('[Contact intake] Supabase service role key unavailable.');
+    }
+
+    let deliveryId: string | undefined;
+    let deliveryError = '';
+    try {
+      const resend = getResend();
+      const { data, error } = await resend.emails.send({
+        from: fromAddress,
+        to: toAddress,
+        replyTo: rawEmail,
+        subject: rawSubject || 'Technical Inquiry — Global Intent Company',
+        html: formattedHtml,
+        text: plainTextContent,
+      });
+      if (error || !data?.id) {
+        deliveryError = error?.name || 'provider_rejected';
+        console.error('[Contact delivery] Resend rejected inquiry:', deliveryError);
+      } else {
+        deliveryId = data.id;
+      }
+    } catch (cause) {
+      deliveryError = cause instanceof Error ? cause.name : 'email_provider_unavailable';
+      console.error('[Contact delivery] Resend unavailable:', deliveryError);
+    }
+
+    if (stored && serviceKey) {
+      try {
+        const updateUrl = new URL(endpoint);
+        updateUrl.searchParams.set('id', 'eq.' + inquiryId);
+        const result = await fetch(updateUrl, {
+          method: 'PATCH',
+          headers: {
+            apikey: serviceKey,
+            Authorization: 'Bearer ' + serviceKey,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({
+            delivery_status: deliveryId ? 'sent' : 'pending',
+            resend_message_id: deliveryId || null,
+            delivery_error: deliveryId ? null : deliveryError.slice(0, 120) || 'not_delivered',
+            updated_at: new Date().toISOString(),
+          }),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!result.ok) console.error('[Contact intake] Status update failed:', result.status);
+      } catch {
+        console.error('[Contact intake] Could not update delivery state.');
+      }
+    }
+
+    if (deliveryId) {
+      return NextResponse.json({
+        success: true,
+        delivered: true,
+        status: 'sent',
+        id: inquiryId,
+        dispatchedAt: new Date().toISOString(),
+      }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+
+    if (stored) {
+      return NextResponse.json({
+        success: true,
+        delivered: false,
+        status: 'queued',
+        id: inquiryId,
+        message: 'Your inquiry was received and saved, but email delivery is pending.',
+      }, { status: 202, headers: { 'Cache-Control': 'no-store' } });
     }
 
     return NextResponse.json({
-      success: true,
-      id: data?.id,
-      recipient: toAddress,
-      dispatchedAt: new Date().toISOString(),
-    });
+      success: false,
+      error: 'Your inquiry could not be received. Please email cory.tortorici@globalintentcompany.space directly.',
+    }, { status: 503 });
+
   } catch (err: unknown) {
     console.error('[Send Email Exception]:', err);
     return NextResponse.json(
       {
-        error: 'Failed to send your inquiry. Please try again later.',
+        error: 'We could not receive your inquiry. Please email cory.tortorici@globalintentcompany.space directly.',
       },
       { status: 500 }
     );
