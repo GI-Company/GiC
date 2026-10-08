@@ -47,6 +47,14 @@ export default function IntentAuthGate() {
   const [error, setError] = useState('');
   const [showAuth, setShowAuth] = useState(false);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('signup') === '1') {
+      setMode('signup');
+      setShowAuth(true);
+    }
+  }, []);
+
   const persist = useCallback((next: AuthSession | null) => {
     setSession(next);
     if (next) localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
