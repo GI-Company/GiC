@@ -100,14 +100,36 @@ export async function POST(req: NextRequest) {
   if (event.type === 'checkout.session.completed' && object.mode === 'subscription') {
     const userId = object.client_reference_id || object.metadata?.user_id;
     const tier = object.metadata?.tier;
-    if (userId && (tier === 'paid' || tier === 'enhanced')) {
+    const subscriptionId = object.subscription;
+    if (userId && (tier === 'paid' || tier === 'enhanced') && typeof subscriptionId === 'string') {
+      const stripeKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeKey) throw new Error('Stripe secret missing');
+      const response = await fetch('https://api.stripe.com/v1/subscriptions/' + encodeURIComponent(subscriptionId), {
+        headers: { Authorization: 'Bearer ' + stripeKey },
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error('Checkout subscription lookup failed');
+      const subscription = await response.json() as {
+        status: string; customer?: string; trial_start?: number | null; trial_end?: number | null;
+        cancel_at_period_end?: boolean; metadata?: { user_id?: string; tier?: string };
+        items?: { data?: Array<{ current_period_end?: number | null }> };
+      };
+      if (subscription.metadata?.user_id !== userId || subscription.metadata?.tier !== tier
+        || subscription.customer !== object.customer) {
+        throw new Error('Checkout subscription mismatch');
+      }
+      const active = ACTIVE_STATUSES.has(subscription.status);
+      const periodEnd = subscription.items?.data?.[0]?.current_period_end;
       await upsert({
         user_id: userId,
-        stripe_customer_id: typeof object.customer === 'string' ? object.customer : null,
-        stripe_subscription_id: typeof object.subscription === 'string' ? object.subscription : null,
-        tier,
-        subscription_status: 'active',
-        cancel_at_period_end: false,
+        stripe_customer_id: subscription.customer,
+        stripe_subscription_id: subscriptionId,
+        tier: active ? tier : 'free',
+        subscription_status: subscription.status,
+        trial_started_at: subscription.trial_start ? new Date(subscription.trial_start * 1000).toISOString() : null,
+        trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
+        current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+        cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
         updated_at: new Date().toISOString(),
       });
     }
@@ -129,8 +151,8 @@ export async function POST(req: NextRequest) {
               : new Date().toISOString()
             : undefined,
         trial_end: object.trial_end ? new Date(object.trial_end * 1000).toISOString() : null,
-        current_period_end: object.current_period_end
-          ? new Date(object.current_period_end * 1000).toISOString()
+        current_period_end: (object.items?.data?.[0]?.current_period_end || object.current_period_end)
+          ? new Date((object.items?.data?.[0]?.current_period_end || object.current_period_end) * 1000).toISOString()
           : null,
         cancel_at_period_end: Boolean(object.cancel_at_period_end),
         updated_at: new Date().toISOString(),

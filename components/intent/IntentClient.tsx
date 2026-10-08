@@ -168,6 +168,7 @@ export default function IntentClient({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const hasSentRef = useRef(false);
   const preferencesLoadedRef = useRef(false);
+  const billingTierRef = useRef<'free' | 'paid' | 'enhanced'>('free');
 
   const displayName = accountName?.trim() || accountEmail?.split('@')[0] || 'Guest';
   const initials = useMemo(() => {
@@ -207,8 +208,75 @@ export default function IntentClient({
     };
   }, [accessToken, activeConversationId]);
 
-  useEffect(()=>{const params=new URLSearchParams(window.location.search);const state=params.get('billing');if(state==='success')setBillingNotice('Checkout completed. Activating your workspace access…');else if(state==='cancelled')setBillingNotice('Checkout cancelled. Your current plan is unchanged.');},[]);
-  useEffect(()=>{let active=true;async function loadBilling(){if(!accessToken){setBilling({authenticated:false,tier:'free',limit:5,workbench:'none'});return;}try{const r=await fetch('/api/billing/status',{headers:{Authorization:`Bearer ${accessToken}`},cache:'no-store'});if(r.ok&&active){const data=await r.json() as BillingStatus;setBilling(data);setQuotaRemaining((current)=>current===20&&data.limit!==20?data.limit:current);if(data.tier!=='free')setBillingNotice(data.status==='trialing'?'Your free trial is active.':'Your subscription is active.');}}catch{}}void loadBilling();return()=>{active=false};},[accessToken]);
+  useEffect(() => {
+    let active = true;
+    let timer: number | undefined;
+    let attempts = 0;
+    const params = new URLSearchParams(window.location.search);
+    const outcome = params.get('billing');
+    const checkoutSession = params.get('session_id');
+
+    if (outcome === 'success') setBillingNotice('Checkout completed. Activating your workspace access…');
+    if (outcome === 'cancelled') setBillingNotice('Checkout cancelled. Your current plan is unchanged.');
+
+    async function loadBilling() {
+      if (!accessToken) {
+        if (active) setBilling({ authenticated: false, tier: 'free', limit: 5, workbench: 'none' });
+        return;
+      }
+      try {
+        if (outcome === 'success' && checkoutSession) {
+          const activation = await fetch('/api/billing/activate', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: checkoutSession }),
+          });
+          if (!activation.ok) {
+            const result = await activation.json() as { error?: string };
+            throw new Error(result.error || 'Checkout activation is still processing.');
+          }
+        }
+        const response = await fetch('/api/billing/status', {
+          headers: { Authorization: 'Bearer ' + accessToken },
+          cache: 'no-store',
+        });
+        if (!response.ok) throw new Error('Unable to refresh your workspace plan.');
+        const data = await response.json() as BillingStatus;
+        if (!active) return;
+        if (billingTierRef.current !== data.tier) {
+          billingTierRef.current = data.tier;
+          setQuotaRemaining(null);
+        }
+        setBilling(data);
+        if (data.tier !== 'free') {
+          setUpgradeNotice(false);
+          setBillingNotice(data.status === 'trialing' ? 'Your subscription trial is active.' : 'Your subscription is active.');
+          if (outcome === 'success') {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('billing');
+            url.searchParams.delete('session_id');
+            window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+            if (timer !== undefined) window.clearInterval(timer);
+          }
+        } else if (outcome === 'success') {
+          setBillingNotice('Checkout received. Workspace activation is pending; we are checking again…');
+        }
+      } catch (error) {
+        if (active && outcome === 'success') {
+          setBillingNotice(error instanceof Error ? error.message : 'Workspace activation is temporarily unavailable.');
+        }
+      }
+      attempts += 1;
+      if (attempts >= 8 && timer !== undefined) window.clearInterval(timer);
+    }
+
+    void loadBilling();
+    if (outcome === 'success') timer = window.setInterval(() => void loadBilling(), 4000);
+    return () => {
+      active = false;
+      if (timer !== undefined) window.clearInterval(timer);
+    };
+  }, [accessToken]);
 
   useEffect(() => {
     let active = true;
@@ -656,8 +724,8 @@ export default function IntentClient({
           {accessToken && billing.tier!=='free' && <button type="button" disabled={billingBusy} onClick={()=>void manageBilling()} className="mt-5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{billingBusy?'Opening billing…':'Manage subscription'}</button>}
           {billing.status==='trialing'&&billing.trial_end&&<p className="mt-2 px-1 text-[11px] text-slate-500">Free trial ends {new Date(billing.trial_end).toLocaleDateString()}.</p>}
           <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-600">
-            <p className="font-semibold text-slate-900">Support private AI R&amp;D · $4.99/month</p>
-            <p className="mt-1">Support helps fund Global Intent Company research into privately operated models, compute, and verifiable AI infrastructure.</p>
+            <p className="font-semibold text-slate-900">{billing.tier === 'enhanced' ? 'Enhanced Workspace · $14.99/month' : billing.tier === 'paid' ? 'Paid Workspace · $4.99/month' : 'Support private AI R&D · $4.99/month'}</p>
+            <p className="mt-1">{billing.tier === 'enhanced' ? 'Reports and runnable applet workflows are unlocked for your account.' : billing.tier === 'paid' ? 'Reports are unlocked in your Workbench. Enhanced Workspace adds runnable applets.' : 'Support helps fund Global Intent Company research into privately operated models, compute, and verifiable AI infrastructure.'}</p>
             <p className="mt-2 text-[10px] text-slate-500">Current hosted LooseMouth inference is provided through Groq.</p>
           </div>
 
@@ -710,6 +778,16 @@ export default function IntentClient({
 
         <section className="flex h-full min-w-0 flex-col lg:min-h-screen">
           {billingNotice&&<div role="status" className="border-b border-blue-200 bg-blue-50 px-4 py-2 text-center text-xs font-medium text-blue-800">{billingNotice}</div>}
+          {accessToken && billing.tier !== 'free' && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-900">
+              <div>
+                <strong>{billing.tier === 'enhanced' ? 'Enhanced Workspace active' : 'Paid Workspace active'}</strong>
+                <span className="ml-2">{billing.tier === 'enhanced' ? 'Reports and applets unlocked · 300 requests/hour' : 'Reports unlocked · 100 requests/hour'}</span>
+                {billing.status === 'trialing' && billing.trial_end && <span className="ml-2">· Trial until {new Date(billing.trial_end).toLocaleDateString()}</span>}
+              </div>
+              <button type="button" onClick={() => openWorkbench()} className="rounded-lg border border-blue-300 bg-white px-3 py-2 font-semibold text-blue-800 hover:bg-blue-100">Open Workbench</button>
+            </div>
+          )}
           {upgradeNotice&&billing.tier==='free'&&<div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"><span>You have {quotaRemaining ?? 0} free requests left this hour. Paid starts with a 30-day free trial and raises the allowance to 100/hour.</span><span className="flex shrink-0 gap-2"><Link href="/#plans" className="font-semibold underline">View plans</Link><button type="button" onClick={dismissUpgrade} aria-label="Dismiss upgrade notice"><X size={14}/></button></span></div>}
           <header className="shrink-0 border-b border-slate-200 bg-white/95 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:hidden">
             <div className="flex items-center justify-between gap-3">
@@ -781,6 +859,12 @@ export default function IntentClient({
                   </button>
                 </div>
 
+                {accessToken && billing.tier !== 'free' && (
+                  <button type="button" disabled={billingBusy} onClick={() => void manageBilling()}
+                    className="mt-5 min-h-11 w-full rounded-xl border border-blue-200 bg-blue-50 px-3 text-sm font-semibold text-blue-800 disabled:opacity-50">
+                    {billingBusy ? 'Opening billing…' : 'Manage subscription'}
+                  </button>
+                )}
                 <div className="mt-5">
                   <IntentPwaControls />
                 </div>
@@ -967,7 +1051,7 @@ export default function IntentClient({
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">LooseMouth</h1>
                     <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-700">
-                      Signed-in workspace
+                      {billing.tier === 'enhanced' ? 'Enhanced · Full workbench' : billing.tier === 'paid' ? 'Paid · Reports unlocked' : accessToken ? 'Free workspace' : 'Guest preview'}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-slate-600">Hosted AI workspace for GIC research, reports, applets, and web-assisted work.</p>
