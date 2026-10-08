@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
   let candidates = GROQ_MODELS[mode].filter((model) => active.has(model));
   // Browser search is supported by both GPT-OSS models, but Chat Completions
   // citation_options is not supported on this route. Prefer 120B for research.
-  if (searchEnabled) candidates = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'].filter((model) => active.has(model));
+  if (searchEnabled) candidates = GROQ_MODELS.enhanced.filter((model) => model !== 'qwen/qwen3.8-27b' && active.has(model));
   if (imageUrl) candidates = candidates.filter((model) => model === 'qwen/qwen3.8-27b');
   if (searchEnabled && imageUrl) return error('Web research and image analysis cannot be combined in the same request yet.', 400);
   if (!candidates.length && imageUrl && active.has('qwen/qwen3.8-27b')) candidates = ['qwen/qwen3.8-27b'];
