@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Code2,
   Download,
   Eye,
   FileText,
-  GripVertical,
-  Maximize2,
   Minus,
+  Plus,
   PencilLine,
   Play,
   Printer,
@@ -25,6 +24,7 @@ import {
   type ArtifactKind,
   type LooseMouthArtifact,
 } from '@/lib/loosemouth-artifacts';
+import type { WorkbenchTab } from '@/components/intent/WorkbenchDock';
 
 type Props = {
   accessToken: string;
@@ -37,6 +37,16 @@ type Props = {
   }>;
   initialKind?: ArtifactKind;
   initialPrompt?: string;
+  windowId: string;
+  name: string;
+  isActive: boolean;
+  tabs: WorkbenchTab[];
+  canCreate: boolean;
+  canCreateApplet: boolean;
+  onRename: (name: string, onlyIfDefault?: boolean) => void;
+  onSwitch: (id: string) => void;
+  onCreate: (kind: ArtifactKind) => void;
+  onMinimize: () => void;
   onClose: () => void;
 };
 
@@ -294,6 +304,16 @@ export default function LooseMouthWorkbench({
   conversationTurns = [],
   initialKind = 'report',
   initialPrompt = '',
+  windowId,
+  name,
+  isActive,
+  tabs,
+  canCreate,
+  canCreateApplet,
+  onRename,
+  onSwitch,
+  onCreate,
+  onMinimize,
   onClose,
 }: Props) {
   const [kind, setKind] = useState<ArtifactKind>(initialKind);
@@ -308,19 +328,12 @@ export default function LooseMouthWorkbench({
   const [activeFile, setActiveFile] = useState('index.html');
   const [compiledPreview, setCompiledPreview] = useState('');
   const [includeConversation, setIncludeConversation] = useState(Boolean(conversationTurns.length));
-  const [minimized, setMinimized] = useState(false);
-  const [dockPosition, setDockPosition] = useState<{ left: number; top: number } | null>(null);
-  const minimizedWidgetRef = useRef<HTMLDivElement>(null);
-  const draggingRef = useRef<{
-    pointerId: number;
-    pointerX: number;
-    pointerY: number;
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  const conversationPreferenceTouchedRef = useRef(false);
 
+  useEffect(() => {
+    // A Workbench started before chat research can opt into new conversation context automatically.
+    if (conversationTurns.length && !conversationPreferenceTouchedRef.current) setIncludeConversation(true);
+  }, [conversationTurns.length]);
   useEffect(() => {
     setKind(initialKind);
     setPrompt(initialPrompt);
@@ -333,13 +346,17 @@ export default function LooseMouthWorkbench({
   }, [initialKind, initialPrompt]);
 
   useEffect(() => {
+    // Re-fetch saved builds when this window becomes active, so saves made in another
+    // Workbench appear without discarding this window's independent editor draft.
+    if (!isActive) return;
     let active = true;
+    setLoadingItems(true);
     void listArtifacts(accessToken, userId)
       .then((next) => { if (active) setItems(next); })
       .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : 'Saved builds could not be loaded.'); })
       .finally(() => { if (active) setLoadingItems(false); });
     return () => { active = false; };
-  }, [accessToken, userId]);
+  }, [accessToken, userId, isActive]);
 
   const files = useMemo(() => appletFiles(draft), [draft]);
   const reportMarkdown = typeof draft?.markdown === 'string' ? draft.markdown : '';
@@ -366,6 +383,7 @@ export default function LooseMouthWorkbench({
     const nextFiles = appletFiles(item.content);
     setActiveFile(nextFiles[0]?.path || 'index.html');
     setCompiledPreview(item.kind === 'applet' ? appletDoc(item.content) : '');
+    onRename(item.title.slice(0, 64), true);
   }
 
   async function refreshItems() {
@@ -396,6 +414,10 @@ export default function LooseMouthWorkbench({
       const data = await response.json() as { error?: string; artifact?: Record<string, unknown> };
       if (!response.ok || !data.artifact) throw new Error(data.error || 'Generation failed.');
       setDraft(data.artifact);
+      const generatedTitle = data.artifact.title;
+      if (/^(Report|Applet) \d+$/.test(name) && typeof generatedTitle === 'string' && generatedTitle.trim()) {
+        onRename(generatedTitle.trim().slice(0, 64), true);
+      }
       if (kind === 'applet') {
         const nextFiles = appletFiles(data.artifact);
         setActiveFile(nextFiles[0]?.path || 'index.html');
@@ -516,103 +538,14 @@ export default function LooseMouthWorkbench({
 
   const currentFile = files.find((file) => file.path === activeFile) || files[0];
 
-  function startDockDrag(event: ReactPointerEvent<HTMLButtonElement>) {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    const rect = minimizedWidgetRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    draggingRef.current = {
-      pointerId: event.pointerId,
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: rect.height,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.preventDefault();
-  }
-
-  function moveDock(event: ReactPointerEvent<HTMLButtonElement>) {
-    const drag = draggingRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    const nextLeft = drag.left + (event.clientX - drag.pointerX);
-    const nextTop = drag.top + (event.clientY - drag.pointerY);
-    setDockPosition({
-      left: Math.max(12, Math.min(nextLeft, window.innerWidth - drag.width - 12)),
-      top: Math.max(12, Math.min(nextTop, window.innerHeight - drag.height - 12)),
-    });
-  }
-
-  function finishDockDrag(event: ReactPointerEvent<HTMLButtonElement>) {
-    if (draggingRef.current?.pointerId !== event.pointerId) return;
-    draggingRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  }
-
-  useEffect(() => {
-    if (!minimized) return;
-    const clampToViewport = () => {
-      const rect = minimizedWidgetRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setDockPosition((current) => current ? ({
-        left: Math.max(12, Math.min(current.left, window.innerWidth - rect.width - 12)),
-        top: Math.max(12, Math.min(current.top, window.innerHeight - rect.height - 12)),
-      }) : null);
-    };
-    window.addEventListener('resize', clampToViewport);
-    return () => window.removeEventListener('resize', clampToViewport);
-  }, [minimized]);
-
-  if (minimized) {
-    return (
-      <div
-        ref={minimizedWidgetRef}
-        role="region"
-        aria-label="Minimized LooseMouth Workbench"
-        className="fixed z-[80] flex w-[min(320px,calc(100vw-24px))] items-center gap-1 rounded-2xl border border-blue-200 bg-white p-2 shadow-[0_16px_55px_rgba(15,23,42,0.28)]"
-        style={dockPosition ? { left: dockPosition.left, top: dockPosition.top } : { right: 16, bottom: 'max(16px, env(safe-area-inset-bottom))' }}
-      >
-        <button
-          type="button"
-          onPointerDown={startDockDrag}
-          onPointerMove={moveDock}
-          onPointerUp={finishDockDrag}
-          onPointerCancel={finishDockDrag}
-          aria-label="Drag minimized Workbench"
-          title="Drag to move"
-          className="flex h-11 w-9 shrink-0 touch-none cursor-grab items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 active:cursor-grabbing"
-        >
-          <GripVertical size={19} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setMinimized(false)}
-          className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 rounded-xl px-1.5 text-left hover:bg-blue-50"
-          aria-label="Restore LooseMouth Workbench"
-        >
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold text-slate-900">LooseMouth Workbench</span>
-            <span className="block truncate text-xs text-slate-500">{busy ? 'Building…' : draft ? artifactTitle : 'Tap to restore'}</span>
-          </span>
-          <Maximize2 size={16} className="shrink-0 text-blue-700" />
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close minimized Workbench"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
-        >
-          <X size={18} />
-        </button>
-      </div>
-    );
+  function closeWindow() {
+    const hasUnsavedDraft = Boolean(draft && (!active || JSON.stringify(draft) !== JSON.stringify(active.content)));
+    if (hasUnsavedDraft && !window.confirm('Close "' + name + '"? Unsaved changes will be lost. Save or download your work first.')) return;
+    onClose();
   }
 
   return (
-    <section role="dialog" aria-modal="true" aria-label="LooseMouth Workbench" className="fixed inset-0 z-[70] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-slate-950/35 backdrop-blur-sm lg:p-5">
+    <section role="dialog" aria-modal={isActive} aria-label={name || "LooseMouth Workbench"} style={{ display: isActive ? undefined : "none" }} className="fixed inset-0 z-[70] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-slate-950/35 backdrop-blur-sm lg:p-5">
       <div className="mx-auto grid h-full min-h-0 w-full max-w-[1600px] overflow-hidden bg-white shadow-2xl lg:grid-cols-[260px_minmax(0,1fr)] lg:rounded-2xl lg:border lg:border-slate-200">
         <aside className="hidden min-h-0 border-r border-slate-200 bg-slate-50 p-4 lg:flex lg:flex-col">
           <div>
@@ -652,25 +585,55 @@ export default function LooseMouthWorkbench({
 
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-5">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-950">LooseMouth Workbench</p>
-              <p className="truncate text-xs text-slate-500">Build · inspect · edit · run · export</p>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <FileText size={16} className="shrink-0 text-blue-700" />
+              <div className="min-w-0 flex-1">
+                <input
+                  aria-label="Workbench name"
+                  title="Rename this Workbench"
+                  value={name}
+                  maxLength={64}
+                  onChange={(event) => onRename(event.target.value)}
+                  onBlur={() => { if (!name.trim()) onRename(kind === 'report' ? 'Untitled report' : 'Untitled applet'); else if (name !== name.trim()) onRename(name.trim()); }}
+                  className="w-full truncate rounded-lg border border-transparent bg-white px-1 py-0.5 text-sm font-semibold text-slate-950 outline-none hover:border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+                <p className="truncate px-1 text-[11px] text-slate-500">Rename this window · keep drafts open while chatting</p>
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
-                onClick={() => setMinimized(true)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100"
-                aria-label="Minimize workbench"
-                title="Minimize to a draggable window"
+                onClick={onMinimize}
+                className="inline-flex min-h-10 items-center gap-1 rounded-xl px-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 sm:px-3"
+                aria-label="Minimize Workbench and return to chat"
+                title="Return to chat while keeping this Workbench open"
               >
-                <Minus size={19} />
+                <Minus size={18} /> <span className="hidden sm:inline">Chat</span>
               </button>
-              <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100" aria-label="Close workbench">
+              <button type="button" onClick={closeWindow} className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100" aria-label={'Close ' + name}>
                 <X size={18} />
               </button>
             </div>
           </header>
+
+          <nav aria-label="Switch between Workbenches" className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 py-2">
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Windows</span>
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                title={tab.name}
+                aria-current={tab.id === windowId ? 'page' : undefined}
+                onClick={() => onSwitch(tab.id)}
+                className={`inline-flex min-h-9 max-w-44 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold ${tab.id === windowId ? 'border-blue-300 bg-blue-100 text-blue-900' : 'border-slate-200 bg-white text-slate-600 hover:bg-blue-50'}`}
+              >
+                {tab.kind === 'report' ? <FileText size={13} /> : <Code2 size={13} />}
+                <span className="truncate">{tab.name || 'Untitled Workbench'}</span>
+              </button>
+            ))}
+            <button type="button" disabled={!canCreate} onClick={() => onCreate('report')} className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg border border-blue-200 bg-white px-2.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-40"><Plus size={13} /> Report</button>
+            <button type="button" disabled={!canCreate || !canCreateApplet} onClick={() => onCreate('applet')} title={!canCreateApplet ? 'Applets require Enhanced Workspace' : 'Create a new applet window'} className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg border border-blue-200 bg-white px-2.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-40"><Plus size={13} /> Applet</button>
+          </nav>
 
           <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-slate-200 p-3">
             <button
@@ -683,6 +646,8 @@ export default function LooseMouthWorkbench({
             <button
               type="button"
               onClick={() => resetBuild('applet')}
+              disabled={!canCreateApplet}
+              title={!canCreateApplet ? 'Applets require Enhanced Workspace' : 'Edit applet'}
               className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-semibold ${kind === 'applet' ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-700'}`}
             >
               <Code2 size={15} /> Applet
@@ -707,7 +672,7 @@ export default function LooseMouthWorkbench({
                   <input
                     type="checkbox"
                     checked={includeConversation}
-                    onChange={(event) => setIncludeConversation(event.target.checked)}
+                    onChange={(event) => { conversationPreferenceTouchedRef.current = true; setIncludeConversation(event.target.checked); }}
                     className="mt-0.5 h-4 w-4 accent-blue-600"
                   />
                   <span>

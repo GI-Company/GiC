@@ -22,6 +22,7 @@ import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from '
 import BrandLoader from '@/components/BrandLoader';
 import IntentPwaControls from '@/components/intent/IntentPwaControls';
 import LooseMouthWorkbench from '@/components/intent/LooseMouthWorkbench';
+import WorkbenchDock, { type WorkbenchTab } from '@/components/intent/WorkbenchDock';
 import { enrichSourcesWithPyScript } from '@/lib/pyscript-search';
 import {
   createConversation,
@@ -54,6 +55,11 @@ type ResearchDiagnostics = {
 };
 
 type BillingStatus={authenticated:boolean;tier:'free'|'paid'|'enhanced';status?:string|null;trial_end?:string|null;current_period_end?:string|null;cancel_at_period_end?:boolean;limit:number;workbench?:'none'|'reports'|'full'};
+type WorkbenchWindow = WorkbenchTab & {
+  initialPrompt: string;
+  conversationId: string | null;
+};
+const MAX_WORKBENCH_WINDOWS = 8;
 type ChatResponse = {
   session_id: string;
   answer: string;
@@ -157,11 +163,10 @@ export default function IntentClient({
   const [historyError, setHistoryError] = useState('');
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [workbenchOpen, setWorkbenchOpen] = useState(false);
-  const [workbenchSeed, setWorkbenchSeed] = useState<{
-    kind: 'report' | 'applet';
-    prompt: string;
-  }>({ kind: 'report', prompt: '' });
+  const [workbenchWindows, setWorkbenchWindows] = useState<WorkbenchWindow[]>([]);
+  const [activeWorkbenchId, setActiveWorkbenchId] = useState<string | null>(null);
+  const lastWorkbenchIdRef = useRef<string | null>(null);
+  const nextWorkbenchNumberRef = useRef(0);
   const [imageAttachment, setImageAttachment] = useState<{ name: string; dataUrl: string } | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -169,6 +174,20 @@ export default function IntentClient({
   const hasSentRef = useRef(false);
   const preferencesLoadedRef = useRef(false);
   const billingTierRef = useRef<'free' | 'paid' | 'enhanced'>('free');
+
+  const workbenchConversationTurns = useMemo(() => turns.map((turn) => ({
+    role: turn.role,
+    text: turn.text,
+    sources: turn.sources?.map((source) => ({ title: source.title, url: source.url })),
+  })), [turns]);
+
+  useEffect(() => {
+    // Never preserve another user's in-memory Workbench drafts across sign-out/account changes.
+    setWorkbenchWindows([]);
+    setActiveWorkbenchId(null);
+    lastWorkbenchIdRef.current = null;
+    nextWorkbenchNumberRef.current = 0;
+  }, [accountUserId]);
 
   const displayName = accountName?.trim() || accountEmail?.split('@')[0] || 'Guest';
   const initials = useMemo(() => {
@@ -460,15 +479,53 @@ export default function IntentClient({
     }
   }
 
-  function openWorkbench(kind: 'report' | 'applet' = 'report', prompt = '') {
+  function restoreWorkbench(id: string) {
+    if (!workbenchWindows.some((windowItem) => windowItem.id === id)) return;
+    lastWorkbenchIdRef.current = id;
+    setActiveWorkbenchId(id);
+    setMobileMenuOpen(false);
+  }
+
+  function closeWorkbench(id: string) {
+    setWorkbenchWindows((current) => current.filter((windowItem) => windowItem.id !== id));
+    setActiveWorkbenchId((current) => current === id ? null : current);
+    if (lastWorkbenchIdRef.current === id) lastWorkbenchIdRef.current = null;
+  }
+
+  function renameWorkbench(id: string, name: string, onlyIfDefault = false) {
+    setWorkbenchWindows((current) => current.map((windowItem) => {
+      if (windowItem.id !== id) return windowItem;
+      // Do not overwrite a user-edited window name when generation finishes asynchronously.
+      if (onlyIfDefault && !/^(Report|Applet) \d+$/.test(windowItem.name)) return windowItem;
+      return { ...windowItem, name: name.slice(0, 64) };
+    }));
+  }
+
+  function openWorkbench(kind: 'report' | 'applet' = 'report', prompt = '', createNew = false) {
     if (!accessToken || !accountUserId) {
       onRequireAuth?.();
       return;
     }
-    if(billing.workbench==='none'){window.location.href='/#plans';return;}
-    if(kind==='applet'&&billing.workbench!=='full'){window.location.href='/#plans';return;}
-    setWorkbenchSeed({ kind, prompt });
-    setWorkbenchOpen(true);
+    if (billing.workbench === 'none') { window.location.href = '/#plans'; return; }
+    if (kind === 'applet' && billing.workbench !== 'full') { window.location.href = '/#plans'; return; }
+
+    // The main Workbench action restores the last window; explicit New and chat actions create a fresh one.
+    if (!createNew && !prompt && workbenchWindows.length) {
+      const recent = workbenchWindows.find((item) => item.id === lastWorkbenchIdRef.current);
+      restoreWorkbench((recent || workbenchWindows[workbenchWindows.length - 1]).id);
+      return;
+    }
+    if (workbenchWindows.length >= MAX_WORKBENCH_WINDOWS) {
+      setError(`You can keep up to ${MAX_WORKBENCH_WINDOWS} Workbenches open. Close an unused window to start another.`);
+      return;
+    }
+    nextWorkbenchNumberRef.current += 1;
+    const id = `workbench-${Date.now().toString(36)}-${nextWorkbenchNumberRef.current}`;
+    const name = `${kind === 'report' ? 'Report' : 'Applet'} ${nextWorkbenchNumberRef.current}`;
+    setWorkbenchWindows((current) => [...current, { id, name, kind, initialPrompt: prompt, conversationId: activeConversationId }]);
+    lastWorkbenchIdRef.current = id;
+    setActiveWorkbenchId(id);
+    setMobileMenuOpen(false);
   }
 
   function dismissUpgrade(){localStorage.setItem('gic-upgrade-prompt-dismissed',String(Date.now()));setUpgradeNotice(false);}
@@ -606,7 +663,7 @@ export default function IntentClient({
             {accessToken && accountUserId && (
               <button type="button" onClick={() => openWorkbench()}
                 className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-800 hover:bg-blue-100">
-                {billing.workbench === 'full' ? 'Workbench · Reports & Applets' : billing.workbench === 'reports' ? 'Workbench · Reports' : 'Upgrade for Workbench'}
+                {billing.workbench === 'none' ? 'Upgrade for Workbench' : `Workbenches · ${workbenchWindows.length} open`}
               </button>
             )}
 
@@ -875,7 +932,7 @@ export default function IntentClient({
                     onClick={() => { setMobileMenuOpen(false); openWorkbench(); }}
                     className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-800 hover:bg-blue-100"
                   >
-                    <FileText size={15} /> {billing.workbench==='none'?'Upgrade for Workbench':'Open Workbench'}
+                    <FileText size={15} /> {billing.workbench==='none'?'Upgrade for Workbench':`Workbenches · ${workbenchWindows.length} open`}
                   </button>
                 )}
 
@@ -1065,7 +1122,7 @@ export default function IntentClient({
                     onClick={() => openWorkbench()}
                     className="hidden min-h-10 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-800 hover:bg-blue-100 sm:inline-flex"
                   >
-                    <FileText size={14} /> Workbench
+                    <FileText size={14} /> Workbenches{workbenchWindows.length ? ` (${workbenchWindows.length})` : ''}
                   </button>
                 )}
                 <div className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-right sm:block">
@@ -1417,19 +1474,36 @@ export default function IntentClient({
           </div>
         </section>
       </div>
-      {workbenchOpen && accessToken && accountUserId && (
+      {accessToken && accountUserId && workbenchWindows.map((windowItem) => (
         <LooseMouthWorkbench
+          key={windowItem.id}
+          windowId={windowItem.id}
+          name={windowItem.name}
+          isActive={activeWorkbenchId === windowItem.id}
+          tabs={workbenchWindows}
+          canCreate={workbenchWindows.length < MAX_WORKBENCH_WINDOWS}
+          canCreateApplet={billing.workbench === 'full'}
+          onRename={(name, onlyIfDefault) => renameWorkbench(windowItem.id, name, onlyIfDefault)}
+          onSwitch={restoreWorkbench}
+          onCreate={(kind) => openWorkbench(kind, '', true)}
+          onMinimize={() => setActiveWorkbenchId(null)}
+          onClose={() => closeWorkbench(windowItem.id)}
           accessToken={accessToken}
           userId={accountUserId}
-          conversationId={activeConversationId}
-          conversationTurns={turns.map((turn) => ({
-            role: turn.role,
-            text: turn.text,
-            sources: turn.sources?.map((source) => ({ title: source.title, url: source.url })),
-          }))}
-          initialKind={workbenchSeed.kind}
-          initialPrompt={workbenchSeed.prompt}
-          onClose={() => setWorkbenchOpen(false)}
+          conversationId={windowItem.conversationId || activeConversationId}
+          conversationTurns={workbenchConversationTurns}
+          initialKind={windowItem.kind}
+          initialPrompt={windowItem.initialPrompt}
+        />
+      ))}
+      {accessToken && accountUserId && workbenchWindows.length > 0 && (
+        <WorkbenchDock
+          windows={workbenchWindows}
+          visible={activeWorkbenchId === null}
+          canCreate={workbenchWindows.length < MAX_WORKBENCH_WINDOWS}
+          canCreateApplet={billing.workbench === 'full'}
+          onOpen={restoreWorkbench}
+          onCreate={(kind) => openWorkbench(kind, '', true)}
         />
       )}
     </main>
