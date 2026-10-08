@@ -46,6 +46,7 @@ export default function LandingHero() {
           </p>
 
           <div className="mt-9 flex flex-wrap gap-3"><Link href="/pricing" className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">Get started — free or paid <ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/pricing#fund-research" className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-800 shadow-sm transition hover:bg-blue-100">Fund AI research &amp; development <ArrowRight className="h-4 w-4" /></Link>
             <Link href="/technology" className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
               Explore our technology <ArrowRight className="h-4 w-4" />
             </Link>
