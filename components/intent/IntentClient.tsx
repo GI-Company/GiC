@@ -148,6 +148,8 @@ export default function IntentClient({
   const [quotaRemaining, setQuotaRemaining] = useState<number | null>(accessToken?20:5);
   const [billing,setBilling]=useState<BillingStatus>({authenticated:Boolean(accessToken),tier:'free',limit:accessToken?20:5,workbench:'none'});
   const [billingBusy,setBillingBusy]=useState(false);
+  const [billingNotice,setBillingNotice]=useState('');
+  const [upgradeNotice,setUpgradeNotice]=useState(false);
   const [quotaResetAt, setQuotaResetAt] = useState<string | null>(null);
   const [conversations, setConversations] = useState<PersistedConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -205,7 +207,8 @@ export default function IntentClient({
     };
   }, [accessToken, activeConversationId]);
 
-  useEffect(()=>{let active=true;async function loadBilling(){if(!accessToken){setBilling({authenticated:false,tier:'free',limit:5,workbench:'none'});return;}try{const r=await fetch('/api/billing/status',{headers:{Authorization:`Bearer ${accessToken}`},cache:'no-store'});if(r.ok&&active){const data=await r.json() as BillingStatus;setBilling(data);setQuotaRemaining((current)=>current===20&&data.limit!==20?data.limit:current);}}catch{}}void loadBilling();return()=>{active=false};},[accessToken]);
+  useEffect(()=>{const params=new URLSearchParams(window.location.search);const state=params.get('billing');if(state==='success')setBillingNotice('Checkout completed. Activating your workspace access…');else if(state==='cancelled')setBillingNotice('Checkout cancelled. Your current plan is unchanged.');},[]);
+  useEffect(()=>{let active=true;async function loadBilling(){if(!accessToken){setBilling({authenticated:false,tier:'free',limit:5,workbench:'none'});return;}try{const r=await fetch('/api/billing/status',{headers:{Authorization:`Bearer ${accessToken}`},cache:'no-store'});if(r.ok&&active){const data=await r.json() as BillingStatus;setBilling(data);setQuotaRemaining((current)=>current===20&&data.limit!==20?data.limit:current);if(data.tier!=='free')setBillingNotice(data.status==='trialing'?'Your free trial is active.':'Your subscription is active.');}}catch{}}void loadBilling();return()=>{active=false};},[accessToken]);
 
   useEffect(() => {
     let active = true;
@@ -281,7 +284,7 @@ export default function IntentClient({
 
       const remaining = response.headers.get('X-RateLimit-Remaining');
       const reset = response.headers.get('X-RateLimit-Reset');
-      if (remaining != null && Number.isFinite(Number(remaining))) setQuotaRemaining(Number(remaining));
+      if (remaining != null && Number.isFinite(Number(remaining))) { const n=Number(remaining); setQuotaRemaining(n); if(accessToken&&billing.tier==='free'&&n<=5){const key='gic-upgrade-prompt-dismissed';const last=Number(localStorage.getItem(key)||0);if(Date.now()-last>3*24*60*60*1000)setUpgradeNotice(true);}}
       if (reset) setQuotaResetAt(reset);
 
       const data = await response.json();
@@ -400,6 +403,7 @@ export default function IntentClient({
     setWorkbenchOpen(true);
   }
 
+  function dismissUpgrade(){localStorage.setItem('gic-upgrade-prompt-dismissed',String(Date.now()));setUpgradeNotice(false);}
   async function manageBilling(){if(!accessToken||billingBusy)return;setBillingBusy(true);try{const r=await fetch('/api/billing/portal',{method:'POST',headers:{Authorization:`Bearer ${accessToken}`}});const data=await r.json() as {url?:string;error?:string};if(!r.ok||!data.url)throw new Error(data.error||'Billing portal unavailable.');window.location.href=data.url;}catch(cause){setError(cause instanceof Error?cause.message:'Billing portal unavailable.');setBillingBusy(false);}}
 
   function newChat() {
@@ -705,6 +709,8 @@ export default function IntentClient({
         </aside>
 
         <section className="flex h-full min-w-0 flex-col lg:min-h-screen">
+          {billingNotice&&<div role="status" className="border-b border-blue-200 bg-blue-50 px-4 py-2 text-center text-xs font-medium text-blue-800">{billingNotice}</div>}
+          {upgradeNotice&&billing.tier==='free'&&<div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"><span>You have {quotaRemaining ?? 0} free requests left this hour. Paid starts with a 30-day free trial and raises the allowance to 100/hour.</span><span className="flex shrink-0 gap-2"><Link href="/#pricing" className="font-semibold underline">View plans</Link><button type="button" onClick={dismissUpgrade} aria-label="Dismiss upgrade notice"><X size={14}/></button></span></div>
           <header className="shrink-0 border-b border-slate-200 bg-white/95 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <button
@@ -763,7 +769,7 @@ export default function IntentClient({
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-950">LooseMouth</p>
-                    <p className="text-xs text-slate-500">{displayName}</p>
+                    <p className="text-xs text-slate-500">{displayName} · {billing.tier === 'enhanced' ? 'Enhanced' : billing.tier === 'paid' ? 'Paid' : accessToken ? 'Free' : 'Guest'}</p>
                   </div>
                   <button
                     type="button"
@@ -785,7 +791,7 @@ export default function IntentClient({
                     onClick={() => { setMobileMenuOpen(false); openWorkbench(); }}
                     className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-800 hover:bg-blue-100"
                   >
-                    <FileText size={15} /> Open Workbench
+                    <FileText size={15} /> {billing.workbench==='none'?'Upgrade for Workbench':'Open Workbench'}
                   </button>
                 )}
 
