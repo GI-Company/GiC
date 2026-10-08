@@ -942,10 +942,10 @@ export default function IntentClient({
 
                 <button
                   type="button"
-                  onClick={onSignOut}
+                  onClick={() => { setMobileMenuOpen(false); if (accessToken) onSignOut?.(); else onRequireAuth?.(); }}
                   className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700"
                 >
-                  <LogOut size={15} /> Sign out
+                  <LogOut size={15} /> {accessToken ? 'Sign out' : 'Log in / Sign up'}
                 </button>
               </aside>
             </>
