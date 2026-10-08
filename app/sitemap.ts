@@ -8,6 +8,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const topLevel = [
     '',
     '/intent',
+    '/models',
+    '/technology',
+    '/company',
+    '/pricing',
+    '/shop',
     '/research',
     '/research/log',
     '/software',
