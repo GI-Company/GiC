@@ -86,6 +86,38 @@ function modeFrom(value: unknown): LooseMouthMode {
   return value === 'fast' || value === 'medium' || value === 'enhanced' ? value : 'fast';
 }
 
+function normalizeSources(items: Array<{ title?: string; url?: string; content?: string; published_date?: string }>, deep: boolean) {
+  const seen = new Set<string>();
+  const terms = new Set<string>();
+  const limit = deep ? 12 : 6;
+  return items
+    .filter((item) => {
+      if (typeof item.url !== 'string' || !item.url.startsWith('http')) return false;
+      try {
+        const url = new URL(item.url);
+        url.hash = '';
+        ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid'].forEach((key) => url.searchParams.delete(key));
+        const key = url.toString().replace(/\/$/, '');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        item.url = key;
+        return true;
+      } catch { return false; }
+    })
+    .map((item) => {
+      const host = new URL(item.url!).hostname.replace(/^www\./, '');
+      const title = item.title || host;
+      const content = (item.content || '').replace(/\s+/g, ' ').trim();
+      const fingerprint = (title + ' ' + content.slice(0, 240)).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      if (terms.has(fingerprint)) return null;
+      terms.add(fingerprint);
+      return { title, snippet: content.slice(0, deep ? 1200 : 600), date: item.published_date || '', url: item.url!, host };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .slice(0, limit)
+    .map(({ host: _host, ...item }) => item);
+}
+
 function validImageUrl(value: unknown): string | null {
   if (typeof value !== 'string' || value.length > 4_000_000) return null;
   if (/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(value)) return value;
@@ -193,7 +225,9 @@ export async function POST(request: NextRequest) {
   const routedMessage = mathRoute.intent === 'math' ? buildCalculatorAgentMessage(message, mathRoute) : message;
   const active = await activeGroqModels(groqKey);
   let candidates = GROQ_MODELS[mode].filter((model) => active.has(model));
-  if (searchEnabled) candidates = candidates.filter((model) => model === 'openai/gpt-oss-20b' || model === 'openai/gpt-oss-120b');
+  // Browser search is supported by both GPT-OSS models, but Chat Completions
+  // citation_options is not supported on this route. Prefer 120B for research.
+  if (searchEnabled) candidates = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'].filter((model) => active.has(model));
   if (imageUrl) candidates = candidates.filter((model) => model === 'qwen/qwen3.8-27b');
   if (searchEnabled && imageUrl) return error('Web research and image analysis cannot be combined in the same request yet.', 400);
   if (!candidates.length && imageUrl && active.has('qwen/qwen3.8-27b')) candidates = ['qwen/qwen3.8-27b'];
@@ -205,17 +239,23 @@ export async function POST(request: NextRequest) {
     'Do not claim that you are a model developed by Global Intent Company.',
     'Hosted inference is currently supplied through Groq while Global Intent Company researches and develops private AI models and infrastructure.',
     'If asked about the company, distinguish current hosted inference from Global Intent Company research clearly.',
+    'When web research is enabled, ground factual claims in the browser-search results. Do not invent citations or source URLs.',
   ].join(' ');
 
-  const maxTokens = mode === 'enhanced' ? 1200 : mode === 'medium' ? 900 : 600;
+  const maxTokens = searchEnabled && searchDepth === 'deep' ? 1800 : mode === 'enhanced' ? 1200 : mode === 'medium' ? 900 : 600;
   let lastStatus = 502;
   let lastMessage = 'Hosted inference is temporarily unavailable.';
 
   for (const model of candidates) {
     try {
+      const researchInstruction = searchEnabled && searchDepth === 'deep'
+        ? `Deep research request. Research the user's question before answering. Search broadly enough to identify multiple relevant sources and competing or complementary evidence. Prefer primary, official, and high-quality sources. Deduplicate overlapping results. Read the available search-result content closely, prioritize passages that directly answer the query, distinguish facts from inference, note material disagreement or missing evidence, and synthesize a self-contained answer grounded in the sources. User question: ${routedMessage}`
+        : searchEnabled
+          ? `Quick web search request. Find current, relevant evidence and answer concisely from the returned sources. User question: ${routedMessage}`
+          : routedMessage;
       const userContent: unknown = imageUrl
         ? [{ type: 'text', text: routedMessage }, { type: 'image_url', image_url: { url: imageUrl } }]
-        : routedMessage;
+        : researchInstruction;
       const payload: Record<string, unknown> = {
         model,
         messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }],
@@ -226,8 +266,8 @@ export async function POST(request: NextRequest) {
         payload.reasoning_effort = searchEnabled ? (searchDepth === 'deep' ? 'high' : 'low') : (mode === 'enhanced' ? 'high' : mode === 'medium' ? 'medium' : 'low');
         if (searchEnabled) {
           payload.tools = [{ type: 'browser_search' }];
+          if (searchDepth === 'deep') payload.parallel_tool_calls = true;
           payload.tool_choice = 'required';
-          payload.citation_options = 'enabled';
         }
       } else if (model === 'qwen/qwen3.8-27b') {
         payload.reasoning_effort = mode === 'enhanced' ? 'high' : mode === 'medium' ? 'medium' : 'none';
@@ -260,16 +300,7 @@ export async function POST(request: NextRequest) {
         if (Array.isArray(value)) return value;
         return value?.results || [];
       });
-      const seenUrls = new Set<string>();
-      const sources = rawSearchResults
-        .filter((item) => typeof item.url === 'string' && item.url.startsWith('http') && !seenUrls.has(item.url) && seenUrls.add(item.url))
-        .slice(0, searchDepth === 'deep' ? 12 : 6)
-        .map((item) => ({
-          title: item.title || new URL(item.url!).hostname,
-          snippet: (item.content || '').slice(0, searchDepth === 'deep' ? 1200 : 600),
-          date: item.published_date || '',
-          url: item.url!,
-        }));
+      const sources = normalizeSources(rawSearchResults, searchDepth === 'deep');
 
       const responseSessionId = typeof body.session_id === 'string' ? body.session_id : randomUUID();
       if (authenticated && dataCollectionEnabled) {
