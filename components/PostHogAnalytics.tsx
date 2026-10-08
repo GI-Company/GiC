@@ -42,6 +42,10 @@ export default function PostHogAnalytics({ token, host = 'https://us.i.posthog.c
             maskTextSelector: '[data-ph-mask]',
           },
         });
+        if (window.localStorage.getItem('gic-posthog-opt-out') === '1') {
+          window.posthog?.stop_session_recording?.();
+          window.posthog?.opt_out_capturing?.();
+        }
       }}
     />
   );
