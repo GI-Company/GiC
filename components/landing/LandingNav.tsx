@@ -23,20 +23,21 @@ export default function LandingNav() {
             <div role="menu" className={`${productsOpen ? 'visible opacity-100' : 'invisible opacity-0'} absolute left-0 top-16 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100`}>
               <Link href="/intent" className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"><strong className="block text-slate-900">INTENT</strong><span className="text-xs text-slate-500">Models &amp; LooseMouth</span></Link>
               <Link href="/virtual-lab" className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"><strong className="block text-slate-900">Virtual Lab</strong><span className="text-xs text-slate-500">Scientific computing</span></Link>
-              <a href="#plmn" className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"><strong className="block text-slate-900">PLMN</strong><span className="text-xs text-slate-500">Private model node</span></a>
-              <a href="#plmh" className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"><strong className="block text-slate-900">PLMH</strong><span className="text-xs text-slate-500">Private model hub</span></a>
+              <Link href="/models" className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"><strong className="block text-slate-900">Models</strong><span className="text-xs text-slate-500">INTENT &amp; BitVision</span></Link>
+              <Link href="/technology#plmn" className="block rounded-lg px-3 py-2.5 hover:bg-slate-50"><strong className="block text-slate-900">PLM Infrastructure</strong><span className="text-xs text-slate-500">PLMN &amp; PLMH</span></Link>
             </div>
           </div>
           <Link href="/research" className="hover:text-slate-950">Research</Link>
-          <a href="#the-stack" className="hover:text-slate-950">Technology</a>
-          <a href="#company" className="hover:text-slate-950">Company</a>
+          <Link href="/technology" className="hover:text-slate-950">Technology</Link>
+          <Link href="/company" className="hover:text-slate-950">Company</Link>
           <Link href="/systems" className="hover:text-slate-950">Systems</Link>
-          <a href="#apparel" className="hover:text-slate-950">Shop</a>
+          <Link href="/pricing" className="hover:text-slate-950">Pricing</Link>
+          <Link href="/shop" className="hover:text-slate-950">Shop</Link>
         </nav>
 
         <div className="flex items-center gap-2">
           <Link href="/intent" className="hidden rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 sm:inline-flex">Try LooseMouth</Link>
-          <a href="#contact" className="hidden rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 sm:inline-flex">Contact</a>
+          <Link href="/company#contact" className="hidden rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 sm:inline-flex">Contact</Link>
           <button type="button" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 lg:hidden" aria-label="Toggle navigation">
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -49,10 +50,12 @@ export default function LandingNav() {
             <Link href="/intent" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">INTENT / LooseMouth</Link>
             <Link href="/virtual-lab" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Virtual Lab</Link>
             <Link href="/research" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Research</Link>
-            <a href="#the-stack" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Technology</a>
-            <a href="#company" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Company</a>
-            <a href="#apparel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Shop</a>
-            <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="mt-2 rounded-lg bg-slate-950 px-3 py-2.5 text-center font-semibold text-white">Contact</a>
+            <Link href="/models" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Models</Link>
+            <Link href="/technology" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Technology</Link>
+            <Link href="/company" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Company</Link>
+            <Link href="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Pricing</Link>
+            <Link href="/shop" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-3 py-2 hover:bg-slate-50">Shop</Link>
+            <Link href="/company#contact" onClick={() => setMobileMenuOpen(false)} className="mt-2 rounded-lg bg-slate-950 px-3 py-2.5 text-center font-semibold text-white">Contact</Link>
           </div>
         </nav>
       )}
