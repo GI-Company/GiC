@@ -3,9 +3,9 @@ import { ArrowRight, CheckCircle2 } from 'lucide-react';
 
 const layers = [
   { n: '01', name: 'INTENT', label: 'Model layer', text: 'Language-model research focused on efficient architectures, inspectability, and private execution.', href: '/intent' },
-  { n: '02', name: 'PLMH', label: 'Execution layer', text: 'A private hub for hosting model runtimes and exposing controlled inference capabilities on operator-managed infrastructure.', href: '#plmh' },
-  { n: '03', name: 'PLMN', label: 'Access layer', text: 'The node layer for discovery, authentication, capability negotiation, readiness verification, and inference streaming.', href: '#plmn' },
-  { n: '04', name: 'Organization', label: 'Control boundary', text: 'The deployment boundary in which an operator controls models, compute, access policy, and application data.', href: '#principles' },
+  { n: '02', name: 'PLMH', label: 'Execution layer', text: 'A private hub for hosting model runtimes and exposing controlled inference capabilities on operator-managed infrastructure.', href: '/infrastructure#plmh' },
+  { n: '03', name: 'PLMN', label: 'Access layer', text: 'The node layer for discovery, authentication, capability negotiation, readiness verification, and inference streaming.', href: '/infrastructure#plmn' },
+  { n: '04', name: 'Organization', label: 'Control boundary', text: 'The deployment boundary in which an operator controls models, compute, access policy, and application data.', href: '/company#principles' },
 ];
 
 export default function StackArchitectureSection() {

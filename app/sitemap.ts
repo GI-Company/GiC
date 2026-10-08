@@ -8,11 +8,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const topLevel = [
     '',
     '/intent',
+    '/models',
+    '/bitvision',
+    '/technology',
+    '/infrastructure',
+    '/company',
+    '/pricing',
+    '/shop',
+    '/contact',
     '/research',
     '/research/log',
     '/software',
     '/systems',
     '/virtual-lab',
+    '/virtual-lab/bitvision-cell',
   ];
 
   const projectRoutes = RESEARCH_NODES.map((node) => {

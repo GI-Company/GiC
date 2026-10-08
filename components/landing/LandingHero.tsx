@@ -14,7 +14,7 @@ const pillars = [
     title: 'PLM Infrastructure',
     eyebrow: 'Private Infrastructure',
     description: 'Authenticated infrastructure for discovering, verifying, and operating privately hosted models.',
-    href: '#the-stack',
+    href: '/infrastructure',
     icon: Network,
   },
   {
@@ -46,9 +46,9 @@ export default function LandingHero() {
           </p>
 
           <div className="mt-9 flex flex-wrap gap-3">
-            <a href="#the-stack" className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+            <Link href="/technology" className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
               Explore our technology <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
             <Link href="/research" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">
               View research <ArrowRight className="h-4 w-4" />
             </Link>

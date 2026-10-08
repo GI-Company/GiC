@@ -12,3 +12,13 @@
   background: var(--gic-surface);
   color: var(--gic-ink);
 }
+
+/* Marketing and research documents are naturally scrollable. Interactive workspaces
+ * manage their own independently scrolling panels, never a document-wide lock. */
+html {
+  scroll-padding-top: 86px;
+}
+body {
+  min-height: 100%;
+  overflow-x: clip;
+}

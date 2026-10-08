@@ -6,12 +6,12 @@
 <title>BitVision-Cell v0.2 — Live Checkpoint 500 Inference</title>
 <style>
 :root{color-scheme:dark;--bg:#01050a;--panel:#07131e;--panel2:#0a1b28;--line:#19364c;--text:#edf7ff;--muted:#8ea8bb;--cyan:#2ce6df;--green:#49e89d;--pink:#ff2d8d;--gray:#7a8597;--purple:#a477ff;--orange:#ffba55;--red:#ff6d62}
-*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}body{min-height:100vh}button,select,input{font:inherit}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}body{min-height:0;overflow-x:hidden}button,select,input{font:inherit}
 header{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:#06111b;border-bottom:1px solid var(--line)}.brand{font-weight:800;margin-right:auto}.pill{font-size:12px;border:1px solid #236173;border-radius:999px;padding:5px 8px;color:var(--cyan)}button,select{background:#0b1b2a;color:var(--text);border:1px solid #28465d;border-radius:7px;padding:8px 10px;min-height:38px}.ok{color:var(--green)}.warn{color:var(--orange)}.err{color:var(--red)}
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 400px}.stage{position:relative;min-height:760px;overflow:hidden;background:#01050a}#sim{display:block;width:100%;height:100%;min-height:760px;touch-action:none}.glass{position:absolute;background:rgba(3,12,20,.86);border:1px solid #24465c;border-radius:8px;backdrop-filter:blur(5px)}.legend{left:12px;top:12px;padding:9px 11px;font-size:12px}.legend div{display:flex;align-items:center;gap:7px;margin:5px 0}.sw{width:9px;height:9px;border-radius:50%}.hud{right:12px;top:12px;text-align:right;padding:9px 11px;font-size:12px}.event{left:50%;transform:translateX(-50%);top:12px;padding:7px 10px;font-size:12px;color:var(--muted)}.note{right:12px;bottom:12px;max-width:390px;padding:7px 9px;font-size:11px;color:var(--muted)}
 aside{background:#06111b;border-left:1px solid var(--line);padding:10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}.card h3{margin:0 0 10px;font-size:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.kv{background:var(--panel2);border:1px solid #17334a;border-radius:7px;padding:8px}.kv small{display:block;color:var(--muted);font-size:10px;margin-bottom:3px}.kv b{font-size:13px;font-variant-numeric:tabular-nums}.metric{display:grid;grid-template-columns:1fr 70px;gap:8px;align-items:center;font-size:12px;margin:8px 0}.metric .v{text-align:right;font-variant-numeric:tabular-nums}.bar{grid-column:1/-1;height:6px;border-radius:999px;background:#122a3e;overflow:hidden}.bar span{display:block;height:100%;width:0;transition:width .12s linear}.op{border-top:1px solid #132d40;padding-top:9px;margin-top:9px}.op:first-child{border-top:0;padding-top:0;margin-top:0}.ophead{display:grid;grid-template-columns:1fr 56px;gap:8px;font-size:11px}.opmeta{margin:4px 0 6px;color:var(--muted);font-size:10px;line-height:1.45}.track{height:5px;border-radius:999px;background:#122a3e;overflow:hidden}.fill{height:100%;background:var(--cyan)}.micro{margin:-2px 0 9px;color:var(--muted);font-size:10px;line-height:1.5}.links{display:flex;flex-wrap:wrap;gap:7px}.links a{display:inline-flex;align-items:center;border:1px solid #28536d;border-radius:7px;padding:7px 9px;color:#bfeaff;text-decoration:none;font-size:11px}.links a:hover{background:#0d2638;border-color:#3980a7}#chart{display:block;width:100%;height:150px;background:#050f18;border:1px solid #17334a;border-radius:8px}
 footer{background:#06111b;border-top:1px solid var(--line);padding:10px 14px;font-size:11px;color:var(--muted)}code{color:#cceaff}
-@media(max-width:1050px){.layout{grid-template-columns:1fr}aside{border-left:0;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card{margin:0}}@media(max-width:700px){aside{grid-template-columns:1fr}.stage,#sim{min-height:560px}}
+@media(max-width:1050px){.layout{grid-template-columns:1fr}aside{border-left:0;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card{margin:0}}@media(max-width:700px){aside{grid-template-columns:1fr}.stage,#sim{min-height:480px}#sim{touch-action:pan-y}}
 </style>
 </head>
 <body>
@@ -295,13 +295,32 @@ async function loadModel(){
 $("play").onclick=()=>{playing=!playing;$("play").textContent=playing?"Pause":"Play"};
 $("reset").onclick=()=>{episode++;resetEpisode()};
 $("speed").onchange=e=>speed=+e.target.value||1;
-canvas.addEventListener("pointerdown",e=>{drag=true;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture?.(e.pointerId)});canvas.addEventListener("pointerup",()=>drag=false);canvas.addEventListener("pointercancel",()=>drag=false);canvas.addEventListener("pointermove",e=>{if(!drag)return;yaw+=(e.clientX-lx)*.008;pitch=clamp(pitch+(e.clientY-ly)*.008,-1.2,1.2);lx=e.clientX;ly=e.clientY});canvas.addEventListener("wheel",e=>{e.preventDefault();zoom=clamp(zoom*Math.exp(-e.deltaY*.001),.7,2.5)},{passive:false});
+canvas.addEventListener("pointerdown",e=>{drag=true;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture?.(e.pointerId)});canvas.addEventListener("pointerup",()=>drag=false);canvas.addEventListener("pointercancel",()=>drag=false);canvas.addEventListener("pointermove",e=>{if(!drag)return;yaw+=(e.clientX-lx)*.008;pitch=clamp(pitch+(e.clientY-ly)*.008,-1.2,1.2);lx=e.clientX;ly=e.clientY});canvas.addEventListener("wheel",e=>{if(!e.altKey&&!e.ctrlKey)return;e.preventDefault();zoom=clamp(zoom*Math.exp(-e.deltaY*.001),.7,2.5)},{passive:false});
 function loop(ts){
   if(terminalPause>0){terminalPause--;if(terminalPause===0){episode++;resetEpisode()}}
   if(ready&&playing&&terminalPause===0&&!busy&&ts-lastPolicy>(420/Math.max(.25,speed))){lastPolicy=ts;inferAndStep()}
   draw(ts);requestAnimationFrame(loop)
 }
 resetEpisode();resize();requestAnimationFrame(loop);loadModel();
+
+// When embedded, let the parent page scroll the complete dashboard instead of
+// trapping metrics below a viewport-height iframe. Works if this file is opened
+// on its own as well.
+(() => {
+  if (window.parent === window) return;
+  let lastSent = 0;
+  const notifyHeight = () => {
+    const height = Math.ceil(Math.max(document.documentElement.scrollHeight, document.body.scrollHeight));
+    if (Math.abs(height - lastSent) < 3) return;
+    lastSent = height;
+    window.parent.postMessage({ type: 'gic:bitvision-cell-height', height }, window.location.origin);
+  };
+  if ('ResizeObserver' in window) new ResizeObserver(notifyHeight).observe(document.body);
+  window.addEventListener('load', notifyHeight);
+  window.addEventListener('resize', notifyHeight);
+  requestAnimationFrame(notifyHeight);
+})();
+
 </script>
 </body>
 </html>
