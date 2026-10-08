@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import {
   Code2,
   Download,
   Eye,
   FileText,
+  GripVertical,
+  Maximize2,
+  Minus,
   PencilLine,
   Play,
   Printer,
@@ -84,7 +87,7 @@ function downloadBlob(filename: string, type: string, value: string) {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(href);
+  window.setTimeout(() => URL.revokeObjectURL(href), 30_000);
 }
 
 function escapeHtml(value: string) {
@@ -305,6 +308,18 @@ export default function LooseMouthWorkbench({
   const [activeFile, setActiveFile] = useState('index.html');
   const [compiledPreview, setCompiledPreview] = useState('');
   const [includeConversation, setIncludeConversation] = useState(Boolean(conversationTurns.length));
+  const [minimized, setMinimized] = useState(false);
+  const [dockPosition, setDockPosition] = useState<{ left: number; top: number } | null>(null);
+  const minimizedWidgetRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef<{
+    pointerId: number;
+    pointerX: number;
+    pointerY: number;
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   useEffect(() => {
     setKind(initialKind);
@@ -477,25 +492,128 @@ export default function LooseMouthWorkbench({
 
   function printReport() {
     if (!draft || kind !== 'report') return;
-    const popup = window.open('', '_blank', 'noopener,noreferrer');
+    // Open synchronously from the user gesture to support mobile popup policies.
+    // The "noopener" window feature makes window.open return null in some browsers.
+    const popup = window.open('', '_blank');
     if (!popup) {
-      setError('Your browser blocked the print window. Allow popups for this site and try again.');
+      setError('Your browser blocked the PDF/print window. Allow popups for this site and try again.');
       return;
     }
+    popup.opener = null;
     popup.document.open();
     popup.document.write(reportDocument(artifactTitle, reportMarkdown));
     popup.document.close();
-    popup.addEventListener('load', () => {
+    const openPrintDialog = () => {
       popup.focus();
       popup.print();
-    });
+    };
+    if (popup.document.readyState === 'complete') {
+      popup.setTimeout(openPrintDialog, 150);
+    } else {
+      popup.addEventListener('load', openPrintDialog, { once: true });
+    }
   }
 
   const currentFile = files.find((file) => file.path === activeFile) || files[0];
 
+  function startDockDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const rect = minimizedWidgetRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    draggingRef.current = {
+      pointerId: event.pointerId,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  function moveDock(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = draggingRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const nextLeft = drag.left + (event.clientX - drag.pointerX);
+    const nextTop = drag.top + (event.clientY - drag.pointerY);
+    setDockPosition({
+      left: Math.max(12, Math.min(nextLeft, window.innerWidth - drag.width - 12)),
+      top: Math.max(12, Math.min(nextTop, window.innerHeight - drag.height - 12)),
+    });
+  }
+
+  function finishDockDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (draggingRef.current?.pointerId !== event.pointerId) return;
+    draggingRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  useEffect(() => {
+    if (!minimized) return;
+    const clampToViewport = () => {
+      const rect = minimizedWidgetRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setDockPosition((current) => current ? ({
+        left: Math.max(12, Math.min(current.left, window.innerWidth - rect.width - 12)),
+        top: Math.max(12, Math.min(current.top, window.innerHeight - rect.height - 12)),
+      }) : null);
+    };
+    window.addEventListener('resize', clampToViewport);
+    return () => window.removeEventListener('resize', clampToViewport);
+  }, [minimized]);
+
+  if (minimized) {
+    return (
+      <div
+        ref={minimizedWidgetRef}
+        role="region"
+        aria-label="Minimized LooseMouth Workbench"
+        className="fixed z-[80] flex w-[min(320px,calc(100vw-24px))] items-center gap-1 rounded-2xl border border-blue-200 bg-white p-2 shadow-[0_16px_55px_rgba(15,23,42,0.28)]"
+        style={dockPosition ? { left: dockPosition.left, top: dockPosition.top } : { right: 16, bottom: 'max(16px, env(safe-area-inset-bottom))' }}
+      >
+        <button
+          type="button"
+          onPointerDown={startDockDrag}
+          onPointerMove={moveDock}
+          onPointerUp={finishDockDrag}
+          onPointerCancel={finishDockDrag}
+          aria-label="Drag minimized Workbench"
+          title="Drag to move"
+          className="flex h-11 w-9 shrink-0 touch-none cursor-grab items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 active:cursor-grabbing"
+        >
+          <GripVertical size={19} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setMinimized(false)}
+          className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 rounded-xl px-1.5 text-left hover:bg-blue-50"
+          aria-label="Restore LooseMouth Workbench"
+        >
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-slate-900">LooseMouth Workbench</span>
+            <span className="block truncate text-xs text-slate-500">{busy ? 'Building…' : draft ? artifactTitle : 'Tap to restore'}</span>
+          </span>
+          <Maximize2 size={16} className="shrink-0 text-blue-700" />
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close minimized Workbench"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
+        >
+          <X size={18} />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <section className="fixed inset-0 z-50 bg-slate-950/35 backdrop-blur-sm lg:p-5">
-      <div className="mx-auto grid h-full max-w-[1600px] overflow-hidden bg-white shadow-2xl lg:grid-cols-[260px_1fr] lg:rounded-2xl lg:border lg:border-slate-200">
+    <section role="dialog" aria-modal="true" aria-label="LooseMouth Workbench" className="fixed inset-0 z-[70] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-slate-950/35 backdrop-blur-sm lg:p-5">
+      <div className="mx-auto grid h-full min-h-0 w-full max-w-[1600px] overflow-hidden bg-white shadow-2xl lg:grid-cols-[260px_minmax(0,1fr)] lg:rounded-2xl lg:border lg:border-slate-200">
         <aside className="hidden min-h-0 border-r border-slate-200 bg-slate-50 p-4 lg:flex lg:flex-col">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[.18em] text-blue-700">LooseMouth Workbench</p>
@@ -532,15 +650,26 @@ export default function LooseMouthWorkbench({
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-5">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-950">LooseMouth Workbench</p>
               <p className="truncate text-xs text-slate-500">Build · inspect · edit · run · export</p>
             </div>
-            <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100" aria-label="Close workbench">
-              <X size={18} />
-            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setMinimized(true)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100"
+                aria-label="Minimize workbench"
+                title="Minimize to a draggable window"
+              >
+                <Minus size={19} />
+              </button>
+              <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100" aria-label="Close workbench">
+                <X size={18} />
+              </button>
+            </div>
           </header>
 
           <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-slate-200 p-3">
@@ -561,8 +690,8 @@ export default function LooseMouthWorkbench({
             {active && <span className="ml-auto shrink-0 text-xs text-slate-500">Saved · v{active.version}</span>}
           </div>
 
-          <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[360px_1fr] lg:overflow-hidden">
-            <div className="border-b border-slate-200 p-4 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+          <div className="grid min-h-0 flex-1 overflow-y-auto overscroll-contain lg:grid-cols-[360px_minmax(0,1fr)] lg:overflow-hidden">
+            <div className="min-h-0 border-b border-slate-200 p-4 lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
               <p className="text-xs font-semibold uppercase tracking-[.13em] text-slate-500">{kind === 'report' ? 'Report brief' : 'Applet brief'}</p>
               <textarea
                 value={prompt}
@@ -648,7 +777,7 @@ export default function LooseMouthWorkbench({
               {error && <p role="alert" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">{error}</p>}
             </div>
 
-            <div className="min-h-[52vh] bg-slate-100 p-3 sm:p-4 lg:min-h-0 lg:overflow-hidden">
+            <div className="min-h-[52vh] min-w-0 overflow-y-auto overscroll-contain bg-slate-100 p-3 sm:p-4 lg:min-h-0">
               {!draft ? (
                 <div className="flex h-full min-h-[480px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-center">
                   <div className="max-w-sm px-6">
@@ -658,15 +787,20 @@ export default function LooseMouthWorkbench({
                   </div>
                 </div>
               ) : kind === 'report' ? (
-                <div className="flex h-full min-h-[520px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
-                    <div className="min-w-0">
+                <div className="flex h-full min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:min-h-0">
+                  <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-950">{artifactTitle}</p>
-                      <p className="text-[10px] uppercase tracking-[.12em] text-slate-400">LooseMouth report</p>
+                      <p className="text-[10px] uppercase tracking-[.12em] text-slate-400">LooseMouth report · downloadable</p>
                     </div>
-                    <div className="inline-flex rounded-lg bg-slate-100 p-1">
-                      <button type="button" onClick={() => setReportMode('preview')} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold ${reportMode === 'preview' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}><Eye size={13} /> Preview</button>
-                      <button type="button" onClick={() => setReportMode('edit')} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold ${reportMode === 'edit' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}><PencilLine size={13} /> Edit</button>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button type="button" onClick={downloadPrimary} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50" title="Download HTML report"><Download size={13} /> HTML</button>
+                      <button type="button" onClick={downloadMarkdown} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50" title="Download Markdown report"><Download size={13} /> MD</button>
+                      <button type="button" onClick={printReport} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-slate-200 px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50" title="Print or save as PDF"><Printer size={13} /> PDF</button>
+                      <div className="inline-flex rounded-lg bg-slate-100 p-1">
+                        <button type="button" onClick={() => setReportMode('preview')} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold ${reportMode === 'preview' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}><Eye size={13} /> Preview</button>
+                        <button type="button" onClick={() => setReportMode('edit')} className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold ${reportMode === 'edit' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}><PencilLine size={13} /> Edit</button>
+                      </div>
                     </div>
                   </div>
                   {reportMode === 'preview' ? (
@@ -677,13 +811,13 @@ export default function LooseMouthWorkbench({
                     <textarea
                       value={reportMarkdown}
                       onChange={(event) => updateReport(event.target.value)}
-                      className="min-h-[480px] flex-1 resize-none bg-white p-5 font-mono text-sm leading-7 text-slate-800 outline-none sm:p-8"
+                      className="min-h-[280px] flex-1 resize-none overflow-y-auto bg-white p-5 font-mono text-sm leading-7 text-slate-800 outline-none sm:p-8 lg:min-h-0"
                       spellCheck
                     />
                   )}
                 </div>
               ) : (
-                <div className="flex h-full min-h-[560px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex h-full min-h-[480px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:min-h-0">
                   <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 px-3 py-2">
                     <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
                       {files.map((file) => (
