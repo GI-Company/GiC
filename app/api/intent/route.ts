@@ -86,6 +86,38 @@ function modeFrom(value: unknown): LooseMouthMode {
   return value === 'fast' || value === 'medium' || value === 'enhanced' ? value : 'fast';
 }
 
+function normalizeSources(items: Array<{ title?: string; url?: string; content?: string; published_date?: string }>, deep: boolean) {
+  const seen = new Set<string>();
+  const terms = new Set<string>();
+  const limit = deep ? 12 : 6;
+  return items
+    .filter((item) => {
+      if (typeof item.url !== 'string' || !item.url.startsWith('http')) return false;
+      try {
+        const url = new URL(item.url);
+        url.hash = '';
+        ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid'].forEach((key) => url.searchParams.delete(key));
+        const key = url.toString().replace(/\/$/, '');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        item.url = key;
+        return true;
+      } catch { return false; }
+    })
+    .map((item) => {
+      const host = new URL(item.url!).hostname.replace(/^www\./, '');
+      const title = item.title || host;
+      const content = (item.content || '').replace(/\s+/g, ' ').trim();
+      const fingerprint = (title + ' ' + content.slice(0, 240)).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      if (terms.has(fingerprint)) return null;
+      terms.add(fingerprint);
+      return { title, snippet: content.slice(0, deep ? 1200 : 600), date: item.published_date || '', url: item.url!, host };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .slice(0, limit)
+    .map(({ host: _host, ...item }) => item);
+}
+
 function validImageUrl(value: unknown): string | null {
   if (typeof value !== 'string' || value.length > 4_000_000) return null;
   if (/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(value)) return value;
@@ -268,16 +300,7 @@ export async function POST(request: NextRequest) {
         if (Array.isArray(value)) return value;
         return value?.results || [];
       });
-      const seenUrls = new Set<string>();
-      const sources = rawSearchResults
-        .filter((item) => typeof item.url === 'string' && item.url.startsWith('http') && !seenUrls.has(item.url) && seenUrls.add(item.url))
-        .slice(0, searchDepth === 'deep' ? 12 : 6)
-        .map((item) => ({
-          title: item.title || new URL(item.url!).hostname,
-          snippet: (item.content || '').slice(0, searchDepth === 'deep' ? 1200 : 600),
-          date: item.published_date || '',
-          url: item.url!,
-        }));
+      const sources = normalizeSources(rawSearchResults, searchDepth === 'deep');
 
       const responseSessionId = typeof body.session_id === 'string' ? body.session_id : randomUUID();
       if (authenticated && dataCollectionEnabled) {
