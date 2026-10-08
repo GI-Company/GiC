@@ -397,8 +397,8 @@ export default function IntentClient({
       onRequireAuth?.();
       return;
     }
-    if(billing.workbench==='none'){window.location.href='/#pricing';return;}
-    if(kind==='applet'&&billing.workbench!=='full'){window.location.href='/#pricing';return;}
+    if(billing.workbench==='none'){window.location.href='/#plans';return;}
+    if(kind==='applet'&&billing.workbench!=='full'){window.location.href='/#plans';return;}
     setWorkbenchSeed({ kind, prompt });
     setWorkbenchOpen(true);
   }
@@ -710,7 +710,7 @@ export default function IntentClient({
 
         <section className="flex h-full min-w-0 flex-col lg:min-h-screen">
           {billingNotice&&<div role="status" className="border-b border-blue-200 bg-blue-50 px-4 py-2 text-center text-xs font-medium text-blue-800">{billingNotice}</div>}
-          {upgradeNotice&&billing.tier==='free'&&<div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"><span>You have {quotaRemaining ?? 0} free requests left this hour. Paid starts with a 30-day free trial and raises the allowance to 100/hour.</span><span className="flex shrink-0 gap-2"><Link href="/#pricing" className="font-semibold underline">View plans</Link><button type="button" onClick={dismissUpgrade} aria-label="Dismiss upgrade notice"><X size={14}/></button></span></div>}
+          {upgradeNotice&&billing.tier==='free'&&<div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"><span>You have {quotaRemaining ?? 0} free requests left this hour. Paid starts with a 30-day free trial and raises the allowance to 100/hour.</span><span className="flex shrink-0 gap-2"><Link href="/#plans" className="font-semibold underline">View plans</Link><button type="button" onClick={dismissUpgrade} aria-label="Dismiss upgrade notice"><X size={14}/></button></span></div>}
           <header className="shrink-0 border-b border-slate-200 bg-white/95 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <button
