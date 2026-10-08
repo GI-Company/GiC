@@ -170,6 +170,8 @@ export default function IntentClient({
   const preferencesLoadedRef = useRef(false);
 
   const displayName = accountName?.trim() || accountEmail?.split('@')[0] || 'Guest';
+  const telemetryRequired = billing.tier === 'free';
+  const effectiveDataCollectionEnabled = telemetryRequired ? true : dataCollectionEnabled;
   const initials = useMemo(() => {
     const parts = displayName.split(/\s+/).filter(Boolean);
     return (parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : displayName.slice(0, 2)).toUpperCase();
@@ -252,6 +254,18 @@ export default function IntentClient({
     if (transcript) transcript.scrollTo({ top: transcript.scrollHeight, behavior: 'smooth' });
   }, [turns, busy]);
 
+  useEffect(() => {
+    const posthog = window.posthog;
+    if (!posthog) return;
+    if (telemetryRequired || dataCollectionEnabled) {
+      posthog.opt_in_capturing?.();
+      posthog.start_session_recording?.();
+    } else {
+      posthog.stop_session_recording?.();
+      posthog.opt_out_capturing?.();
+    }
+  }, [telemetryRequired, dataCollectionEnabled]);
+
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = message.trim();
@@ -277,7 +291,7 @@ export default function IntentClient({
           search,
           search_depth: search ? searchDepth : undefined,
           max_tokens: maxTokens,
-          data_collection_enabled: dataCollectionEnabled,
+          data_collection_enabled: effectiveDataCollectionEnabled,
           image_url: attachedImage?.dataUrl,
         }),
       });
@@ -490,9 +504,9 @@ export default function IntentClient({
     : null;
 
   return (
-    <main className="h-[100dvh] overflow-hidden bg-white text-slate-950 lg:h-auto lg:min-h-screen lg:overflow-visible">
-      <div className="mx-auto grid h-full max-w-[1500px] lg:min-h-screen lg:grid-cols-[270px_1fr]">
-        <aside className="hidden border-r border-slate-200 bg-slate-50 px-5 py-6 lg:block">
+    <main className="h-[100dvh] overflow-hidden bg-white text-slate-950">
+      <div className="mx-auto grid h-full min-h-0 max-w-[1500px] lg:grid-cols-[270px_1fr]">
+        <aside className="hidden h-full overflow-y-auto overscroll-contain border-r border-slate-200 bg-slate-50 px-5 py-6 lg:block">
           <div className="flex items-center justify-between gap-4 lg:block">
             <Link href="/" className="inline-flex items-center gap-3">
               <Image
@@ -581,7 +595,7 @@ export default function IntentClient({
 
           <div className="mt-5 rounded-xl border border-slate-200 bg-white p-3">
             <label className="flex items-center justify-between gap-3 text-xs font-medium text-slate-700">
-              <span><span className="block font-semibold text-slate-900">Usage data</span><span className="mt-0.5 block text-[10px] font-normal text-slate-500">Performance metadata only; never prompt or response text.</span></span>
+              <span><span className="block font-semibold text-slate-900">{telemetryRequired ? 'Usage analytics' : 'Privacy controls'}</span><span className="mt-0.5 block text-[10px] font-normal text-slate-500">{telemetryRequired ? 'Included with Guest and Free access. Conversation text is masked from session replay.' : 'Paid plans can disable workspace analytics and session replay.'}</span></span>
               <input
                 type="checkbox"
                 checked={dataCollectionEnabled}
@@ -700,15 +714,15 @@ export default function IntentClient({
 
             <button
               type="button"
-              onClick={onSignOut}
+              onClick={() => accessToken ? onSignOut?.() : onRequireAuth?.()}
               className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950"
             >
-              <LogOut size={14} /> Sign out
+              <LogOut size={14} /> {accessToken ? 'Sign out' : 'Log in / Sign up'}
             </button>
           </div>
         </aside>
 
-        <section className="flex h-full min-w-0 flex-col lg:min-h-screen">
+        <section className="flex h-full min-h-0 min-w-0 flex-col">
           {billingNotice&&<div role="status" className="border-b border-blue-200 bg-blue-50 px-4 py-2 text-center text-xs font-medium text-blue-800">{billingNotice}</div>}
           {upgradeNotice&&billing.tier==='free'&&<div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"><span>You have {quotaRemaining ?? 0} free requests left this hour. Paid starts with a 30-day free trial and raises the allowance to 100/hour.</span><span className="flex shrink-0 gap-2"><Link href="/#pricing" className="font-semibold underline">View plans</Link><button type="button" onClick={dismissUpgrade} aria-label="Dismiss upgrade notice"><X size={14}/></button></span></div>}
           <header className="shrink-0 border-b border-slate-200 bg-white/95 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:hidden">
@@ -875,7 +889,7 @@ export default function IntentClient({
 
                 <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <label className="flex min-h-10 items-center justify-between gap-3 text-sm font-medium text-slate-700">
-                    <span><span className="block">Share usage data</span><span className="block text-[10px] font-normal text-slate-500">Performance metadata only; prompt/response text is not collected.</span></span>
+                    <span><span className="block">{telemetryRequired ? 'Usage analytics included' : 'Share usage data'}</span><span className="block text-[10px] font-normal text-slate-500">{telemetryRequired ? 'Required for Guest and Free workspace access; conversation text is masked from replay.' : 'Turn off workspace analytics and session replay for this paid account.'}</span></span>
                     <input
                       type="checkbox"
                       checked={dataCollectionEnabled}
