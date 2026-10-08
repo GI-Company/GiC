@@ -1,42 +1,16 @@
 import React from 'react';
 import LandingNav from '@/components/landing/LandingNav';
 import LandingHero from '@/components/landing/LandingHero';
-import ProblemSection from '@/components/landing/ProblemSection';
-import StackArchitectureSection from '@/components/landing/StackArchitectureSection';
-import IntentModelsSection from '@/components/landing/IntentModelsSection';
-import BitVisionSection from '@/components/landing/BitVisionSection';
-import PLMHSection from '@/components/landing/PLMHSection';
-import PLMNSection from '@/components/landing/PLMNSection';
-import ResearchEngineSection from '@/components/landing/ResearchEngineSection';
-import PrinciplesSection from '@/components/landing/PrinciplesSection';
-import CompanyFounderSection from '@/components/landing/CompanyFounderSection';
-import CompanyVisionSection from '@/components/landing/CompanyVisionSection';
-import ApparelSection from '@/components/landing/ApparelSection';
-import BillingSection from '@/components/landing/BillingSection';
-import LandingFooterCTA from '@/components/landing/LandingFooterCTA';
 import LandingAuthRedirect from '@/components/landing/LandingAuthRedirect';
 
 export default function LandingPage() {
   return (
-    <div className="enterprise-site min-h-screen bg-white text-slate-950 selection:bg-blue-100 selection:text-blue-950">
+    <div className="enterprise-site min-h-[100dvh] bg-white text-slate-950 selection:bg-blue-100 selection:text-blue-950">
       <LandingAuthRedirect />
       <LandingNav />
-      <main>
+      <main className="min-h-[100dvh]">
         <LandingHero />
-        <ProblemSection />
-        <StackArchitectureSection />
-        <IntentModelsSection />
-        <BitVisionSection />
-        <PLMHSection />
-        <PLMNSection />
-        <ResearchEngineSection />
-        <PrinciplesSection />
-        <CompanyFounderSection />
-        <CompanyVisionSection />
-        <BillingSection />
-        <ApparelSection />
       </main>
-      <LandingFooterCTA />
     </div>
   );
 }
