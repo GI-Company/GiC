@@ -14,7 +14,7 @@ const tiers = [
     cadence: '',
     description: 'Create a free account to explore LooseMouth and the public Global Intent research ecosystem.',
     features: ['Authenticated LooseMouth access', 'Saved conversations', 'Standard usage boundary'],
-    href: '/intent',
+    href: '/intent?signup=1',
     action: 'Create free account',
   },
   {
@@ -42,9 +42,9 @@ export default function BillingSection() {
   const [busy,setBusy]=useState<string|null>(null);
   async function subscribe(tier:'paid'|'enhanced'){
     const raw=localStorage.getItem('gic-loosemouth-session');
-    if(!raw){window.location.href='/intent';return;}
+    if(!raw){window.location.href='/intent?signup=1';return;}
     let token='';try{token=JSON.parse(raw).access_token||'';}catch{}
-    if(!token){window.location.href='/intent';return;}
+    if(!token){window.location.href='/intent?signup=1';return;}
     setBusy(tier);
     try{const res=await fetch('/api/billing/checkout',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({tier})});const data=await res.json();if(!res.ok||!data.url)throw new Error(data.error||'Checkout unavailable');window.location.href=data.url;}catch(e){alert(e instanceof Error?e.message:'Checkout unavailable');setBusy(null);}
   }
