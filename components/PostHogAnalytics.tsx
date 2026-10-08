@@ -6,6 +6,10 @@ declare global {
   interface Window {
     posthog?: {
       init: (token: string, config: Record<string, unknown>) => void;
+      opt_in_capturing?: () => void;
+      opt_out_capturing?: () => void;
+      start_session_recording?: () => void;
+      stop_session_recording?: () => void;
     };
   }
 }
