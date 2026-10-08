@@ -67,9 +67,9 @@ export default function BillingSection() {
             </article>
           ))}
         </div>
-        <div id="fund-research" className="mt-8 flex flex-col gap-6 rounded-2xl bg-slate-950 p-7 text-white sm:p-9 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-3xl"><div className="flex items-center gap-2 text-blue-300"><Heart className="h-5 w-5" /><span className="text-sm font-semibold">Fund the research</span></div><h3 className="mt-3 text-2xl font-semibold">Support Global Intent Company without a subscription.</h3><p className="mt-3 text-sm leading-6 text-slate-300">Make a one-time contribution toward INTENT, BitVision, Virtual Lab, PLM, edge AI and scientific-instrumentation R&D. Contributions are support payments and do not provide equity, ownership, investment returns or securities.</p></div>
-          <a href={FUND_URL} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100">Fund the research <ArrowRight className="h-4 w-4" /></a>
+        <div id="fund-research" className="scroll-mt-24 mt-8 flex flex-col gap-6 rounded-2xl bg-slate-950 p-7 text-white sm:p-9 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl"><div className="flex items-center gap-2 text-blue-300"><Heart className="h-5 w-5" /><span className="text-sm font-semibold">Fund research &amp; development</span></div><h3 className="mt-3 text-2xl font-semibold">Support Global Intent Company without a subscription.</h3><p className="mt-3 text-sm leading-6 text-slate-300">Make a one-time contribution toward INTENT, BitVision, Virtual Lab, PLM, edge AI and scientific-instrumentation R&D. Contributions are support payments and do not provide equity, ownership, investment returns or securities.</p></div>
+          <a href={FUND_URL} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100">Contribute via Stripe <ArrowRight className="h-4 w-4" /></a>
         </div>
       </div>
     </section>
