@@ -700,10 +700,10 @@ export default function IntentClient({
 
             <button
               type="button"
-              onClick={onSignOut}
+              onClick={() => accessToken ? onSignOut?.() : onRequireAuth?.()}
               className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950"
             >
-              <LogOut size={14} /> Sign out
+              <LogOut size={14} /> {accessToken ? 'Sign out' : 'Log in / Sign up'}
             </button>
           </div>
         </aside>
