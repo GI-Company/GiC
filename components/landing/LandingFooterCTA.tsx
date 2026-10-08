@@ -177,8 +177,8 @@ export default function LandingFooterCTA() {
           <div>
             <p className="font-semibold text-white">Infrastructure</p>
             <div className="mt-4 grid gap-3">
-              <a href="#plmh">PLMH</a>
-              <a href="#plmn">PLMN</a>
+              <Link href="/technology#plmh">PLMH</Link>
+              <Link href="/technology#plmn">PLMN</Link>
               <Link href="/systems">Systems</Link>
             </div>
           </div>
@@ -193,11 +193,11 @@ export default function LandingFooterCTA() {
           <div>
             <p className="font-semibold text-white">Company</p>
             <div className="mt-4 grid gap-3">
-              <a href="#company">Company overview</a>
-              <a href="#vision">Company vision</a>
-              <a href="#plans">Plans & pricing</a>
-              <a href="#fund-research">Fund the research</a>
-              <a href="#contact">Contact</a>
+              <Link href="/company#company">Company overview</Link>
+              <Link href="/company#vision">Company vision</Link>
+              <Link href="/pricing#plans">Plans & pricing</Link>
+              <Link href="/pricing#fund-research">Fund the research</Link>
+              <Link href="/company#contact">Contact</Link>
             </div>
           </div>
           <div>
