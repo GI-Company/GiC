@@ -19,6 +19,7 @@ const primaryLinks = [
   { label: 'Company', href: '/company' },
   { label: 'Systems', href: '/systems' },
   { label: 'Plans', href: '/pricing' },
+  { label: 'Fund R&D', href: '/pricing#fund-research' },
   { label: 'Shop', href: '/shop' },
 ];
 
