@@ -193,7 +193,9 @@ export async function POST(request: NextRequest) {
   const routedMessage = mathRoute.intent === 'math' ? buildCalculatorAgentMessage(message, mathRoute) : message;
   const active = await activeGroqModels(groqKey);
   let candidates = GROQ_MODELS[mode].filter((model) => active.has(model));
-  if (searchEnabled) candidates = candidates.filter((model) => model === 'openai/gpt-oss-20b' || model === 'openai/gpt-oss-120b');
+  // Browser search is supported by both GPT-OSS models, but Chat Completions
+  // citation_options is not supported on this route. Prefer 120B for research.
+  if (searchEnabled) candidates = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'].filter((model) => active.has(model));
   if (imageUrl) candidates = candidates.filter((model) => model === 'qwen/qwen3.8-27b');
   if (searchEnabled && imageUrl) return error('Web research and image analysis cannot be combined in the same request yet.', 400);
   if (!candidates.length && imageUrl && active.has('qwen/qwen3.8-27b')) candidates = ['qwen/qwen3.8-27b'];
@@ -205,6 +207,7 @@ export async function POST(request: NextRequest) {
     'Do not claim that you are a model developed by Global Intent Company.',
     'Hosted inference is currently supplied through Groq while Global Intent Company researches and develops private AI models and infrastructure.',
     'If asked about the company, distinguish current hosted inference from Global Intent Company research clearly.',
+    'When web research is enabled, ground factual claims in the browser-search results. Do not invent citations or source URLs.',
   ].join(' ');
 
   const maxTokens = mode === 'enhanced' ? 1200 : mode === 'medium' ? 900 : 600;
@@ -227,7 +230,6 @@ export async function POST(request: NextRequest) {
         if (searchEnabled) {
           payload.tools = [{ type: 'browser_search' }];
           payload.tool_choice = 'required';
-          payload.citation_options = 'enabled';
         }
       } else if (model === 'qwen/qwen3.8-27b') {
         payload.reasoning_effort = mode === 'enhanced' ? 'high' : mode === 'medium' ? 'medium' : 'none';
