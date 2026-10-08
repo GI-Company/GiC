@@ -54,7 +54,7 @@ export default function LandingNav() {
 
         <div className="flex shrink-0 items-center gap-2">
           <Link href="/intent" onClick={closeMenus} className="hidden rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50 2xl:inline-flex">Try LooseMouth</Link>
-          <Link href="/contact" onClick={closeMenus} className="hidden rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 sm:inline-flex">Contact</Link>
+          <Link href="/pricing" onClick={closeMenus} className="inline-flex rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700">Get started</Link>
           <button type="button" onClick={() => setMobileMenuOpen((open) => !open)} aria-expanded={mobileMenuOpen} aria-controls="gic-mobile-nav" aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'} className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 xl:hidden">
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -68,7 +68,7 @@ export default function LandingNav() {
             {productLinks.map((item) => <Link key={item.href} href={item.href} onClick={closeMenus} className="rounded-lg px-3 py-2.5 hover:bg-slate-50">{item.label}</Link>)}
             <div className="my-2 border-t border-slate-200" />
             {primaryLinks.map((item) => <Link key={item.href} href={item.href} onClick={closeMenus} className="rounded-lg px-3 py-2.5 hover:bg-slate-50">{item.label}</Link>)}
-            <Link href="/contact" onClick={closeMenus} className="mt-2 rounded-lg bg-slate-950 px-3 py-2.5 text-center font-semibold text-white">Contact</Link>
+            <Link href="/pricing" onClick={closeMenus} className="mt-2 rounded-lg bg-blue-600 px-3 py-2.5 text-center font-semibold text-white">Get started — free or paid</Link><Link href="/contact" onClick={closeMenus} className="rounded-lg px-3 py-2.5 text-center hover:bg-slate-50">Contact</Link>
           </div>
         </nav>
       )}
