@@ -255,14 +255,18 @@ export default function IntentClient({
   }, [turns, busy]);
 
   useEffect(() => {
+    const privacyOptOut = !telemetryRequired && !dataCollectionEnabled;
+    if (privacyOptOut) window.localStorage.setItem('gic-posthog-opt-out', '1');
+    else window.localStorage.removeItem('gic-posthog-opt-out');
+
     const posthog = window.posthog;
     if (!posthog) return;
-    if (telemetryRequired || dataCollectionEnabled) {
-      posthog.opt_in_capturing?.();
-      posthog.start_session_recording?.();
-    } else {
+    if (privacyOptOut) {
       posthog.stop_session_recording?.();
       posthog.opt_out_capturing?.();
+    } else {
+      posthog.opt_in_capturing?.();
+      posthog.start_session_recording?.();
     }
   }, [telemetryRequired, dataCollectionEnabled]);
 
@@ -411,8 +415,8 @@ export default function IntentClient({
       onRequireAuth?.();
       return;
     }
-    if(billing.workbench==='none'){window.location.href='/#pricing';return;}
-    if(kind==='applet'&&billing.workbench!=='full'){window.location.href='/#pricing';return;}
+    if(billing.workbench==='none'){window.location.href='/pricing';return;}
+    if(kind==='applet'&&billing.workbench!=='full'){window.location.href='/pricing';return;}
     setWorkbenchSeed({ kind, prompt });
     setWorkbenchOpen(true);
   }
@@ -526,7 +530,7 @@ export default function IntentClient({
               onClick={() => accessToken ? onSignOut?.() : onRequireAuth?.()}
               className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950 lg:hidden"
             >
-              <LogOut size={14} /> {accessToken ? 'Sign out' : 'Sign in'}
+              <LogOut size={14} /> {accessToken ? 'Sign out' : 'Log in / Sign up'}
             </button>
           </div>
 
@@ -663,7 +667,7 @@ export default function IntentClient({
               onClick={() => onRequireAuth?.()}
               className="mt-5 w-full rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800 hover:bg-blue-100"
             >
-              Create a free account to continue
+              Log in / Sign up to continue
             </button>
           )}
 
@@ -724,7 +728,7 @@ export default function IntentClient({
 
         <section className="flex h-full min-h-0 min-w-0 flex-col">
           {billingNotice&&<div role="status" className="border-b border-blue-200 bg-blue-50 px-4 py-2 text-center text-xs font-medium text-blue-800">{billingNotice}</div>}
-          {upgradeNotice&&billing.tier==='free'&&<div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"><span>You have {quotaRemaining ?? 0} free requests left this hour. Paid starts with a 30-day free trial and raises the allowance to 100/hour.</span><span className="flex shrink-0 gap-2"><Link href="/#pricing" className="font-semibold underline">View plans</Link><button type="button" onClick={dismissUpgrade} aria-label="Dismiss upgrade notice"><X size={14}/></button></span></div>}
+          {upgradeNotice&&billing.tier==='free'&&<div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"><span>You have {quotaRemaining ?? 0} free requests left this hour. Paid starts with a 30-day free trial and raises the allowance to 100/hour.</span><span className="flex shrink-0 gap-2"><Link href="/pricing" className="font-semibold underline">View plans</Link><button type="button" onClick={dismissUpgrade} aria-label="Dismiss upgrade notice"><X size={14}/></button></span></div>}
           <header className="shrink-0 border-b border-slate-200 bg-white/95 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <button
