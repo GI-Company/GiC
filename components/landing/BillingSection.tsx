@@ -12,10 +12,10 @@ const tiers = [
     name: 'Free',
     price: '$0',
     cadence: '',
-    description: 'Explore LooseMouth and the public Global Intent research ecosystem.',
+    description: 'Create a free account to explore LooseMouth and the public Global Intent research ecosystem.',
     features: ['Authenticated LooseMouth access', 'Saved conversations', 'Standard usage boundary'],
     href: '/intent',
-    action: 'Open LooseMouth',
+    action: 'Create free account',
   },
   {
     name: 'Paid',
