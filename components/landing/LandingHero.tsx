@@ -14,7 +14,7 @@ const pillars = [
     title: 'PLM Infrastructure',
     eyebrow: 'Private Infrastructure',
     description: 'Authenticated infrastructure for discovering, verifying, and operating privately hosted models.',
-    href: '#the-stack',
+    href: '/technology',
     icon: Network,
   },
   {
@@ -28,7 +28,7 @@ const pillars = [
 
 export default function LandingHero() {
   return (
-    <section className="relative overflow-hidden border-b border-slate-200 bg-white pt-32 pb-20 sm:pt-40 sm:pb-28">
+    <section className="relative flex min-h-[100dvh] items-center overflow-hidden bg-white pb-14 pt-28 sm:pb-16 sm:pt-32">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_80%_10%,rgba(37,99,235,0.08),transparent_32%),linear-gradient(to_bottom,#ffffff,#f8fafc)]" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl">
@@ -46,9 +46,9 @@ export default function LandingHero() {
           </p>
 
           <div className="mt-9 flex flex-wrap gap-3">
-            <a href="#the-stack" className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+            <Link href="/technology" className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
               Explore our technology <ArrowRight className="h-4 w-4" />
-            </a>
+            </Link>
             <Link href="/research" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">
               View research <ArrowRight className="h-4 w-4" />
             </Link>
