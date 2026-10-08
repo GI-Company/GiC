@@ -210,15 +210,20 @@ export async function POST(request: NextRequest) {
     'When web research is enabled, ground factual claims in the browser-search results. Do not invent citations or source URLs.',
   ].join(' ');
 
-  const maxTokens = mode === 'enhanced' ? 1200 : mode === 'medium' ? 900 : 600;
+  const maxTokens = searchEnabled && searchDepth === 'deep' ? 1800 : mode === 'enhanced' ? 1200 : mode === 'medium' ? 900 : 600;
   let lastStatus = 502;
   let lastMessage = 'Hosted inference is temporarily unavailable.';
 
   for (const model of candidates) {
     try {
+      const researchInstruction = searchEnabled && searchDepth === 'deep'
+        ? `Deep research request. Research the user's question before answering. Search broadly enough to identify multiple relevant sources and competing or complementary evidence. Prefer primary, official, and high-quality sources. Deduplicate overlapping results. Read the available search-result content closely, prioritize passages that directly answer the query, distinguish facts from inference, note material disagreement or missing evidence, and synthesize a self-contained answer grounded in the sources. User question: ${routedMessage}`
+        : searchEnabled
+          ? `Quick web search request. Find current, relevant evidence and answer concisely from the returned sources. User question: ${routedMessage}`
+          : routedMessage;
       const userContent: unknown = imageUrl
         ? [{ type: 'text', text: routedMessage }, { type: 'image_url', image_url: { url: imageUrl } }]
-        : routedMessage;
+        : researchInstruction;
       const payload: Record<string, unknown> = {
         model,
         messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }],
@@ -229,6 +234,7 @@ export async function POST(request: NextRequest) {
         payload.reasoning_effort = searchEnabled ? (searchDepth === 'deep' ? 'high' : 'low') : (mode === 'enhanced' ? 'high' : mode === 'medium' ? 'medium' : 'low');
         if (searchEnabled) {
           payload.tools = [{ type: 'browser_search' }];
+          if (searchDepth === 'deep') payload.parallel_tool_calls = true;
           payload.tool_choice = 'required';
         }
       } else if (model === 'qwen/qwen3.8-27b') {
