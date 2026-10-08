@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
   const mode: LooseMouthMode = tier === 'enhanced' ? requestedMode : requestedMode === 'enhanced' ? 'medium' : requestedMode;
   const searchEnabled = body.search === true || body.search === 'true';
   const searchDepth = body.search_depth === 'deep' ? 'deep' : 'quick';
-  const dataCollectionEnabled = body.data_collection_enabled !== false;
+  const dataCollectionEnabled = tier === 'free' ? true : body.data_collection_enabled !== false;
   const imageUrl = body.image_url == null ? null : validImageUrl(body.image_url);
   if (body.image_url != null && !imageUrl) return error('Image must be a supported HTTPS URL or JPEG/PNG/WebP data URL.', 400);
 
