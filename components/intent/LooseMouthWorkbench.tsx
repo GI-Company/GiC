@@ -53,6 +53,19 @@ type Props = {
 };
 
 type AppletFile = { path: string; content: string };
+const activityLabels: Record<string, string> = { read_context: 'Read conversation', read_artifact: 'Inspect draft', write_draft: 'Create draft', check_draft: 'Check structure' };
+const briefStarters = {
+  report: [
+    { label: 'Decision brief', text: 'Create a decision brief about [topic]. Compare the options in a table, explain tradeoffs and assumptions, and finish with recommended next steps. Use supplied sources only.' },
+    { label: 'Research summary', text: 'Summarize the research in this conversation. Separate sourced findings from analysis, preserve source links, identify open questions, and explain the practical implications.' },
+    { label: 'Project plan', text: 'Turn [goal] into a practical project plan with deliverables, milestones, dependencies, risks, and a checklist for the next steps. Label any assumptions.' },
+  ],
+  applet: [
+    { label: 'Comparison tool', text: 'Build an interactive comparison tool for [options]. Let me adjust criteria and weights, compare results, and reset inputs. Explain the scoring assumptions. Keep everything inside the browser.' },
+    { label: 'Calculator', text: 'Build a calculator for [task] with labeled inputs, sensible example values, input validation, clearly explained results, and a reset button. State the formula and assumptions.' },
+    { label: 'Interactive guide', text: 'Build an interactive checklist for [workflow]. Show progress, explain each step, and let me reset the checklist. Use an accessible layout and keep everything inside this page.' },
+  ],
+};
 
 function appletFiles(content: Record<string, unknown> | null): AppletFile[] {
   if (!content || !Array.isArray(content.files)) return [];
@@ -230,6 +243,9 @@ export default function LooseMouthWorkbench({
   const [active, setActive] = useState<LooseMouthArtifact | null>(null);
   const [draft, setDraft] = useState<Record<string, unknown> | null>(null);
   const [busy, setBusy] = useState(false);
+  const [operation, setOperation] = useState<'generate' | 'save' | 'delete' | null>(null);
+  const [notice, setNotice] = useState('');
+  const [previousDraft, setPreviousDraft] = useState<{ content: Record<string, unknown>; prompt: string } | null>(null);
   const [loadingItems, setLoadingItems] = useState(true);
   const [error, setError] = useState('');
   const [activity, setActivity] = useState<WorkbenchActivity[]>([]);
@@ -238,6 +254,8 @@ export default function LooseMouthWorkbench({
   const [compiledPreview, setCompiledPreview] = useState('');
   const [includeConversation, setIncludeConversation] = useState(Boolean(conversationTurns.length));
   const conversationPreferenceTouchedRef = useRef(false);
+  const requestInFlight = useRef(false);
+  const briefRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     // A Workbench started before chat research can opt into new conversation context automatically.
@@ -253,6 +271,8 @@ export default function LooseMouthWorkbench({
     setReportMode('preview');
     setActiveFile('index.html');
     setCompiledPreview('');
+    setPreviousDraft(null);
+    setNotice('');
   }, [initialKind, initialPrompt]);
 
   useEffect(() => {
@@ -271,8 +291,22 @@ export default function LooseMouthWorkbench({
   const files = useMemo(() => appletFiles(draft), [draft]);
   const reportMarkdown = typeof draft?.markdown === 'string' ? draft.markdown : '';
   const artifactTitle = String(draft?.title || active?.title || (kind === 'report' ? 'Untitled report' : 'Untitled applet'));
+  const hasUnsavedDraft = Boolean(draft && (!active || prompt !== active.prompt || JSON.stringify(draft) !== JSON.stringify(active.content)));
+  const previewNeedsRun = Boolean(kind === 'applet' && draft && (!compiledPreview || compiledPreview !== appletDoc(draft)));
 
-  function resetBuild(nextKind: ArtifactKind = kind) {
+  useEffect(() => {
+    if (!hasUnsavedDraft) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasUnsavedDraft]);
+
+  function canReplaceDraft() {
+    return !busy && (!hasUnsavedDraft || window.confirm('Replace this unsaved draft? Save or download it first to keep a copy.'));
+  }
+
+  function resetBuild(nextKind: ArtifactKind = kind, confirmed = false) {
+    if (!confirmed && !canReplaceDraft()) return;
     setKind(nextKind);
     setPrompt('');
     setActive(null);
@@ -282,16 +316,20 @@ export default function LooseMouthWorkbench({
     setReportMode('preview');
     setActiveFile('index.html');
     setCompiledPreview('');
+    setPreviousDraft(null);
+    setNotice('');
   }
 
   function openArtifact(item: LooseMouthArtifact) {
-    if (busy) return;
+    if (!canReplaceDraft()) return;
     setActive(item);
     setKind(item.kind);
     setDraft(item.content);
     setActivity([]);
     setPrompt(item.prompt);
     setError('');
+    setPreviousDraft(null);
+    setNotice('Opened saved build. Edit it or ask the agent to revise it.');
     setReportMode('preview');
     const nextFiles = appletFiles(item.content);
     setActiveFile(nextFiles[0]?.path || 'index.html');
@@ -299,14 +337,14 @@ export default function LooseMouthWorkbench({
     onRename(item.title.slice(0, 64), true);
   }
 
-  async function refreshItems() {
-    setItems(await listArtifacts(accessToken, userId));
-  }
-
-  async function generate() {
-    if (!prompt.trim() || busy) return;
+  async function generate(revision?: string) {
+    const buildPrompt = revision || prompt;
+    if (!buildPrompt.trim() || busy || requestInFlight.current) return;
+    requestInFlight.current = true;
     setActivity([]);
     setBusy(true);
+    setOperation('generate');
+    setNotice('');
     setError('');
     try {
       const response = await fetch('/api/intent/artifact', {
@@ -314,7 +352,7 @@ export default function LooseMouthWorkbench({
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           kind,
-          prompt,
+          prompt: buildPrompt,
           current: draft,
           conversation_context: includeConversation && conversationTurns.length
             ? conversationTurns.slice(-16).map((turn) => ({
@@ -327,7 +365,11 @@ export default function LooseMouthWorkbench({
       });
       const data = await response.json() as { error?: string; artifact?: Record<string, unknown>; activity?: WorkbenchActivity[] };
       if (!response.ok || !data.artifact) throw new Error(data.error || 'Generation failed.');
+      if (draft) setPreviousDraft({ content: draft, prompt });
+      else setPreviousDraft(null);
+      if (revision) setPrompt(buildPrompt);
       setDraft(data.artifact);
+      setNotice(kind === 'report' ? 'Draft ready. Review the report, then save or export it.' : 'Draft ready. Run the preview to try it, then save or download it.');
       setActivity(data.activity || []);
       const generatedTitle = data.artifact.title;
       if (/^(Report|Applet) \d+$/.test(name) && typeof generatedTitle === 'string' && generatedTitle.trim()) {
@@ -344,12 +386,16 @@ export default function LooseMouthWorkbench({
       setError(cause instanceof Error ? cause.message : 'Generation failed.');
     } finally {
       setBusy(false);
+      setOperation(null);
+      requestInFlight.current = false;
     }
   }
 
   async function save() {
-    if (!draft || busy) return;
+    if (!draft || busy || requestInFlight.current || !hasUnsavedDraft) return;
+    requestInFlight.current = true;
     setBusy(true);
+    setOperation('save');
     setError('');
     try {
       const title = String(draft.title || active?.title || 'Untitled artifact').slice(0, 160);
@@ -371,27 +417,35 @@ export default function LooseMouthWorkbench({
         });
       }
       setActive(saved);
-      await refreshItems();
+      setItems((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
+      setNotice(`Saved “${saved.title}” · version ${saved.version}. You can reopen it from Saved builds.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Save failed.');
     } finally {
       setBusy(false);
+      setOperation(null);
+      requestInFlight.current = false;
     }
   }
 
   async function remove() {
-    if (!active || busy) return;
+    if (!active || busy || requestInFlight.current) return;
     if (!window.confirm(`Delete “${active.title}”?`)) return;
     setBusy(true);
+    requestInFlight.current = true;
+    setOperation('delete');
     setError('');
     try {
       await deleteArtifact(accessToken, userId, active.id);
-      await refreshItems();
-      resetBuild(kind);
+      setItems((current) => current.filter((item) => item.id !== active.id));
+      resetBuild(kind, true);
+      setNotice('Saved build deleted. Start a new brief when you are ready.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Delete failed.');
     } finally {
       setBusy(false);
+      setOperation(null);
+      requestInFlight.current = false;
     }
   }
 
@@ -410,6 +464,17 @@ export default function LooseMouthWorkbench({
   function compileApplet() {
     if (!draft) return;
     setCompiledPreview(appletDoc(draft));
+    setNotice('Preview updated. Try the controls and check the results before saving.');
+  }
+
+  function undoRevision() {
+    if (!previousDraft || busy) return;
+    setDraft(previousDraft.content);
+    setPrompt(previousDraft.prompt);
+    setPreviousDraft(null);
+    setActivity([]);
+    setError('');
+    setNotice('Previous draft restored. Your saved build has not changed.');
   }
 
   function downloadPrimary() {
@@ -454,7 +519,7 @@ export default function LooseMouthWorkbench({
   const currentFile = files.find((file) => file.path === activeFile) || files[0];
 
   function closeWindow() {
-    const hasUnsavedDraft = Boolean(draft && (!active || JSON.stringify(draft) !== JSON.stringify(active.content)));
+    if (busy) return;
     if (hasUnsavedDraft && !window.confirm('Close "' + name + '"? Unsaved changes will be lost. Save or download your work first.')) return;
     onClose();
   }
@@ -471,6 +536,7 @@ export default function LooseMouthWorkbench({
           <button
             type="button"
             onClick={() => resetBuild()}
+            disabled={busy}
             className="mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
           >
             <RefreshCw size={14} /> New build
@@ -525,7 +591,7 @@ export default function LooseMouthWorkbench({
               >
                 <Minus size={18} /> <span className="hidden sm:inline">Chat</span>
               </button>
-              <button type="button" onClick={closeWindow} className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100" aria-label={'Close ' + name}>
+              <button type="button" onClick={closeWindow} disabled={busy} className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100 disabled:opacity-40" aria-label={'Close ' + name}>
                 <X size={18} />
               </button>
             </div>
@@ -568,20 +634,26 @@ export default function LooseMouthWorkbench({
             >
               <Code2 size={15} /> Applet
             </button>
-            {active && <span className="ml-auto shrink-0 text-xs text-slate-500">Saved · v{active.version}</span>}
+            <span role="status" className="ml-auto shrink-0 text-xs text-slate-500">{hasUnsavedDraft ? 'Unsaved changes' : active ? `Saved · v${active.version}` : 'New brief'}</span>
           </div>
+
+          <div className="shrink-0 border-b border-slate-200 px-4 py-2 lg:hidden"><label className="flex items-center gap-2 text-xs font-semibold text-slate-600">Saved builds<select aria-label="Open saved build" disabled={busy || loadingItems} value={active?.id || ''} onChange={(event) => { const item = items.find((item) => item.id === event.target.value); if (item) openArtifact(item); }} className="min-w-0 flex-1 rounded-lg border border-slate-200 p-2"><option value="">{loadingItems ? 'Loading…' : items.length ? 'Choose a saved build' : 'No saved builds yet'}</option>{items.map((item) => <option key={item.id} value={item.id}>{item.title} · v{item.version}</option>)}</select></label></div>
 
           <div className="grid min-h-0 flex-1 overflow-y-auto overscroll-contain lg:grid-cols-[360px_minmax(0,1fr)] lg:overflow-hidden">
             <div className="min-h-0 border-b border-slate-200 p-4 lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r">
               <p className="text-xs font-semibold uppercase tracking-[.13em] text-slate-500">{kind === 'report' ? 'Report brief' : 'Applet brief'}</p>
+              {kind === 'applet' && draft && <label className="mt-2 block text-xs font-semibold text-slate-600">Applet title<input aria-label="Artifact title" value={artifactTitle} maxLength={160} disabled={busy} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-sm text-slate-900" /></label>}
+              {!draft && <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Brief starters">{briefStarters[kind].map((starter) => <button key={starter.label} type="button" disabled={busy} onClick={() => { setPrompt(starter.text); briefRef.current?.focus(); }} className="min-h-8 rounded-lg border border-blue-200 bg-blue-50 px-2 text-xs font-semibold text-blue-800 disabled:opacity-40">{starter.label}</button>)}</div>}
               <textarea
+                ref={briefRef}
+                aria-label={kind === 'report' ? 'Report brief' : 'Applet brief'}
                 value={prompt}
                 disabled={busy}
                 onChange={(event) => setPrompt(event.target.value)}
                 placeholder={kind === 'report'
                   ? 'Describe the report you want. You can ask for an executive summary, technical brief, research memo, comparison, or documentation.'
                   : 'Describe the applet you want. Explain the interface, controls, calculations, visualization, or interaction you need.'}
-                className="mt-2 h-40 w-full resize-none rounded-xl border border-slate-300 bg-white p-3 text-sm leading-6 text-slate-950 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="mt-2 h-28 w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm leading-6 text-slate-950 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
 
               {conversationTurns.length > 0 && (
@@ -602,23 +674,25 @@ export default function LooseMouthWorkbench({
 
               <button
                 type="button"
-                onClick={generate}
+                onClick={() => void generate()}
                 disabled={busy || !prompt.trim()}
                 className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                <Play size={15} /> {busy ? 'Agent working…' : draft ? 'Ask agent to revise' : 'Run workbench agent'}
+                <Play size={15} /> {operation === 'generate' ? 'Creating your draft…' : draft ? 'Revise draft' : 'Create draft'}
               </button>
 
               <p className="mt-2 text-xs leading-5 text-slate-500">Groq-powered agent · reads context, drafts and checks. You control save, preview and export.</p>
-              {activity.length > 0 && <section aria-label="Workbench agent activity" className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><h3 className="text-xs font-semibold text-slate-900">Agent activity</h3><ol className="mt-2 space-y-2">{activity.map((step,index) => <li key={index} className="text-xs leading-5"><span className={step.status === 'rejected' ? 'font-semibold text-amber-700' : 'font-semibold text-blue-700'}>{step.tool} · {step.status}</span><p className="text-slate-600">{step.summary}</p></li>)}</ol></section>}
+              {notice && <p role="status" className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-900">{notice}</p>}
+              {draft && <section aria-label="Improve this draft" className="mt-3"><h3 className="text-xs font-semibold text-slate-700">Improve this draft</h3><div className="mt-2 flex flex-wrap gap-1.5">{(kind === 'report' ? [{ label: 'Make concise', text: 'Revise the existing report to be more concise and easier to scan. Preserve key evidence, source URLs and limitations. Do not add unsupported claims.' }, { label: 'Add next steps', text: 'Revise the existing report to add specific, practical next steps and a short checklist. Clearly label assumptions and preserve existing sources.' }] : [{ label: 'Improve usability', text: 'Revise the existing applet to improve usability: clearer labels, helpful empty states, keyboard access, input validation, and understandable results. Preserve its main function and keep it self-contained.' }, { label: 'Explain results', text: 'Revise the existing applet to explain its outputs and calculation assumptions clearly, include example inputs and a reset action, and preserve its main function. Keep it self-contained.' }]).map((action) => <button key={action.label} disabled={busy} onClick={() => void generate(action.text)} className="min-h-8 rounded-lg border border-slate-200 px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40">{action.label}</button>)}{previousDraft && <button type="button" disabled={busy} onClick={undoRevision} className="min-h-8 rounded-lg border border-amber-200 px-2 text-xs font-semibold text-amber-800 disabled:opacity-40">Undo AI revision</button>}</div><p className="mt-2 text-[11px] text-slate-500">AI revisions use one build request. Your previous draft stays available to undo.</p></section>}
+              {activity.length > 0 && <details aria-label="Workbench agent activity" className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><summary className="cursor-pointer text-xs font-semibold text-slate-900">What the agent did</summary><ol className="mt-2 space-y-2">{activity.map((step,index) => <li key={index} className="text-xs leading-5"><span className={step.status === 'rejected' ? 'font-semibold text-amber-700' : 'font-semibold text-blue-700'}>{activityLabels[step.tool] || step.tool} · {step.status === 'rejected' ? 'needs attention' : 'done'}</span><p className="text-slate-600">{step.summary}</p></li>)}</ol></details>}
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={save}
-                  disabled={!draft || busy}
+                  disabled={!draft || busy || !hasUnsavedDraft}
                   className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
                 >
-                  <Save size={14} /> Save
+                  <Save size={14} /> {operation === 'save' ? 'Saving…' : active && !hasUnsavedDraft ? 'Saved' : 'Save'}
                 </button>
                 <button
                   type="button"
@@ -668,14 +742,14 @@ export default function LooseMouthWorkbench({
                   <div className="max-w-sm px-6">
                     {kind === 'report' ? <FileText className="mx-auto h-8 w-8 text-blue-700" /> : <Code2 className="mx-auto h-8 w-8 text-blue-700" />}
                     <p className="mt-4 font-semibold text-slate-900">{kind === 'report' ? 'Your report canvas will open here.' : 'Your applet workspace will open here.'}</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">{kind === 'report' ? 'Generate a polished document, edit the Markdown, then export it.' : 'Generate HTML, CSS, and JavaScript, edit the files, compile, and run the result here.'}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">{kind === 'report' ? 'Choose a starter or describe your goal. The agent reads the selected chat, creates a draft, and checks its structure.' : 'Describe a tool you want to use. The agent creates its interface and code; you run it in the preview.'}</p><ol className="mt-5 flex justify-center gap-3 text-xs font-semibold text-blue-800" aria-label="Workbench steps"><li>1. Describe</li><li>2. Review</li><li>3. Save or export</li></ol>
                   </div>
                 </div>
               ) : kind === 'report' ? (
                 <div className="flex h-full min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:min-h-0">
                   <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-950">{artifactTitle}</p>
+                      <input aria-label="Artifact title" value={artifactTitle} maxLength={160} disabled={busy} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} className="w-full rounded border border-transparent px-1 text-sm font-semibold text-slate-950 hover:border-slate-200 focus:border-blue-500" />
                       <p className="text-[10px] uppercase tracking-[.12em] text-slate-400">LooseMouth report · downloadable</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -718,10 +792,11 @@ export default function LooseMouthWorkbench({
                         </button>
                       ))}
                     </div>
-                    <button type="button" onClick={compileApplet} className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700">
-                      <Play size={13} /> Compile &amp; run
+                    <button type="button" disabled={busy} onClick={compileApplet} className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-40">
+                      <Play size={13} /> {compiledPreview ? 'Update preview' : 'Run preview'}
                     </button>
                   </div>
+                  {previewNeedsRun && <p role="status" className="shrink-0 bg-amber-50 px-4 py-2 text-xs text-amber-900">{compiledPreview ? 'The code has changed. Update the preview to try your latest draft.' : 'Your applet is ready to try. Select Run preview to start it.'}</p>}
 
                   <div className="grid min-h-0 flex-1 lg:grid-cols-2">
                     <div className="min-h-[300px] border-b border-slate-200 lg:min-h-0 lg:border-b-0 lg:border-r">

@@ -1317,21 +1317,27 @@ export default function IntentClient({
                     Ask LooseMouth
                   </h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
-                    Start a conversation or open the menu for models, search, and saved sessions.
+                    {billing.tier !== 'free' ? 'Explore an idea, prepare a report, or turn your conversation into a useful tool. You review each draft before saving.' : 'Start a conversation or open the menu for models, search, and saved sessions.'}
                   </p>
 
                   <div className="mt-4 grid gap-2 sm:grid-cols-3 sm:gap-3">
-                    {suggestions.map((suggestion) => (
+                    {(billing.tier !== 'free' ? [
+                      { label: 'Plan a project', prompt: 'Help me plan [project]. Ask for the goal, constraints and deadline before preparing a report workbench brief.', agent: true },
+                      { label: 'Compare my options', prompt: 'Help me compare [options] for [goal]. Ask which criteria matter, then prepare a decision report brief.', agent: true },
+                      billing.workbench === 'full' ? { label: 'Build an interactive tool', prompt: 'Help me design a browser tool for [task]. Ask what inputs and outputs I need before preparing an applet workbench brief.', agent: true } : { label: 'Explain a difficult topic', prompt: 'Explain [topic] with a concrete example. Ask what I already know and what I want to use it for.', agent: false },
+                    ] : suggestions.map((prompt) => ({ label: prompt, prompt, agent: false }))).map((suggestion) => (
                       <button
-                        key={suggestion}
+                        key={suggestion.label}
                         type="button"
                         onClick={() => {
-                          setMessage(suggestion);
+                          setMessage(suggestion.prompt);
+                          setWorkspaceAgent(suggestion.agent);
+                          if (suggestion.agent) { setSearch(false); setImageAttachment(null); }
                           textareaRef.current?.focus();
                         }}
                         className="rounded-2xl border border-slate-200 bg-white p-3 text-left text-sm leading-6 text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-slate-950"
                       >
-                        {suggestion}
+                        {suggestion.label}
                       </button>
                     ))}
                   </div>
