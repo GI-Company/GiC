@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import { trackConversion } from '@/lib/conversion-events';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, FlaskConical, Network, Sparkles } from 'lucide-react';
 
@@ -28,7 +31,7 @@ const pillars = [
 
 export default function LandingHero() {
   return (
-    <section className="relative overflow-hidden border-b border-slate-200 bg-white pt-32 pb-20 sm:pt-40 sm:pb-28">
+    <section className="relative overflow-hidden border-b border-slate-200 bg-white pt-24 pb-20 sm:pt-40 sm:pb-28">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_80%_10%,rgba(37,99,235,0.08),transparent_32%),linear-gradient(to_bottom,#ffffff,#f8fafc)]" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl">
@@ -37,22 +40,27 @@ export default function LandingHero() {
             Independent AI &amp; systems engineering
           </div>
 
-          <h1 className="mt-8 max-w-5xl text-5xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-6xl lg:text-7xl leading-[1.02]">
+          <h1 className="mt-5 max-w-5xl text-4xl sm:mt-8 font-semibold tracking-[-0.04em] text-slate-950 sm:text-6xl lg:text-7xl leading-[1.02]">
             Private AI. Owned infrastructure. Verifiable systems.
           </h1>
 
-          <p className="mt-7 max-w-3xl text-lg leading-8 text-slate-600 sm:text-xl">
+          <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600 sm:mt-7 sm:text-xl sm:leading-8">
             Global Intent Company develops language models, private AI infrastructure, and scientific computing systems designed to provide direct control over models, compute, and data.
           </p>
 
-          <div className="mt-9 flex flex-wrap gap-3"><Link href="/pricing" className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">Get started — free or paid <ArrowRight className="h-4 w-4" /></Link>
-            <Link href="/pricing#fund-research" className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-800 shadow-sm transition hover:bg-blue-100">Fund AI research &amp; development <ArrowRight className="h-4 w-4" /></Link>
-            <Link href="/technology" className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
-              Explore our technology <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href="/research" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">
-              View research <ArrowRight className="h-4 w-4" />
-            </Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/intent" onClick={() => trackConversion('gic_cta_clicked', { action: 'try_free', placement: 'home' })} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Try LooseMouth free <ArrowRight size={16} /></Link>
+            <Link href="/pricing" onClick={() => trackConversion('gic_cta_clicked', { action: 'view_plans', placement: 'home' })} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50">Compare plans <ArrowRight size={16} /></Link>
+          </div>
+          <p className="mt-3 text-sm text-slate-500">5 guest messages · No account or payment card needed to try.</p>
+          <div className="mt-8 max-w-3xl rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
+            <p className="font-semibold text-slate-950">Try LooseMouth: chat and web-assisted research.</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Get an answer before creating an account. Paid adds reusable reports; Enhanced adds interactive applets. Current hosted inference uses Groq while GIC develops its own models and infrastructure.</p>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-slate-600">
+            <Link href="/technology" className="hover:text-blue-700">Explore technology</Link>
+            <Link href="/research" className="hover:text-blue-700">View research</Link>
+            <Link href="/pricing#fund-research" className="hover:text-blue-700">Fund AI research &amp; development</Link>
           </div>
 
           <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">

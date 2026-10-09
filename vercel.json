@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "workspace-layout-navigation": false,
+      "conversion-audit-fixes": false
+    }
+  },
+  "installCommand": "npm ci"
+}

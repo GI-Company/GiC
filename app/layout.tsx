@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { Analytics } from '@vercel/analytics/next';
 import PostHogAnalytics from '@/components/PostHogAnalytics';
 import './globals.css';
 
@@ -56,7 +55,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         {children}
         <PostHogAnalytics token={process.env.NEXT_POSTHOG_PROJECT_TOKEN} host={process.env.NEXT_POSTHOG_HOST} />
-        <Analytics />
       </body>
     </html>
   );

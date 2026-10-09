@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { runWorkspaceAgent } from '@/lib/workspace-agent';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
 import { buildCalculatorAgentMessage, calculatorRoutingMetadata, routeMathIntent } from '@/lib/intent-math-router';
 
@@ -213,11 +214,24 @@ export async function POST(request: NextRequest) {
   const groqKey = process.env.GROQ_API;
   if (!groqKey) return error('LooseMouth hosted inference is not configured yet.', 503);
 
+  if (body.workspace_agent === true) {
+    if (tier === 'free') return error('Workspace agent actions require Paid or Enhanced access.', 403);
+    if (body.search === true || body.image_url) return error('Turn off web search and remove image attachments for workspace agent mode.', 400);
+    try {
+      const agent = await runWorkspaceAgent({ key: groqKey, model: tier === 'enhanced' ? 'openai/gpt-oss-120b' : 'openai/gpt-oss-20b', goal: message, context: body.conversation_context, tier });
+      const response = NextResponse.json({ session_id: typeof body.session_id === 'string' ? body.session_id : randomUUID(), answer: agent.answer, workspace_action: agent.action, activity: agent.activity, sources: [], warning: null, mode: 'fast', provider: 'groq' }, { headers: jsonHeaders });
+      response.headers.set('X-RateLimit-Limit', String(quotaLimit));
+      response.headers.set('X-RateLimit-Remaining', String(quota.remaining));
+      if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);
+      return response;
+    } catch { return error('Workspace agent unavailable. Your workspace is unchanged.', 502); }
+  }
+
   const requestedMode = modeFrom(body.model ?? body.mode);
   const mode: LooseMouthMode = tier === 'enhanced' ? requestedMode : requestedMode === 'enhanced' ? 'medium' : requestedMode;
   const searchEnabled = body.search === true || body.search === 'true';
   const searchDepth = body.search_depth === 'deep' ? 'deep' : 'quick';
-  const dataCollectionEnabled = body.data_collection_enabled !== false;
+  const dataCollectionEnabled = tier === 'free' || body.data_collection_enabled !== false;
   const imageUrl = body.image_url == null ? null : validImageUrl(body.image_url);
   if (body.image_url != null && !imageUrl) return error('Image must be a supported HTTPS URL or JPEG/PNG/WebP data URL.', 400);
 
@@ -236,6 +250,7 @@ export async function POST(request: NextRequest) {
   const system = [
     'You are LooseMouth, the public AI interface for Global Intent Company.',
     'Be useful, direct, accurate, and concise unless the user asks for depth.',
+    'Use readable Markdown: short paragraphs, descriptive headings for longer answers, lists, and fenced code blocks with language labels. Use compact GFM tables when comparisons benefit from columns. Do not wrap the entire answer in a code fence.',
     'Do not claim that you are a model developed by Global Intent Company.',
     'Hosted inference is currently supplied through Groq while Global Intent Company researches and develops private AI models and infrastructure.',
     'If asked about the company, distinguish current hosted inference from Global Intent Company research clearly.',

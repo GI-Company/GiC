@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+import type { WorkspaceAction } from '@/lib/workspace-agent';
+import type { WorkbenchActivity } from '@/lib/artifact-agent';
 import Link from 'next/link';
 import {
   ArrowUp,
@@ -24,6 +26,9 @@ import {
   PanelLeftOpen,
 } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { trackConversion } from '@/lib/conversion-events';
+import AssistantMessage from '@/components/intent/AssistantMessage';
+import { setWorkspaceAnalytics } from '@/lib/workspace-privacy';
 import BrandLoader from '@/components/BrandLoader';
 import IntentPwaControls from '@/components/intent/IntentPwaControls';
 import LooseMouthWorkbench from '@/components/intent/LooseMouthWorkbench';
@@ -52,6 +57,7 @@ type Turn = {
   feedbackId?: string;
   feedbackRating?: 'positive' | 'negative';
   mode?: 'fast' | 'medium' | 'enhanced';
+  activity?: WorkbenchActivity[];
 };
 type ResearchDiagnostics = {
   depth?: 'quick' | 'deep';
@@ -69,6 +75,8 @@ type WorkbenchWindow = WorkbenchTab & {
 };
 const MAX_WORKBENCH_WINDOWS = 8;
 type ChatResponse = {
+  workspace_action?: WorkspaceAction | null;
+  activity?: WorkbenchActivity[];
   session_id: string;
   answer: string;
   sources: Source[];
@@ -155,12 +163,15 @@ export default function IntentClient({
   const [availableModes, setAvailableModes] = useState<string[]>([]);
   const [multimodal, setMultimodal] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
+  const [availabilityAttempt, setAvailabilityAttempt] = useState(0);
   const enhancedSearch = true;
   const [enhancedMaxTokens] = useState(1200);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [quotaRemaining, setQuotaRemaining] = useState<number | null>(accessToken?20:5);
   const [billing,setBilling]=useState<BillingStatus>({authenticated:Boolean(accessToken),tier:'free',limit:accessToken?20:5,workbench:'none'});
+  const [billingReady, setBillingReady] = useState(!accessToken);
+  const [privacyReady, setPrivacyReady] = useState(!accountUserId);
   const [billingBusy,setBillingBusy]=useState(false);
   const [billingNotice,setBillingNotice]=useState('');
   const [upgradeNotice,setUpgradeNotice]=useState(false);
@@ -176,6 +187,7 @@ export default function IntentClient({
   const [feedbackDraft, setFeedbackDraft] = useState<{ key: string; reason: string; comment: string } | null>(null);
   const [feedbackSendingKey, setFeedbackSendingKey] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState<{ key: string; message: string } | null>(null);
+  const [workspaceAgent, setWorkspaceAgent] = useState(false);
   const [workbenchWindows, setWorkbenchWindows] = useState<WorkbenchWindow[]>([]);
   const [activeWorkbenchId, setActiveWorkbenchId] = useState<string | null>(null);
   const lastWorkbenchIdRef = useRef<string | null>(null);
@@ -186,6 +198,7 @@ export default function IntentClient({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const hasSentRef = useRef(false);
   const preferencesLoadedRef = useRef(false);
+  const activationTrackedRef = useRef(false);
   const billingTierRef = useRef<'free' | 'paid' | 'enhanced'>('free');
 
   const workbenchConversationTurns = useMemo(() => turns.map((turn) => ({
@@ -283,6 +296,9 @@ export default function IntentClient({
     }
   }
 
+  const telemetryRequired = billing.tier === 'free';
+  const effectiveDataCollectionEnabled = telemetryRequired || dataCollectionEnabled;
+
   const displayName = accountName?.trim() || accountEmail?.split('@')[0] || 'Guest';
   const initials = useMemo(() => {
     const parts = displayName.split(/\s+/).filter(Boolean);
@@ -319,7 +335,7 @@ export default function IntentClient({
       active = false;
       window.clearInterval(interval);
     };
-  }, [accessToken, activeConversationId]);
+  }, [accessToken, activeConversationId, availabilityAttempt]);
 
   useEffect(() => {
     let active = true;
@@ -334,7 +350,7 @@ export default function IntentClient({
 
     async function loadBilling() {
       if (!accessToken) {
-        if (active) setBilling({ authenticated: false, tier: 'free', limit: 5, workbench: 'none' });
+        if (active) { setBilling({ authenticated: false, tier: 'free', limit: 5, workbench: 'none' }); setBillingReady(true); }
         return;
       }
       try {
@@ -356,11 +372,16 @@ export default function IntentClient({
         if (!response.ok) throw new Error('Unable to refresh your workspace plan.');
         const data = await response.json() as BillingStatus;
         if (!active) return;
+        if (outcome === 'success' && data.tier !== 'free' && !activationTrackedRef.current) {
+          activationTrackedRef.current = true;
+          trackConversion('gic_subscription_activated', { plan: data.tier, status: data.status === 'trialing' ? 'trialing' : 'active' });
+        }
         if (billingTierRef.current !== data.tier) {
           billingTierRef.current = data.tier;
           setQuotaRemaining(null);
         }
         setBilling(data);
+        setBillingReady(true);
         if (data.tier !== 'free') {
           setUpgradeNotice(false);
           setBillingNotice(data.status === 'trialing' ? 'Your subscription trial is active.' : 'Your subscription is active.');
@@ -407,6 +428,7 @@ export default function IntentClient({
         ]);
         if (!active) return;
         setConversations(storedConversations);
+        setPrivacyReady(true);
         if (preferences) {
           preferencesLoadedRef.current = true;
           setModel('fast');
@@ -433,6 +455,11 @@ export default function IntentClient({
     if (transcript) transcript.scrollTo({ top: transcript.scrollHeight, behavior: 'smooth' });
   }, [turns, busy]);
 
+  useEffect(() => {
+    setWorkspaceAnalytics(billingReady && privacyReady ? effectiveDataCollectionEnabled : null);
+    return () => setWorkspaceAnalytics(null);
+  }, [billingReady, privacyReady, effectiveDataCollectionEnabled]);
+
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = message.trim();
@@ -453,12 +480,14 @@ export default function IntentClient({
         headers: accessToken ? { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
+          workspace_agent: workspaceAgent && billing.tier !== 'free',
+          conversation_context: workspaceAgent ? turns.slice(-8).map(turn => ({ role: turn.role, text: turn.text })) : undefined,
           model,
           session_id: sessionId,
           search,
           search_depth: search ? searchDepth : undefined,
           max_tokens: maxTokens,
-          data_collection_enabled: dataCollectionEnabled,
+          data_collection_enabled: billingReady && privacyReady ? effectiveDataCollectionEnabled : false,
           image_url: attachedImage?.dataUrl,
         }),
       });
@@ -476,6 +505,7 @@ export default function IntentClient({
       }
 
       const answer = data as ChatResponse;
+      trackConversion('gic_answer_received', { access: accessToken ? 'account' : 'guest', first_in_session: !turns.some((turn) => turn.role === 'assistant') });
       setSessionId(answer.session_id);
       const enrichedSources = search && answer.sources?.length
         ? await enrichSourcesWithPyScript(text, answer.sources)
@@ -490,8 +520,11 @@ export default function IntentClient({
           sources: enrichedSources,
           warning: answer.warning,
           research: answer.research,
+          activity: answer.activity,
         },
       ]);
+
+      if (answer.workspace_action) openWorkbench(answer.workspace_action.kind, answer.workspace_action.brief, true);
 
       if (accountUserId) {
         try {
@@ -719,8 +752,8 @@ export default function IntentClient({
     : null;
 
   return (
-    <main className="h-[100dvh] min-h-0 overflow-hidden bg-white text-slate-950">
-      <div className={`mx-auto grid h-full min-h-0 max-w-[1500px] overflow-hidden ${accessToken && sidebarCollapsed ? 'lg:grid-cols-[minmax(0,1fr)]' : 'lg:grid-cols-[270px_minmax(0,1fr)]'}`}>
+    <main data-ph-mask className="ph-no-capture h-[100dvh] min-h-0 overflow-hidden bg-white text-slate-950">
+      <div className={`mx-auto grid h-full min-h-0 overflow-hidden ${accessToken && sidebarCollapsed ? 'lg:grid-cols-[minmax(0,1fr)]' : 'lg:grid-cols-[270px_minmax(0,1fr)]'}`}>
         <aside aria-label="Workspace sidebar" className={`${accessToken && sidebarCollapsed ? 'hidden' : 'hidden lg:block'} h-full min-h-0 overflow-y-auto overscroll-contain border-r border-slate-200 bg-slate-50 px-5 py-6`}>
           <div className="flex items-center justify-between gap-4 lg:block">
             <Link href="/" className="inline-flex items-center gap-3">
@@ -817,10 +850,11 @@ export default function IntentClient({
 
           <div className="mt-5 rounded-xl border border-slate-200 bg-white p-3">
             <label className="flex items-center justify-between gap-3 text-xs font-medium text-slate-700">
-              <span><span className="block font-semibold text-slate-900">Usage data</span><span className="mt-0.5 block text-[10px] font-normal text-slate-500">Performance metadata only; never prompt or response text.</span></span>
+              <span><span className="block font-semibold text-slate-900">Usage data</span><span className="mt-0.5 block text-[10px] font-normal text-slate-500">{telemetryRequired ? 'Included with Guest and Free access. Conversation text is masked from replay.' : 'Turn off usage analytics and session replay for this paid workspace.'}</span></span>
               <input
                 type="checkbox"
-                checked={dataCollectionEnabled}
+                checked={effectiveDataCollectionEnabled}
+                disabled={telemetryRequired || !billingReady || !privacyReady}
                 onChange={(event) => {
                   const next = event.target.checked;
                   setDataCollectionEnabled(next);
@@ -1127,10 +1161,11 @@ export default function IntentClient({
 
                 <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <label className="flex min-h-10 items-center justify-between gap-3 text-sm font-medium text-slate-700">
-                    <span><span className="block">Share usage data</span><span className="block text-[10px] font-normal text-slate-500">Performance metadata only; prompt/response text is not collected.</span></span>
+                    <span><span className="block">{telemetryRequired ? 'Usage analytics included' : 'Share usage data'}</span><span className="block text-[10px] font-normal text-slate-500">{telemetryRequired ? 'Included with Guest and Free access. Conversation text is masked from replay.' : 'Turn off usage analytics and session replay for this paid workspace.'}</span></span>
                     <input
                       type="checkbox"
-                      checked={dataCollectionEnabled}
+                      checked={effectiveDataCollectionEnabled}
+                disabled={telemetryRequired || !billingReady || !privacyReady}
                       onChange={(event) => {
                         const next = event.target.checked;
                         setDataCollectionEnabled(next);
@@ -1189,7 +1224,7 @@ export default function IntentClient({
                   <Link href="/" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Main site</Link>
                   <Link href="/research" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Research</Link>
                   <Link href="/systems" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Systems</Link>
-                  <Link href="/virtual-lab" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Virtual Lab</Link>
+                  <Link href="/virtual-lab/demo" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Virtual Lab · Paid demo</Link>
                 </nav>
 
                 <button
@@ -1299,7 +1334,15 @@ export default function IntentClient({
                 </div>
               )}
 
-              {availabilityChecked && turns.length === 0 && (
+              {availabilityChecked && availableModes.length === 0 && turns.length === 0 && (
+                <div role="status" className="mx-auto max-w-3xl rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950">
+                  <h2 className="text-xl font-semibold">LooseMouth is temporarily unavailable.</h2>
+                  <p className="mt-2 text-sm leading-6">The workspace cannot reach an available model right now. Try again in a moment; we also check automatically every 30 seconds.</p>
+                  <button type="button" onClick={() => { setAvailabilityChecked(false); setAvailabilityAttempt((current) => current + 1); }} className="mt-4 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold">Try again</button>
+                </div>
+              )}
+
+              {availabilityChecked && availableModes.length > 0 && turns.length === 0 && (
                 <div className="mx-auto flex min-h-[38vh] max-w-3xl flex-col justify-center lg:min-h-[58vh]">
                   <div className="mb-4 flex items-center gap-3 sm:mb-7">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-200 bg-blue-50">
@@ -1307,7 +1350,7 @@ export default function IntentClient({
                     </div>
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">Session ready</p>
-                      <p className="text-sm text-slate-500">Authenticated as {displayName}</p>
+                      <p className="text-sm text-slate-500">{accessToken ? `Signed in as ${displayName}` : 'You are using a guest session'}</p>
                     </div>
                   </div>
 
@@ -1360,19 +1403,20 @@ export default function IntentClient({
                     </p>
                   </div>
 
-                  <p className={`whitespace-pre-wrap break-words text-[15px] leading-6 sm:text-base sm:leading-7 ${
-                    turn.role === 'user' ? 'text-white lg:text-slate-800' : 'text-slate-800'
-                  }`}>{turn.text}</p>
+                  {turn.role === 'assistant' ? <><AssistantMessage text={turn.text} />
+                          {turn.activity?.length ? <details className="mt-3 rounded-lg border border-slate-200 p-3 text-xs"><summary className="cursor-pointer font-semibold text-blue-700">Workspace agent activity</summary><ol className="mt-2 space-y-2">{turn.activity.map((step,index) => <li key={index}><strong>{step.tool} · {step.status}</strong><p className="text-slate-600">{step.summary}</p></li>)}</ol></details> : null}</> : (
+                    <p className="whitespace-pre-wrap break-words text-[15px] leading-6 text-white sm:text-base sm:leading-7 lg:text-slate-800">{turn.text}</p>
+                  )}
 
                   {turn.imageName && <p className="mt-2 text-xs text-blue-700">Image attached: {turn.imageName}</p>}
 
                   {turn.sources && turn.sources.length > 0 && (
                     <div className="mt-5 border-t border-slate-200 pt-4">
                       <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Sources</p>
-                      <ul className="space-y-3">
+                      <ul className="grid gap-3 sm:grid-cols-2">
                         {turn.sources.map((source, sourceIndex) => (
-                          <li key={sourceIndex} className="text-sm leading-6 text-slate-700">
-                            {source.url ? (
+                          <li key={sourceIndex} className="min-w-0 break-words rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                            {/^https?:\/\//i.test(source.url) ? (
                               <a
                                 href={source.url}
                                 target="_blank"
@@ -1660,6 +1704,7 @@ export default function IntentClient({
                   <span>LooseMouth can make mistakes.</span>
                 </div>
 
+                {billing.tier !== 'free' && <label className="mt-3 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-900"><input type="checkbox" checked={workspaceAgent} disabled={busy} onChange={(event) => { setWorkspaceAgent(event.target.checked); if (event.target.checked) { setSearch(false); setImageAttachment(null); } }} className="mt-1 accent-blue-600"/><span><strong>Workspace agent</strong> · reads this chat and can open a report or applet brief. You review, build and save in the workbench. Groq-powered.</span></label>}
                 {historyError && (
                   <p role="status" className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                     History: {historyError}

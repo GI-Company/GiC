@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Code2,
   Download,
@@ -24,6 +24,8 @@ import {
   type ArtifactKind,
   type LooseMouthArtifact,
 } from '@/lib/loosemouth-artifacts';
+import type { WorkbenchActivity } from '@/lib/artifact-agent';
+import AssistantMessage from '@/components/intent/AssistantMessage';
 import type { WorkbenchTab } from '@/components/intent/WorkbenchDock';
 
 type Props = {
@@ -203,100 +205,6 @@ function reportDocument(title: string, markdown: string) {
 </html>`;
 }
 
-function renderInline(line: string): ReactNode {
-  const pieces = line.split(/(`[^`]+`|\*\*[^*]+\*\*)/g).filter(Boolean);
-  return pieces.map((piece, index) => {
-    if (piece.startsWith('`') && piece.endsWith('`')) {
-      return <code key={index} className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-800">{piece.slice(1, -1)}</code>;
-    }
-    if (piece.startsWith('**') && piece.endsWith('**')) {
-      return <strong key={index} className="font-semibold text-slate-950">{piece.slice(2, -2)}</strong>;
-    }
-    return <span key={index}>{piece}</span>;
-  });
-}
-
-function ReportPreview({ markdown }: { markdown: string }) {
-  const lines = markdown.replace(/\r/g, '').split('\n');
-  const nodes: ReactNode[] = [];
-  let inCode = false;
-  let code: string[] = [];
-  let bullets: string[] = [];
-  let numbered: string[] = [];
-
-  const flushLists = () => {
-    if (bullets.length) {
-      nodes.push(<ul key={`ul-${nodes.length}`} className="my-4 list-disc space-y-1.5 pl-6 text-slate-700">{bullets.map((item, index) => <li key={index}>{renderInline(item)}</li>)}</ul>);
-      bullets = [];
-    }
-    if (numbered.length) {
-      nodes.push(<ol key={`ol-${nodes.length}`} className="my-4 list-decimal space-y-1.5 pl-6 text-slate-700">{numbered.map((item, index) => <li key={index}>{renderInline(item)}</li>)}</ol>);
-      numbered = [];
-    }
-  };
-
-  lines.forEach((raw, index) => {
-    if (raw.trim().startsWith('```')) {
-      flushLists();
-      if (inCode) {
-        nodes.push(<pre key={`code-${index}`} className="my-5 overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100"><code>{code.join('\n')}</code></pre>);
-        code = [];
-      }
-      inCode = !inCode;
-      return;
-    }
-    if (inCode) {
-      code.push(raw);
-      return;
-    }
-
-    const line = raw.trim();
-    if (!line) {
-      flushLists();
-      return;
-    }
-
-    const heading = line.match(/^(#{1,3})\s+(.+)$/);
-    if (heading) {
-      flushLists();
-      const level = heading[1].length;
-      if (level === 1) nodes.push(<h1 key={index} className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-slate-950">{renderInline(heading[2])}</h1>);
-      else if (level === 2) nodes.push(<h2 key={index} className="mt-8 text-xl font-semibold tracking-[-0.02em] text-slate-950">{renderInline(heading[2])}</h2>);
-      else nodes.push(<h3 key={index} className="mt-6 text-base font-semibold text-slate-950">{renderInline(heading[2])}</h3>);
-      return;
-    }
-
-    const bullet = line.match(/^[-*]\s+(.+)$/);
-    if (bullet) {
-      if (numbered.length) flushLists();
-      bullets.push(bullet[1]);
-      return;
-    }
-
-    const ordered = line.match(/^\d+[.)]\s+(.+)$/);
-    if (ordered) {
-      if (bullets.length) flushLists();
-      numbered.push(ordered[1]);
-      return;
-    }
-
-    flushLists();
-    if (line.startsWith('> ')) {
-      nodes.push(<blockquote key={index} className="my-5 border-l-4 border-blue-300 bg-blue-50 px-4 py-3 text-sm leading-7 text-slate-700">{renderInline(line.slice(2))}</blockquote>);
-      return;
-    }
-
-    nodes.push(<p key={index} className="mt-3 text-[15px] leading-7 text-slate-700">{renderInline(line)}</p>);
-  });
-
-  flushLists();
-  if (inCode && code.length) {
-    nodes.push(<pre key="code-final" className="my-5 overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100"><code>{code.join('\n')}</code></pre>);
-  }
-
-  return <div>{nodes}</div>;
-}
-
 export default function LooseMouthWorkbench({
   accessToken,
   userId,
@@ -324,6 +232,7 @@ export default function LooseMouthWorkbench({
   const [busy, setBusy] = useState(false);
   const [loadingItems, setLoadingItems] = useState(true);
   const [error, setError] = useState('');
+  const [activity, setActivity] = useState<WorkbenchActivity[]>([]);
   const [reportMode, setReportMode] = useState<'preview' | 'edit'>('preview');
   const [activeFile, setActiveFile] = useState('index.html');
   const [compiledPreview, setCompiledPreview] = useState('');
@@ -339,6 +248,7 @@ export default function LooseMouthWorkbench({
     setPrompt(initialPrompt);
     setActive(null);
     setDraft(null);
+    setActivity([]);
     setError('');
     setReportMode('preview');
     setActiveFile('index.html');
@@ -367,6 +277,7 @@ export default function LooseMouthWorkbench({
     setPrompt('');
     setActive(null);
     setDraft(null);
+    setActivity([]);
     setError('');
     setReportMode('preview');
     setActiveFile('index.html');
@@ -374,9 +285,11 @@ export default function LooseMouthWorkbench({
   }
 
   function openArtifact(item: LooseMouthArtifact) {
+    if (busy) return;
     setActive(item);
     setKind(item.kind);
     setDraft(item.content);
+    setActivity([]);
     setPrompt(item.prompt);
     setError('');
     setReportMode('preview');
@@ -392,6 +305,7 @@ export default function LooseMouthWorkbench({
 
   async function generate() {
     if (!prompt.trim() || busy) return;
+    setActivity([]);
     setBusy(true);
     setError('');
     try {
@@ -411,9 +325,10 @@ export default function LooseMouthWorkbench({
             : undefined,
         }),
       });
-      const data = await response.json() as { error?: string; artifact?: Record<string, unknown> };
+      const data = await response.json() as { error?: string; artifact?: Record<string, unknown>; activity?: WorkbenchActivity[] };
       if (!response.ok || !data.artifact) throw new Error(data.error || 'Generation failed.');
       setDraft(data.artifact);
+      setActivity(data.activity || []);
       const generatedTitle = data.artifact.title;
       if (/^(Report|Applet) \d+$/.test(name) && typeof generatedTitle === 'string' && generatedTitle.trim()) {
         onRename(generatedTitle.trim().slice(0, 64), true);
@@ -421,7 +336,7 @@ export default function LooseMouthWorkbench({
       if (kind === 'applet') {
         const nextFiles = appletFiles(data.artifact);
         setActiveFile(nextFiles[0]?.path || 'index.html');
-        setCompiledPreview(appletDoc(data.artifact));
+        setCompiledPreview('');
       } else {
         setReportMode('preview');
       }
@@ -639,6 +554,7 @@ export default function LooseMouthWorkbench({
             <button
               type="button"
               onClick={() => resetBuild('report')}
+              disabled={busy}
               className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-semibold ${kind === 'report' ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-700'}`}
             >
               <FileText size={15} /> Report
@@ -646,7 +562,7 @@ export default function LooseMouthWorkbench({
             <button
               type="button"
               onClick={() => resetBuild('applet')}
-              disabled={!canCreateApplet}
+              disabled={busy || !canCreateApplet}
               title={!canCreateApplet ? 'Applets require Enhanced Workspace' : 'Edit applet'}
               className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-semibold ${kind === 'applet' ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-700'}`}
             >
@@ -660,6 +576,7 @@ export default function LooseMouthWorkbench({
               <p className="text-xs font-semibold uppercase tracking-[.13em] text-slate-500">{kind === 'report' ? 'Report brief' : 'Applet brief'}</p>
               <textarea
                 value={prompt}
+                disabled={busy}
                 onChange={(event) => setPrompt(event.target.value)}
                 placeholder={kind === 'report'
                   ? 'Describe the report you want. You can ask for an executive summary, technical brief, research memo, comparison, or documentation.'
@@ -672,6 +589,7 @@ export default function LooseMouthWorkbench({
                   <input
                     type="checkbox"
                     checked={includeConversation}
+                    disabled={busy}
                     onChange={(event) => { conversationPreferenceTouchedRef.current = true; setIncludeConversation(event.target.checked); }}
                     className="mt-0.5 h-4 w-4 accent-blue-600"
                   />
@@ -688,9 +606,11 @@ export default function LooseMouthWorkbench({
                 disabled={busy || !prompt.trim()}
                 className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                <Play size={15} /> {busy ? 'Building…' : draft ? 'Revise with LooseMouth' : kind === 'report' ? 'Generate report' : 'Generate applet'}
+                <Play size={15} /> {busy ? 'Agent working…' : draft ? 'Ask agent to revise' : 'Run workbench agent'}
               </button>
 
+              <p className="mt-2 text-xs leading-5 text-slate-500">Groq-powered agent · reads context, drafts and checks. You control save, preview and export.</p>
+              {activity.length > 0 && <section aria-label="Workbench agent activity" className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><h3 className="text-xs font-semibold text-slate-900">Agent activity</h3><ol className="mt-2 space-y-2">{activity.map((step,index) => <li key={index} className="text-xs leading-5"><span className={step.status === 'rejected' ? 'font-semibold text-amber-700' : 'font-semibold text-blue-700'}>{step.tool} · {step.status}</span><p className="text-slate-600">{step.summary}</p></li>)}</ol></section>}
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -770,11 +690,13 @@ export default function LooseMouthWorkbench({
                   </div>
                   {reportMode === 'preview' ? (
                     <article className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-8 lg:p-10">
-                      <div className="mx-auto max-w-4xl"><ReportPreview markdown={reportMarkdown} /></div>
+                      <div className="mx-auto max-w-4xl"><AssistantMessage text={reportMarkdown} /></div>
                     </article>
                   ) : (
                     <textarea
                       value={reportMarkdown}
+                      aria-label="Edit report Markdown"
+                      disabled={busy}
                       onChange={(event) => updateReport(event.target.value)}
                       className="min-h-[280px] flex-1 resize-none overflow-y-auto bg-white p-5 font-mono text-sm leading-7 text-slate-800 outline-none sm:p-8 lg:min-h-0"
                       spellCheck
@@ -806,6 +728,7 @@ export default function LooseMouthWorkbench({
                       {currentFile ? (
                         <textarea
                           value={currentFile.content}
+                          disabled={busy}
                           onChange={(event) => updateAppletFile(currentFile.path, event.target.value)}
                           className="h-full min-h-[300px] w-full resize-none bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100 outline-none"
                           spellCheck={false}

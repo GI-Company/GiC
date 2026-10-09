@@ -39,6 +39,7 @@ export default function EnterpriseDomainPage({
               <Link href={`/explorer?domain=${encodeURIComponent(domain)}`} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">
                 Technical explorer <ExternalLink className="h-4 w-4" />
               </Link>
+              {domain === 'virtual_lab' && <Link href="/virtual-lab/demo" className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Open paid online demo <ArrowRight className="h-4 w-4" /></Link>}
             </div>
           </div>
         </section>

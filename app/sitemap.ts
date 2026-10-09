@@ -22,6 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/systems',
     '/virtual-lab',
     '/virtual-lab/bitvision-cell',
+    '/virtual-lab/demo',
   ];
 
   const projectRoutes = RESEARCH_NODES.map((node) => {
