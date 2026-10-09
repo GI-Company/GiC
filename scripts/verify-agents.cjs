@@ -96,3 +96,12 @@ test('subscription lookup outages fail closed with recovery, never an upgrade de
  const h=accessHarness('paid');const upstream=h.fetch;h.fetch=async(...args)=>String(args[0]).includes('billing_entitlements')?{ok:false}:upstream(...args);
  const route=h.load('app/api/virtual-lab/route');assert.equal((await route.GET(request())).status,503);assert.equal(h.count.quota,0);
 });
+
+test('editing a lab protocol invalidates only its approval, not the prior results',()=>{
+ const lab=harness().load('lib/virtual-lab-demo'),approved=lab.DEFAULT_PROPOSAL;
+ const prior=lab.runLabExperiment(approved);
+ assert.equal(lab.isApprovedProtocol({...approved},approved),true);
+ for(const change of [{duration:48},{values:[0,2,10]},{parameter:'protein_decay',values:[0.05,0.1,0.5]},{rationale:'Different experiment rationale'}])assert.equal(lab.isApprovedProtocol({...approved,...change},approved),false);
+ assert.equal(lab.isApprovedProtocol(approved,null),false);assert.equal(lab.isApprovedProtocol({duration:999},approved),false);
+ assert.equal(prior.length,3);assert.equal(prior[0].points.at(-1).time,24);
+});

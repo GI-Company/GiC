@@ -451,6 +451,14 @@ export default function IntentClient({
   }, [accessToken, accountUserId]);
 
   useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    // Keep the composer one line high until its actual text needs more room.
+    textarea.style.height = '0px';
+    textarea.style.height = `${Math.max(40, Math.min(120, textarea.scrollHeight))}px`;
+  }, [message]);
+
+  useEffect(() => {
     const transcript = transcriptRef.current;
     if (transcript) transcript.scrollTo({ top: transcript.scrollHeight, behavior: 'smooth' });
   }, [turns, busy]);
@@ -979,15 +987,15 @@ export default function IntentClient({
         </aside>
 
         <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-          {billingNotice&&<div role="status" className="border-b border-blue-200 bg-blue-50 px-4 py-2 text-center text-xs font-medium text-blue-800">{billingNotice}</div>}
+          {billingNotice && !['Your subscription trial is active.', 'Your subscription is active.'].includes(billingNotice) && <div role="status" className="border-b border-blue-200 bg-blue-50 px-4 py-1.5 text-center text-xs font-medium text-blue-800">{billingNotice}</div>}
           {accessToken && billing.tier !== 'free' && (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-900">
-              <div>
-                <strong>{billing.tier === 'enhanced' ? 'Enhanced Workspace active' : 'Paid Workspace active'}</strong>
-                <span className="ml-2">{billing.tier === 'enhanced' ? 'Reports and applets unlocked · 300 requests/hour' : 'Reports unlocked · 100 requests/hour'}</span>
-                {billing.status === 'trialing' && billing.trial_end && <span className="ml-2">· Trial until {new Date(billing.trial_end).toLocaleDateString()}</span>}
+            <div role="status" aria-label="Subscription status" className="flex shrink-0 items-center justify-between gap-2 border-b border-blue-200 bg-blue-50 px-4 py-1 text-[11px] leading-5 text-blue-900">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2">
+                <strong>{billing.tier === 'enhanced' ? 'Enhanced active' : 'Paid active'}</strong>
+                <span className="hidden sm:inline">{billing.tier === 'enhanced' ? 'Reports & applets · 300/hour' : 'Reports · 100/hour'}</span>
+                {billing.status === 'trialing' && billing.trial_end && <span>Trial until {new Date(billing.trial_end).toLocaleDateString()}</span>}
               </div>
-              <button type="button" onClick={() => openWorkbench()} className="rounded-lg border border-blue-300 bg-white px-3 py-2 font-semibold text-blue-800 hover:bg-blue-100">Open Workbench</button>
+              <button type="button" onClick={() => openWorkbench()} className="min-h-6 shrink-0 rounded px-2 text-[11px] font-semibold text-blue-800 underline underline-offset-2 hover:bg-blue-100">Open Workbench</button>
             </div>
           )}
           {upgradeNotice&&billing.tier==='free'&&<div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"><span>You have {quotaRemaining ?? 0} free requests left this hour. Paid starts with a 30-day free trial and raises the allowance to 100/hour.</span><span className="flex shrink-0 gap-2"><Link href="/pricing#plans" className="font-semibold underline">View plans</Link><button type="button" onClick={dismissUpgrade} aria-label="Dismiss upgrade notice"><X size={14}/></button></span></div>}
@@ -1238,81 +1246,32 @@ export default function IntentClient({
             </>
           )}
 
-          <header className="hidden shrink-0 border-b border-slate-200 bg-white/95 px-8 py-4 backdrop-blur lg:block">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-4">
+          <header className="hidden shrink-0 border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur lg:block">
+            <div className="flex items-center gap-3">
+              <div className="flex min-w-0 shrink-0 items-center gap-2">
                 {accessToken && accountUserId && sidebarCollapsed && (
                   <button type="button" onClick={toggleSidebar} aria-label="Expand sidebar" title="Expand sidebar"
-                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-100">
-                    <PanelLeftOpen size={19} />
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100">
+                    <PanelLeftOpen size={17} />
                   </button>
                 )}
-                <Image
-                  src="/images/loosemouth-model-logo.png"
-                  alt="LooseMouth model logo"
-                  width={1456}
-                  height={1080}
-                  priority
-                  sizes="72px"
-                  className="h-auto w-16 shrink-0 sm:w-20"
-                />
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">LooseMouth</h1>
-                    <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-700">
-                      {billing.tier === 'enhanced' ? 'Enhanced · Full workbench' : billing.tier === 'paid' ? 'Paid · Reports unlocked' : accessToken ? 'Free workspace' : 'Guest preview'}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-600">Hosted AI workspace for GIC research, reports, applets, and web-assisted work.</p>
-                </div>
+                <Image src="/images/loosemouth-model-logo.png" alt="LooseMouth model logo" width={1456} height={1080} priority sizes="40px" className="h-8 w-10 shrink-0 object-contain" />
+                <h1 className="text-lg font-semibold tracking-tight text-slate-950">LooseMouth</h1>
+                <span className="hidden rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 xl:inline">
+                  {billing.tier === 'enhanced' ? 'Enhanced' : billing.tier === 'paid' ? 'Paid' : accessToken ? 'Free' : 'Guest'}
+                </span>
               </div>
-
-              <div className="flex items-center gap-2">
-                {accessToken && accountUserId && (
-                  <button
-                    type="button"
-                    onClick={() => openWorkbench()}
-                    className="hidden min-h-10 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-800 hover:bg-blue-100 sm:inline-flex"
-                  >
-                    <FileText size={14} /> Workbenches{workbenchWindows.length ? ` (${workbenchWindows.length})` : ''}
+              <div className="ml-auto flex items-center gap-1" role="group" aria-label="Choose LooseMouth mode">
+                {(['fast', 'medium', 'enhanced'] as const).map((choice) => (
+                  <button key={choice} type="button" disabled={busy || !availableModes.includes(choice)} onClick={() => switchModel(choice)} aria-pressed={model === choice}
+                    className={`min-h-8 rounded-lg border px-2.5 py-1 text-xs capitalize disabled:cursor-not-allowed disabled:opacity-45 ${model === choice ? 'border-blue-500 bg-blue-50 text-blue-900' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'}`}>
+                    {choice}{choice === 'fast' ? ' ⚡' : choice === 'enhanced' ? ' ✨' : ' 🧠'}
                   </button>
-                )}
-                <div className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-right sm:block">
-                  <p className="text-[10px] uppercase tracking-[0.13em] text-slate-500">Active model</p>
-                  <p className="text-xs font-semibold text-slate-950">
-                    {model === 'enhanced' ? 'LooseMouth Enhanced' : model === 'medium' ? 'LooseMouth Medium' : 'LooseMouth Fast'}
-                  </p>
-                </div>
-                <span
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    availableModes.includes(model) ? 'bg-emerald-500' : 'bg-slate-300'
-                  }`}
-                  aria-label="Model availability"
-                />
+                ))}
+                {multimodal && <span className="hidden px-2 text-[10px] text-slate-500 2xl:inline">Vision ready</span>}
               </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Choose LooseMouth mode">
-              {(['fast', 'medium', 'enhanced'] as const).map((choice) => (
-                <button
-                  key={choice}
-                  type="button"
-                  disabled={busy || !availableModes.includes(choice)}
-                  onClick={() => switchModel(choice)}
-                  aria-pressed={model === choice}
-                  className={`rounded-lg border px-3 py-2 text-sm capitalize disabled:cursor-not-allowed disabled:opacity-45 ${
-                    model === choice
-                      ? 'border-blue-500 bg-blue-50 text-blue-900'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
-                  }`}
-                >
-                  {choice}{choice === 'fast' ? ' ⚡' : choice === 'enhanced' ? ' ✨' : ' 🧠'}
-                </button>
-              ))}
-              {multimodal && <span className="px-2 text-xs text-slate-500">Vision ready</span>}
-              <div className="ml-auto flex items-center gap-3 text-xs text-slate-500 lg:hidden">
-                <span>{quotaRemaining ?? '—'} left</span>
-              </div>
+              {accessToken && accountUserId && <button type="button" onClick={() => openWorkbench()} className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 text-xs font-semibold text-blue-800 hover:bg-blue-100"><FileText size={13} /> Workbenches{workbenchWindows.length ? ` (${workbenchWindows.length})` : ''}</button>}
+              <span className={`h-2 w-2 shrink-0 rounded-full ${availableModes.includes(model) ? 'bg-emerald-500' : 'bg-slate-300'}`} aria-label="Model availability" />
             </div>
           </header>
 
@@ -1323,10 +1282,10 @@ export default function IntentClient({
               aria-label="Conversation"
               aria-live="polite"
               aria-relevant="additions text"
-              className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 sm:py-6 lg:px-10"
+              className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-3 py-4 sm:px-6 lg:px-8"
             >
               {!availabilityChecked && turns.length === 0 && (
-                <div className="mx-auto flex min-h-[44vh] lg:min-h-[58vh] max-w-3xl flex-col justify-center">
+                <div className="mx-auto flex min-h-32 max-w-3xl flex-col justify-center">
                   <BrandLoader
                     label={`Connecting to LooseMouth ${model.charAt(0).toUpperCase() + model.slice(1)}…`}
                     size={52}
@@ -1343,8 +1302,8 @@ export default function IntentClient({
               )}
 
               {availabilityChecked && availableModes.length > 0 && turns.length === 0 && (
-                <div className="mx-auto flex min-h-[38vh] max-w-3xl flex-col justify-center lg:min-h-[58vh]">
-                  <div className="mb-4 flex items-center gap-3 sm:mb-7">
+                <div className="mx-auto flex max-w-3xl flex-col justify-center py-4 sm:py-6">
+                  <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-200 bg-blue-50">
                       <Cpu className="h-5 w-5 text-blue-700" />
                     </div>
@@ -1354,14 +1313,14 @@ export default function IntentClient({
                     </div>
                   </div>
 
-                  <h2 className="max-w-2xl text-2xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl">
+                  <h2 className="max-w-2xl text-2xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-3xl">
                     Ask LooseMouth
                   </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:mt-4 sm:text-base sm:leading-7">
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
                     Start a conversation or open the menu for models, search, and saved sessions.
                   </p>
 
-                  <div className="mt-5 grid gap-2 sm:mt-8 sm:grid-cols-3 sm:gap-3">
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3 sm:gap-3">
                     {suggestions.map((suggestion) => (
                       <button
                         key={suggestion}
@@ -1370,7 +1329,7 @@ export default function IntentClient({
                           setMessage(suggestion);
                           textareaRef.current?.focus();
                         }}
-                        className="rounded-2xl border border-slate-200 bg-white p-4 text-left text-sm leading-6 text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-slate-950"
+                        className="rounded-2xl border border-slate-200 bg-white p-3 text-left text-sm leading-6 text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-slate-950"
                       >
                         {suggestion}
                       </button>
@@ -1578,7 +1537,7 @@ export default function IntentClient({
               )}
             </div>
 
-            <div className="relative z-10 shrink-0 border-t border-slate-200 bg-white px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-4 lg:px-10">
+            <div className="relative z-10 shrink-0 border-t border-slate-200 bg-white px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-6 lg:px-8">
               <form onSubmit={send} className="mx-auto max-w-4xl">
                 
 
@@ -1590,7 +1549,7 @@ export default function IntentClient({
                   className="hidden"
                   onChange={(event) => void attachImage(event.target.files?.[0] || null)}
                 />
-                <div className="rounded-2xl border border-slate-300 bg-white p-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.24)] transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+                <div className="rounded-2xl border border-slate-300 bg-white p-1.5 shadow-[0_4px_16px_rgba(15,23,42,0.08)] transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
                   {imageAttachment && (
                     <div className="mb-2 flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
                       <ImagePlus size={15} className="shrink-0" />
@@ -1614,11 +1573,11 @@ export default function IntentClient({
                     maxLength={4000}
                     rows={1}
                     disabled={busy}
-                    className="max-h-32 min-h-11 w-full resize-none bg-transparent px-2 py-2.5 text-base leading-6 text-slate-950 outline-none placeholder:text-slate-500 disabled:opacity-60 sm:max-h-40 sm:min-h-16 sm:resize-y sm:py-2"
+                    className="block max-h-[120px] min-h-10 w-full resize-none overflow-y-auto bg-transparent px-2 py-2 text-base leading-6 text-slate-950 outline-none placeholder:text-slate-500 disabled:opacity-60"
                     placeholder="Message LooseMouth…"
                   />
 
-                  <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-1 pt-2">
+                  <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-1 pt-1">
                     <div className="flex min-w-0 items-center gap-1">
                       <button
                         type="button"
@@ -1659,6 +1618,8 @@ export default function IntentClient({
                         </label>
                       )}
 
+                      {billing.tier !== 'free' && <label title="Let the Groq-powered agent read this chat and open a report or applet brief. You review, build and save in the workbench." className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-xs text-slate-600 hover:bg-slate-50"><input type="checkbox" aria-label="Workspace agent" checked={workspaceAgent} disabled={busy} onChange={(event) => { setWorkspaceAgent(event.target.checked); if (event.target.checked) { setSearch(false); setImageAttachment(null); } }} className="h-4 w-4 accent-blue-600"/>Agent</label>}
+
                       {search && (
                         <div className="hidden rounded-lg border border-slate-200 bg-slate-50 p-1 sm:inline-flex" role="group" aria-label="Web research depth">
                           <button
@@ -1690,7 +1651,7 @@ export default function IntentClient({
                     <button
                       type="submit"
                       disabled={busy || !message.trim() || !availabilityChecked || !availableModes.includes(model)}
-                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:gap-2 sm:px-4"
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:gap-2 sm:px-4"
                     >
                       <span className="hidden sm:inline">Send</span><ArrowUp size={17} />
                     </button>
@@ -1699,12 +1660,11 @@ export default function IntentClient({
 
                 </div>
 
-                <div className="mt-2 flex justify-center px-1 text-[10px] text-slate-500 sm:justify-between sm:text-[11px] sm:text-slate-600">
+                <div className="mt-1 flex justify-center px-1 text-[10px] text-slate-500 sm:justify-between sm:text-[11px] sm:text-slate-600">
                   <span className="hidden sm:inline">Enter to send · Shift+Enter for newline</span>
                   <span>LooseMouth can make mistakes.</span>
                 </div>
 
-                {billing.tier !== 'free' && <label className="mt-3 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-900"><input type="checkbox" checked={workspaceAgent} disabled={busy} onChange={(event) => { setWorkspaceAgent(event.target.checked); if (event.target.checked) { setSearch(false); setImageAttachment(null); } }} className="mt-1 accent-blue-600"/><span><strong>Workspace agent</strong> · reads this chat and can open a report or applet brief. You review, build and save in the workbench. Groq-powered.</span></label>}
                 {historyError && (
                   <p role="status" className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                     History: {historyError}

@@ -63,3 +63,10 @@ export async function evidenceBundle(proposal: LabProposal) {
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return { payload, sha256: Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2,'0')).join('') };
 }
+
+// Approval applies only to the complete protocol that was actually run.
+export function isApprovedProtocol(requested: unknown, approved: unknown): boolean {
+  if (!approved) return false;
+  try { return canonicalJson(validateProposal(requested)) === canonicalJson(validateProposal(approved)); }
+  catch { return false; }
+}
