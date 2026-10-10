@@ -58,7 +58,7 @@ export default function LandingHero() {
               <p className="text-sm font-semibold text-slate-950">Want to save conversations and use your own workspace?</p>
               <p className="mt-1 text-xs leading-5 text-slate-600">Create a free account, or compare Paid and Enhanced workspaces for research assistants, reports and applets.</p>
             </div>
-            <Link href="/signup" onClick={() => trackConversion('gic_cta_clicked', { action: 'create_account', placement: 'home_account_strip' })} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-blue-600 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">Create free account <ArrowUpRight size={15} /></Link>
+            <Link href="/intent" onClick={() => trackConversion('gic_cta_clicked', { action: 'create_account', placement: 'home_account_strip' })} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-blue-600 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">Create free account <ArrowUpRight size={15} /></Link>
             <Link href="/pricing" onClick={() => trackConversion('gic_cta_clicked', { action: 'view_paid_workspaces', placement: 'home_account_strip' })} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Explore workspaces <ArrowRight size={15} /></Link>
           </div>
           <div className="mt-8 max-w-3xl rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
