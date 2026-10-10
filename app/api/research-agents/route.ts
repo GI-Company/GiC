@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { SUPABASE_URL } from '@/lib/supabase-public';
 import { NextRequest, NextResponse } from 'next/server';
 import { user, entitlement, consumeWorkbenchQuota } from '@/lib/workbench-access';
 import { getResearchAgent, type ResearchAgentTier } from '@/lib/research-agent-registry';
@@ -83,13 +85,37 @@ export async function POST(req:NextRequest){
  const agent=getResearchAgent(routing.agent,tier as ResearchAgentTier)!;
  if(agent.provider==='gemini'&&!process.env.GEMINI_API_KEY)return error('Gemini is not configured.',503);
  if(agent.provider==='groq'&&!process.env.GROQ_API)return error('Groq is not configured.',503);
+ const idempotencyKey=req.headers.get('idempotency-key');
+ if(!idempotencyKey || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey))return error('Idempotency-Key UUID header required.',400);
+ const secret=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
+ if(!secret)return error('Request deduplication unavailable.',503);
+ const hash=createHash('sha256').update(JSON.stringify({agent:body.agent,messages:turns})).digest('hex');
+ const headers={apikey:secret,Authorization:`Bearer ${secret}`,'Content-Type':'application/json'};
+ let claim:{state:string;response?:Record<string,unknown>};
+ try{
+  const result=await fetch(new URL('/rest/v1/rpc/claim_research_agent_request',SUPABASE_URL),{
+   method:'POST',headers,body:JSON.stringify({p_user_id:me.id,p_request_key:idempotencyKey,p_payload_hash:hash}),cache:'no-store',signal:AbortSignal.timeout(5000)
+  });
+  if(!result.ok)throw new Error('claim failed');
+  claim=await result.json() as typeof claim;
+ }catch{return error('Request deduplication unavailable.',503);}
+ if(claim.state==='completed'&&claim.response)return NextResponse.json(claim.response,{headers:noStore});
+ if(claim.state==='conflict')return error('Idempotency key reused for different request.',409);
+ if(claim.state!=='claimed')return error('Request already processing or previously failed; retry later with a new key only if needed.',409);
+ const complete=async(status:'completed'|'failed',response?:Record<string,unknown>)=>{
+  try{await fetch(new URL('/rest/v1/research_agent_requests',SUPABASE_URL)+`?user_id=eq.${encodeURIComponent(me.id)}&request_key=eq.${encodeURIComponent(idempotencyKey)}&status=eq.pending`,{
+   method:'PATCH',headers:{...headers,Prefer:'return=minimal'},body:JSON.stringify({status,response:response||null}),cache:'no-store',signal:AbortSignal.timeout(5000)
+  });}catch{}
+ };
  const quota=await consumeWorkbenchQuota(me.id);
- if(!quota.configured)return error('Usage limits are not configured.',503);
- if(!quota.allowed)return error('Research assistant usage limit reached. Try again after the hourly reset.',429);
+ if(!quota.configured){await complete('failed');return error('Usage limits are not configured.',503);}
+ if(!quota.allowed){await complete('failed');return error('Research assistant usage limit reached. Try again after the hourly reset.',429);}
  try{
   const timeout=AbortSignal.timeout(30000);
   const signal=AbortSignal.any([req.signal,timeout]);
   const answer=agent.provider==='gemini'?await gemini(turns,agent.instructions,signal):await groq(turns,agent.instructions,signal);
-  return NextResponse.json({answer,agent:agent.id,routing,provider:agent.provider,externalInference:true,quota:{remaining:quota.remaining,resetAt:quota.resetAt}},{headers:noStore});
- }catch{return error('The research assistant is temporarily unavailable. Your quota may have been consumed; please retry later.',503);}
+  const result={answer,agent:agent.id,routing,provider:agent.provider,externalInference:true,quota:{remaining:quota.remaining,resetAt:quota.resetAt}};
+  await complete('completed',result);
+  return NextResponse.json(result,{headers:noStore});
+ }catch{await complete('failed');return error('The research assistant is temporarily unavailable. Your quota may have been consumed; please retry later.',503);}
 }
