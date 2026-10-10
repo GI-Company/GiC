@@ -3,7 +3,7 @@
 import React from 'react';
 import { trackConversion } from '@/lib/conversion-events';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, FlaskConical, Network, Sparkles, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FlaskConical, Network, Sparkles, ArrowUpRight, PlayCircle } from 'lucide-react';
 
 const pillars = [
   {
@@ -81,6 +81,23 @@ export default function LandingHero() {
           </div>
         </div>
 
+        <div className="mt-10 grid items-center gap-6 rounded-2xl border border-slate-200 bg-slate-950 p-4 shadow-sm sm:p-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <div className="relative overflow-hidden rounded-xl bg-slate-900">
+            <video controls preload="none" playsInline poster="/images/gic-founder-research-poster.jpg" className="aspect-video w-full object-contain" aria-label="Global Intent Company research and founder story">
+              <source src="/videos/gic-founder-research.mp4" type="video/mp4" />
+              Your browser does not support HTML5 video.
+            </video>
+          </div>
+          <div className="px-1 pb-2 sm:px-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-blue-300">The story behind GIC</p>
+            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">Building independent AI research in public.</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-300">See why Global Intent Company is developing its own model architectures, scientific experiments and private infrastructure—and how you can explore the work.</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link href="/research" onClick={() => trackConversion('gic_cta_clicked', { action: 'research_from_video', placement: 'home_video' })} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-blue-50">Explore research <ArrowRight size={15} /></Link>
+              <Link href="/pricing#fund-research" onClick={() => trackConversion('gic_cta_clicked', { action: 'fund_from_video', placement: 'home_video' })} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Support development <PlayCircle size={15} /></Link>
+            </div>
+          </div>
+        </div>
         <div className="mt-12 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 sm:p-7">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="max-w-2xl">
