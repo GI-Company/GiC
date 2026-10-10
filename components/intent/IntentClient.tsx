@@ -160,6 +160,7 @@ export default function IntentClient({
   const [searchDepth, setSearchDepth] = useState<'quick' | 'deep'>('quick');
   const [dataCollectionEnabled, setDataCollectionEnabled] = useState(true);
   const [model, setModel] = useState<'fast' | 'medium' | 'enhanced'>('fast');
+  const [researchAgent, setResearchAgent] = useState<'off' | 'auto' | 'intent_r' | 'bitvision' | 'plm'>('off');
   const [availableModes, setAvailableModes] = useState<string[]>([]);
   const [multimodal, setMultimodal] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
@@ -309,7 +310,7 @@ export default function IntentClient({
     let active = true;
     async function refreshAvailability() {
       try {
-        const response = await fetch('/api/intent', {
+        const response = await fetch(researchAgent === 'off' ? '/api/intent' : '/api/research-agents', {
           cache: 'no-store',
           headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         });
@@ -471,7 +472,9 @@ export default function IntentClient({
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = message.trim();
-    if (!text || busy || !availabilityChecked || !availableModes.includes(model)) return;
+    if (!text || busy || (researchAgent === 'off' && (!availabilityChecked || !availableModes.includes(model)))) return;
+    if (researchAgent !== 'off' && (!accessToken || billing.tier === 'free')) return;
+    if (researchAgent !== 'off' && imageAttachment) { setError('Research agents currently support text only. Remove the image attachment.'); return; }
 
     const attachedImage = imageAttachment;
     hasSentRef.current = true;
@@ -486,7 +489,7 @@ export default function IntentClient({
       const response = await fetch('/api/intent', {
         method: 'POST',
         headers: accessToken ? { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify(researchAgent === 'off' ? {
           message: text,
           workspace_agent: workspaceAgent && billing.tier !== 'free',
           conversation_context: workspaceAgent ? turns.slice(-8).map(turn => ({ role: turn.role, text: turn.text })) : undefined,
@@ -497,7 +500,7 @@ export default function IntentClient({
           max_tokens: maxTokens,
           data_collection_enabled: billingReady && privacyReady ? effectiveDataCollectionEnabled : false,
           image_url: attachedImage?.dataUrl,
-        }),
+        } : { agent: researchAgent, messages: [...turns.slice(-10).map(turn => ({ role: turn.role, content: turn.text.slice(0,4000) })), { role: 'user', content: text }] }),
       });
 
       const remaining = response.headers.get('X-RateLimit-Remaining');
@@ -512,7 +515,7 @@ export default function IntentClient({
         throw new Error(data.error || 'Request failed.');
       }
 
-      const answer = data as ChatResponse;
+      const answer = (researchAgent === 'off' ? data : { answer: data.answer, session_id: sessionId, mode: model, sources: [], warning: `Research assistant: ${data.agent} · External inference: ${data.provider}` }) as ChatResponse;
       trackConversion('gic_answer_received', { access: accessToken ? 'account' : 'guest', first_in_session: !turns.some((turn) => turn.role === 'assistant') });
       setSessionId(answer.session_id);
       const enrichedSources = search && answer.sources?.length
@@ -1113,6 +1116,15 @@ export default function IntentClient({
                     ))}
                   </div>
 
+                  {accessToken && billing.tier !== 'free' && (
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                      <label htmlFor="gic-research-agent" className="block text-xs font-semibold text-slate-700">GIC Research Agent</label>
+                      <select id="gic-research-agent" value={researchAgent} disabled={busy} onChange={event => { setResearchAgent(event.target.value as typeof researchAgent); setSearch(false); }} className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-900">
+                        <option value="off">LooseMouth standard</option><option value="auto">INTENT-R automatic router</option><option value="intent_r">INTENT-R Research · Gemini</option><option value="bitvision">BitVision Research · Gemini</option><option value="plm">PLM Infrastructure · Groq</option>
+                      </select>
+                      <p className="mt-2 text-xs text-slate-500">Research agents use third-party AI providers. Text only; separate hourly workbench quota applies. Web search and image generation are not available in this mode.</p>
+                    </div>
+                  )}
                   {enhancedSearch && (
                     <div className="mt-4 rounded-xl bg-slate-50 p-3">
                       <label className="flex min-h-10 items-center justify-between gap-3 text-sm font-medium text-slate-700">
