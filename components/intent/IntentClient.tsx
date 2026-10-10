@@ -488,7 +488,7 @@ export default function IntentClient({
       const maxTokens = model === 'enhanced' ? 1200 : model === 'medium' ? 900 : 600;
       const response = await fetch('/api/intent', {
         method: 'POST',
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', ...(researchAgent !== 'off' ? { 'Idempotency-Key': crypto.randomUUID() } : {}) } : { 'Content-Type': 'application/json' },
         body: JSON.stringify(researchAgent === 'off' ? {
           message: text,
           workspace_agent: workspaceAgent && billing.tier !== 'free',
