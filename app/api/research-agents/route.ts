@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { user, entitlement, consumeWorkbenchQuota } from '@/lib/workbench-access';
 import { getResearchAgent, type ResearchAgentTier } from '@/lib/research-agent-registry';
+import { routeIntent } from '@/lib/intent-r-orchestrator';
 
 export const runtime = 'nodejs';
 const noStore = { 'Cache-Control': 'no-store' };
@@ -64,9 +65,10 @@ export async function POST(req:NextRequest){
  if(tier==='free')return error('Research assistants require an active Paid or Enhanced membership.',403);
  let body:Record<string,unknown>;
  try{const raw=await req.text();if(raw.length>48000)return error('Request too large.',413);body=JSON.parse(raw);if(!body||typeof body!=='object'||Array.isArray(body))return error('Invalid request.',400);}catch{return error('Invalid JSON.',400);}
- const agent=getResearchAgent(body.agent,tier as ResearchAgentTier);
- if(!agent)return error('Unknown or unavailable research assistant.',400);
  const turns=parseTurns(body.messages);if(!turns)return error('Provide 1–12 valid conversation turns ending in a user message.',400);
+ const routing=routeIntent(turns[turns.length-1].content,tier as ResearchAgentTier,body.agent);
+ if(!routing)return error('Unknown or unavailable research assistant.',400);
+ const agent=getResearchAgent(routing.agent,tier as ResearchAgentTier)!;
  if(agent.provider==='gemini'&&!process.env.GEMINI_API_KEY)return error('Gemini is not configured.',503);
  if(agent.provider==='groq'&&!process.env.GROQ_API)return error('Groq is not configured.',503);
  const quota=await consumeWorkbenchQuota(`research-agent:${me.id}`);
@@ -76,6 +78,6 @@ export async function POST(req:NextRequest){
   const timeout=AbortSignal.timeout(30000);
   const signal=AbortSignal.any([req.signal,timeout]);
   const answer=agent.provider==='gemini'?await gemini(turns,agent.instructions,signal):await groq(turns,agent.instructions,signal);
-  return NextResponse.json({answer,agent:agent.id,provider:agent.provider,externalInference:true,quota:{remaining:quota.remaining,resetAt:quota.resetAt}},{headers:noStore});
+  return NextResponse.json({answer,agent:agent.id,routing,provider:agent.provider,externalInference:true,quota:{remaining:quota.remaining,resetAt:quota.resetAt}},{headers:noStore});
  }catch{return error('The research assistant is temporarily unavailable. Your quota may have been consumed; please retry later.',503);}
 }
