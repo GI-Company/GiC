@@ -8,6 +8,18 @@ const noStore = { 'Cache-Control': 'no-store' };
 const error = (message:string,status:number)=>NextResponse.json({error:message},{status,headers:noStore});
 type Turn = {role:'user'|'assistant';content:string};
 const MAX_TURNS=12;
+const MAX_BODY_BYTES=48_000;
+class OversizedBodyError extends Error {}
+async function readBoundedBody(req:NextRequest):Promise<string>{
+ const declared=Number(req.headers.get('content-length'));
+ if(Number.isFinite(declared)&&declared>MAX_BODY_BYTES)throw new OversizedBodyError();
+ if(!req.body)return '';
+ const reader=req.body.getReader();const chunks:Uint8Array[]=[];let total=0;
+ try{while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>MAX_BODY_BYTES)throw new OversizedBodyError();chunks.push(value);}}
+ finally{reader.releaseLock();}
+ const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
+ return new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+}
 function parseTurns(value:unknown):Turn[]|null {
  if(!Array.isArray(value)||value.length<1||value.length>MAX_TURNS)return null;
  const turns:Turn[]=[];
@@ -59,19 +71,19 @@ export async function GET(req:NextRequest){
 }
 export async function POST(req:NextRequest){
  if(req.headers.get('origin')&&req.headers.get('origin')!==req.nextUrl.origin)return error('Cross-origin request rejected.',403);
- if(!req.headers.get('content-type')?.startsWith('application/json'))return error('Expected JSON.',415);
+ if(!req.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase()==='application/json')return error('Expected JSON.',415);
  const me=await user(req);if(!me?.id)return error('Sign in to use research assistants.',401);
  const tier=await entitlement(me.id);if(!tier)return error('Membership verification unavailable.',503);
  if(tier==='free')return error('Research assistants require an active Paid or Enhanced membership.',403);
  let body:Record<string,unknown>;
- try{const raw=await req.text();if(raw.length>48000)return error('Request too large.',413);body=JSON.parse(raw);if(!body||typeof body!=='object'||Array.isArray(body))return error('Invalid request.',400);}catch{return error('Invalid JSON.',400);}
+ try{const raw=await readBoundedBody(req);body=JSON.parse(raw);if(!body||typeof body!=='object'||Array.isArray(body))return error('Invalid request.',400);}catch(cause){return cause instanceof OversizedBodyError?error('Request too large.',413):error('Invalid JSON.',400);}
  const turns=parseTurns(body.messages);if(!turns)return error('Provide 1–12 valid conversation turns ending in a user message.',400);
  const routing=routeIntent(turns[turns.length-1].content,tier as ResearchAgentTier,body.agent);
  if(!routing)return error('Unknown or unavailable research assistant.',400);
  const agent=getResearchAgent(routing.agent,tier as ResearchAgentTier)!;
  if(agent.provider==='gemini'&&!process.env.GEMINI_API_KEY)return error('Gemini is not configured.',503);
  if(agent.provider==='groq'&&!process.env.GROQ_API)return error('Groq is not configured.',503);
- const quota=await consumeWorkbenchQuota(`research-agent:${me.id}`);
+ const quota=await consumeWorkbenchQuota(me.id);
  if(!quota.configured)return error('Usage limits are not configured.',503);
  if(!quota.allowed)return error('Research assistant usage limit reached. Try again after the hourly reset.',429);
  try{
