@@ -6,7 +6,7 @@ export type IntentTask = 'reasoning' | 'visual_analysis' | 'infrastructure';
 export type RoutingDecision = { agent: IntentRoute; task: IntentTask; reason: string; externalInference: true; requiresConfirmation: boolean };
 
 const VISUAL = /\b(image|picture|photo|screenshot|diagram|visual|pixel|spectrum|spectra|mass spectrometry|bitvision|render|illustration)\b/i;
-const INFRA = /\b(plm|private model|self.host|on.prem|network|server|deployment|docker|kubernetes|firewall|encryption|infrastructure)\b/i;
+const INFRA = /\b(plm|private model|self.host|on.prem|computer network|network infrastructure|network security|server|deployment|docker|kubernetes|firewall|encryption|infrastructure)\b/i;
 const ACTION = /\b(generate|create|draw|edit|modify|delete|deploy|publish|execute|purchase|send)\b/i;
 
 export function routeIntent(prompt: string, tier: ResearchAgentTier, requestedAgent?: unknown): RoutingDecision | null {
