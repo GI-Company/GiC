@@ -3,7 +3,7 @@
 import React from 'react';
 import { trackConversion } from '@/lib/conversion-events';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, FlaskConical, Network, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FlaskConical, Network, Sparkles, ArrowUpRight } from 'lucide-react';
 
 const pillars = [
   {
@@ -53,6 +53,14 @@ export default function LandingHero() {
             <Link href="/pricing" onClick={() => trackConversion('gic_cta_clicked', { action: 'view_plans', placement: 'home' })} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50">Compare plans <ArrowRight size={16} /></Link>
           </div>
           <p className="mt-3 text-sm text-slate-500">5 guest messages · No account or payment card needed to try.</p>
+          <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-950">Want to save conversations and use your own workspace?</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">Create a free account, or compare Paid and Enhanced workspaces for research assistants, reports and applets.</p>
+            </div>
+            <Link href="/signup" onClick={() => trackConversion('gic_cta_clicked', { action: 'create_account', placement: 'home_account_strip' })} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-blue-600 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">Create free account <ArrowUpRight size={15} /></Link>
+            <Link href="/pricing" onClick={() => trackConversion('gic_cta_clicked', { action: 'view_paid_workspaces', placement: 'home_account_strip' })} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Explore workspaces <ArrowRight size={15} /></Link>
+          </div>
           <div className="mt-8 max-w-3xl rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
             <p className="font-semibold text-slate-950">Try LooseMouth: chat and web-assisted research.</p>
             <p className="mt-1 text-sm leading-6 text-slate-600">Get an answer before creating an account. Paid adds reusable reports; Enhanced adds interactive applets. Current hosted inference uses Groq while GIC develops its own models and infrastructure.</p>
@@ -73,7 +81,17 @@ export default function LandingHero() {
           </div>
         </div>
 
-        <div className="mt-16 grid gap-5 md:grid-cols-3">
+        <div className="mt-12 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 sm:p-7">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-700">See the research in action</p>
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">Explore a live BitVision-Cell experiment</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Inspect the browser-based research demonstration before deciding whether to create an account or support development.</p>
+            </div>
+            <Link href="/virtual-lab/bitvision-cell" onClick={() => trackConversion('gic_cta_clicked', { action: 'open_bitvision_demo', placement: 'home_featured_demo' })} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700">Launch live demo <ArrowUpRight size={16} /></Link>
+          </div>
+        </div>
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
           {pillars.map(({ title, eyebrow, description, href, icon: Icon }) => (
             <Link key={title} href={href} className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
               <div className="flex items-center justify-between">
