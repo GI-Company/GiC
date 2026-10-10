@@ -27,3 +27,6 @@ test('rejects invalid explicit agent',()=>assert.equal(routeIntent('Hi','paid','
 test('flags potentially consequential actions',()=>assert.equal(routeIntent('Deploy my server','paid').requiresConfirmation,true));
 test('does not flag ordinary questions',()=>assert.equal(routeIntent('What is attention?','paid').requiresConfirmation,false));
 test('rejects oversized input',()=>assert.equal(routeIntent('x'.repeat(4001),'paid'),null));
+
+test('neural networks route to reasoning',()=>assert.equal(routeIntent('Explain neural networks','paid').agent,'intent_r'));
+test('computer networks route to PLM',()=>assert.equal(routeIntent('Review computer network security','paid').agent,'plm'));
