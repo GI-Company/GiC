@@ -348,7 +348,7 @@ export default function LooseMouthWorkbench({
     try {
       const response = await fetch('/api/research-agents', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
         body: JSON.stringify({ agent: researchAgent, messages: [{ role: 'user', content: prompt.slice(0, 4000) }] }),
       });
       const data = await response.json() as { answer?: string; error?: string; provider?: string; agent?: string };
