@@ -102,8 +102,9 @@ export async function POST(req:NextRequest){
  if(claim.state==='completed'&&claim.response)return NextResponse.json(claim.response,{headers:noStore});
  if(claim.state==='conflict')return error('Idempotency key reused for different request.',409);
  if(claim.state!=='claimed')return error('Request already processing or previously failed; retry later with a new key only if needed.',409);
+ const validatedKey: string = idempotencyKey;
  const complete=async(status:'completed'|'failed',response?:Record<string,unknown>)=>{
-  try{await fetch(new URL('/rest/v1/research_agent_requests',SUPABASE_URL)+`?user_id=eq.${encodeURIComponent(me.id)}&request_key=eq.${encodeURIComponent(idempotencyKey)}&status=eq.pending`,{
+  try{await fetch(new URL('/rest/v1/research_agent_requests',SUPABASE_URL)+`?user_id=eq.${encodeURIComponent(me.id)}&request_key=eq.${encodeURIComponent(validatedKey)}&status=eq.pending`,{
    method:'PATCH',headers:{...headers,Prefer:'return=minimal'},body:JSON.stringify({status,response:response||null}),cache:'no-store',signal:AbortSignal.timeout(5000)
   });}catch{}
  };
