@@ -239,6 +239,10 @@ export default function LooseMouthWorkbench({
 }: Props) {
   const [kind, setKind] = useState<ArtifactKind>(initialKind);
   const [prompt, setPrompt] = useState(initialPrompt);
+  const [researchAgent, setResearchAgent] = useState<'auto' | 'intent_r' | 'bitvision' | 'plm'>('auto');
+  const [researchBrief, setResearchBrief] = useState('');
+  const [researchBusy, setResearchBusy] = useState(false);
+  const [researchError, setResearchError] = useState('');
   const [items, setItems] = useState<LooseMouthArtifact[]>([]);
   const [active, setActive] = useState<LooseMouthArtifact | null>(null);
   const [draft, setDraft] = useState<Record<string, unknown> | null>(null);
@@ -335,6 +339,23 @@ export default function LooseMouthWorkbench({
     setActiveFile(nextFiles[0]?.path || 'index.html');
     setCompiledPreview(item.kind === 'applet' ? appletDoc(item.content) : '');
     onRename(item.title.slice(0, 64), true);
+  }
+
+  async function research() {
+    if (!prompt.trim() || researchBusy || busy) return;
+    setResearchBusy(true);
+    setResearchError('');
+    try {
+      const response = await fetch('/api/research-agents', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent: researchAgent, messages: [{ role: 'user', content: prompt.slice(0, 4000) }] }),
+      });
+      const data = await response.json() as { answer?: string; error?: string; provider?: string; agent?: string };
+      if (!response.ok || !data.answer) throw new Error(data.error || 'Research unavailable.');
+      setResearchBrief(data.answer);
+    } catch (cause) { setResearchError(cause instanceof Error ? cause.message : 'Research unavailable.'); }
+    finally { setResearchBusy(false); }
   }
 
   async function generate(revision?: string) {
@@ -533,6 +554,17 @@ export default function LooseMouthWorkbench({
             <p className="mt-2 text-sm leading-6 text-slate-600">Reports and runnable browser applets kept with your workspace.</p>
           </div>
 
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+            <label htmlFor={`workbench-agent-${windowId}`} className="block text-xs font-semibold text-slate-700">Research assistant</label>
+            <select id={`workbench-agent-${windowId}`} value={researchAgent} onChange={event => setResearchAgent(event.target.value as typeof researchAgent)} className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900">
+              <option value="auto">INTENT-R Auto Router</option><option value="intent_r">INTENT-R · Gemini</option><option value="bitvision">BitVision · Gemini</option><option value="plm">PLM · Groq</option>
+            </select>
+            <button type="button" disabled={busy || researchBusy || !prompt.trim()} onClick={() => void research()} className="mt-2 w-full rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">{researchBusy ? 'Researching…' : 'Research this brief'}</button>
+            <p className="mt-2 text-[10px] text-slate-500">External AI inference. Research consumes a separate workbench quota; it does not automatically modify saved builds.</p>
+            {researchError && <p role="alert" className="mt-2 text-xs text-red-700">{researchError}</p>}
+            {researchBrief && <div className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-2 text-xs text-slate-700">{researchBrief}</div>}
+            {researchBrief && <button type="button" onClick={() => setPrompt(current => `${current}\n\nResearch notes (review and verify):\n${researchBrief}`.slice(0, 12000))} className="mt-2 text-xs font-semibold text-blue-700 underline">Append research to brief</button>}
+          </div>
           <button
             type="button"
             onClick={() => resetBuild()}
