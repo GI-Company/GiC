@@ -71,7 +71,7 @@ export async function GET(req:NextRequest){
 }
 export async function POST(req:NextRequest){
  if(req.headers.get('origin')&&req.headers.get('origin')!==req.nextUrl.origin)return error('Cross-origin request rejected.',403);
- if(!req.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase()==='application/json')return error('Expected JSON.',415);
+ if(req.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase()!=='application/json')return error('Expected JSON.',415);
  const me=await user(req);if(!me?.id)return error('Sign in to use research assistants.',401);
  const tier=await entitlement(me.id);if(!tier)return error('Membership verification unavailable.',503);
  if(tier==='free')return error('Research assistants require an active Paid or Enhanced membership.',403);
