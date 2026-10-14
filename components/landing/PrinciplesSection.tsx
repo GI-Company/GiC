@@ -1,4 +1,4 @@
-import { Eye, Gauge, LockKeyhole, Scale, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, Eye, Gauge, Linkedin, LockKeyhole, Scale, ShieldCheck } from 'lucide-react';
 
 const principles = [
   { icon: LockKeyhole, title: 'Private by architecture', text: 'Design deployment so operators can keep inference, model assets, and application context inside infrastructure they control.' },
@@ -25,6 +25,19 @@ export default function PrinciplesSection() {
               <p className="mt-3 text-sm leading-6 text-slate-600">{text}</p>
             </article>
           ))}
+          <a
+            href="https://www.linkedin.com/company/146743901/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Visit the official Global Intent Company LinkedIn page (opens in a new tab)"
+            className="group flex min-w-0 flex-col bg-white p-7 transition-colors hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><Linkedin className="h-5 w-5" aria-hidden="true" /></span>
+            <h3 className="mt-6 text-lg font-semibold text-slate-950">Connect with Global Intent Company</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-600">Follow our official LinkedIn page for research updates, INTENT model development, and progress across our private AI systems.</p>
+            <span className="mt-4 break-all text-sm font-medium text-blue-700 underline decoration-blue-300 underline-offset-4">linkedin.com/company/146743901/</span>
+            <span className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 group-hover:text-blue-900">Visit our company page <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></span>
+          </a>
         </div>
       </div>
     </section>
