@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Github, Mail } from 'lucide-react';
+import { ArrowRight, Github, Linkedin, Mail } from 'lucide-react';
 
 const links = [
   { label: 'Research', href: '/research' },
@@ -33,6 +33,7 @@ export default function MarketingFooter() {
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-slate-400">
           <p>Independent AI and systems engineering</p>
           <div className="flex flex-wrap gap-5">
+            <a href="https://www.linkedin.com/company/146743901/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 hover:text-white"><Linkedin size={14} aria-hidden="true" /> LinkedIn</a>
             <a href="https://github.com/GI-Company" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-white"><Github size={14} /> GitHub</a>
             <a href="mailto:cory.tortorici@globalintentcompany.space" className="inline-flex items-center gap-1.5 hover:text-white"><Mail size={14} /> Direct email</a>
           </div>
