@@ -5,8 +5,8 @@ type Properties = {
   plan?: 'paid' | 'enhanced';
   method?: 'email' | 'google';
   mode?: 'signin' | 'signup';
-  placement?: 'home' | 'pricing' | 'workspace' | 'navigation';
-  action?: 'try_free' | 'create_account' | 'view_plans';
+  placement?: 'home' | 'home_account_strip' | 'home_video' | 'home_featured_demo' | 'pricing' | 'workspace' | 'navigation';
+  action?: 'try_free' | 'create_account' | 'view_plans' | 'view_paid_workspaces' | 'research_from_video' | 'fund_from_video' | 'open_bitvision_demo';
   access?: 'guest' | 'account';
   first_in_session?: boolean;
   status?: 'active' | 'trialing';
