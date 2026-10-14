@@ -17,6 +17,7 @@ export default function CompanyFounderSection() {
             <div className="mt-8 rounded-2xl border border-blue-200 bg-blue-50/60 p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-800">Company status</p>
               <p className="mt-2 text-sm leading-6 text-slate-700">Pre-incorporation · Bootstrapped and founder-funded · $0 external funding raised · No institutional or lead investor.</p>
+              <a href="https://www.linkedin.com/company/146743901/" target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-md font-semibold text-blue-800 underline decoration-blue-300 underline-offset-4 hover:text-blue-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"><Linkedin className="h-4 w-4" aria-hidden="true" /> Official Global Intent Company LinkedIn page <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" /></a>
             </div>
           </div>
 
