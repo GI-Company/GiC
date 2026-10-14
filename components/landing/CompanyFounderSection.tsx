@@ -14,6 +14,9 @@ export default function CompanyFounderSection() {
             <p className="mt-5 text-base leading-7 text-slate-600">
               AI is core to the company&apos;s products and research: Global Intent Company develops and trains custom model architectures, operates inference infrastructure, and builds the software that connects models to private and scientific workflows rather than relying exclusively on third-party AI APIs.
             </p>
+            <p className="mt-5 text-base leading-7 text-slate-600">
+              Our intended users include developers, independent researchers, scientific teams, and organizations that need more direct control over model execution, compute, data, and reproducible research workflows. We address dependence on opaque hosted AI services and the difficulty of verifying and reproducing technical results.
+            </p>
             <div className="mt-8 rounded-2xl border border-blue-200 bg-blue-50/60 p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-800">Company status</p>
               <p className="mt-2 text-sm leading-6 text-slate-700">Pre-incorporation · Bootstrapped and founder-funded · $0 external funding raised · No institutional or lead investor.</p>
@@ -25,7 +28,7 @@ export default function CompanyFounderSection() {
             <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700"><UserRound className="h-5 w-5" /></span>
               <h3 className="mt-6 text-lg font-semibold text-slate-950">Founder</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">Cory Tortorici leads architecture, implementation, experimentation, and research direction.</p>
+              <p className="mt-3 text-sm leading-6 text-slate-600">Cory Tortorici leads architecture, implementation, experimentation, and research direction. His hands-on engineering work includes custom language-model training and inference systems, full-stack web applications, authenticated private-model hubs and protocols, and scientific instrumentation prototypes.</p>
               <a href="https://www.linkedin.com/in/cory-tortorici-1843b636a" target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900"><Linkedin className="h-4 w-4" /> LinkedIn <ArrowUpRight className="h-3.5 w-3.5" /></a>
             </article>
             <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
