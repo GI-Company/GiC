@@ -42,7 +42,7 @@ const organizationJsonLd = {
     name: 'Cory Tortorici',
   },
   description: 'Independent AI and systems engineering company developing language models, private AI infrastructure, and scientific computing systems.',
-  sameAs: ['https://github.com/GI-Company'],
+  sameAs: ['https://github.com/GI-Company', 'https://www.linkedin.com/company/146743901/'],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
