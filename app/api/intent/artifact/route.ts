@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { user, entitlement, consumeWorkbenchQuota, WORKBENCH_LIMIT } from '@/lib/workbench-access';
 import { runArtifactAgent } from '@/lib/artifact-agent';
+import { geminiModelForMode, getGeminiKey } from '@/lib/gemini-provider';
 
 export const runtime = 'nodejs';
 
-const WORKBENCH_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'] as const;
 type ConversationTurn = {
   role?: unknown;
   text?: unknown;
@@ -129,14 +129,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Describe what you want LooseMouth to build.' }, { status: 400 });
   }
 
-  const key = process.env.GROQ_API;
+  const key = getGeminiKey();
   if (!key) {
     return NextResponse.json({ error: 'Workbench generation is not configured.' }, { status: 503 });
   }
 
   try {
-    const result = await runArtifactAgent({ key, model: WORKBENCH_MODELS[0], kind, prompt, context: conversationContext(body.conversation_context), current: body.current, normalize: normalizeArtifact });
-    const response = NextResponse.json({ kind, ...result, model: WORKBENCH_MODELS[0] });
+    const model = geminiModelForMode(kind === 'applet' ? 'enhanced' : 'medium');
+    const result = await runArtifactAgent({ key, model, kind, prompt, context: conversationContext(body.conversation_context), current: body.current, normalize: normalizeArtifact });
+    const response = NextResponse.json({ kind, ...result, model, provider: 'gemini' });
     response.headers.set('X-RateLimit-Limit', String(WORKBENCH_LIMIT));
     response.headers.set('X-RateLimit-Remaining', String(quota.remaining));
     if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);
