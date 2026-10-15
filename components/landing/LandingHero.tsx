@@ -81,16 +81,47 @@ export default function LandingHero() {
           </div>
         </div>
 
-        <div className="mt-12 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 sm:p-7">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-xs font-bold uppercase tracking-widest text-blue-700">See the research in action</p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">Explore a live BitVision-Cell experiment</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Inspect the browser-based research demonstration before deciding whether to create an account or support development.</p>
+        <section aria-labelledby="intent-rlse-feature" className="mt-12 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="p-6 sm:p-8 lg:p-10">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">Featured model research · experimental release</p>
+              <h2 id="intent-rlse-feature" className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">INTENT Foundation · RLSE-v2</h2>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-700">
+                A language model trained from scratch on GIC&apos;s research pipeline. RLSE-v2 combines causal Transformer blocks with a shared recurrent latent-search controller, a learned external-memory router, candidate selection, and auxiliary latent-world-model and critic objectives.
+              </p>
+              <p className="mt-4 text-sm leading-6 text-slate-600">
+                This is an early research checkpoint, not a production-grade assistant. It can produce inaccurate or fabricated statements; outputs should be independently verified.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <a href="https://huggingface.co/spaces/Hdhhhgfc/INTENT-RLSE-v2" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700">
+                  Try the experimental model <ArrowUpRight size={16} aria-hidden="true" />
+                </a>
+                <Link href="/models" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50">
+                  Explore model research <ArrowRight size={16} aria-hidden="true" />
+                </Link>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-slate-500">External demo hosted on Hugging Face Spaces; access and availability depend on Hugging Face.</p>
             </div>
-            <Link href="/virtual-lab/bitvision-cell" onClick={() => trackConversion('gic_cta_clicked', { action: 'open_bitvision_demo', placement: 'home_featured_demo' })} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700">Launch live demo <ArrowUpRight size={16} /></Link>
+            <div className="border-t border-slate-200 bg-slate-50 p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10">
+              <h3 className="text-sm font-semibold text-slate-900">Checkpoint and architecture</h3>
+              <dl className="mt-5 grid grid-cols-2 gap-x-5 gap-y-6">
+                <div><dt className="text-xs text-slate-500">Unique parameters</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">187.3M</dd></div>
+                <div><dt className="text-xs text-slate-500">Pretraining steps</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">7,200</dd></div>
+                <div><dt className="text-xs text-slate-500">Prepared pretraining corpus</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">~350M <span className="text-sm font-medium">tokens</span></dd></div>
+                <div><dt className="text-xs text-slate-500">SFT steps</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">1,000</dd></div>
+                <div><dt className="text-xs text-slate-500">Final SFT response LM loss</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">1.7749</dd></div>
+                <div><dt className="text-xs text-slate-500">Context / vocabulary</dt><dd className="mt-1 text-lg font-semibold tracking-tight text-slate-950">1,024 / 49,152</dd></div>
+              </dl>
+              <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">
+                Step-1000 response LM loss is one training-minibatch measurement, not held-out validation loss or a model-quality benchmark. The ~350M tokens describe the prepared corpus, not a verified count of unique tokens consumed.
+              </p>
+              <div className="mt-4 border-t border-slate-200 pt-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Architecture details</p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">10 encoder blocks · 4 shared recurrent core blocks · up to 4 search passes · 3 latent candidates per pass · 512 learned memory slots · grouped-query attention · 2 auxiliary world-model blocks</p>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
         <div className="mt-10 grid gap-5 md:grid-cols-3">
           {pillars.map(({ title, eyebrow, description, href, icon: Icon }) => (
             <Link key={title} href={href} className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
