@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, Cpu, FlaskConical, ShieldAlert } from 'lucide-react';
+import LooseMouthModelPicker from '@/components/intent/LooseMouthModelPicker';
 
 export const metadata: Metadata = {
   title: 'LooseMouth Mini | INTENT-F Research Studio',
@@ -19,6 +20,7 @@ export default function IntentMiniPage() {
           <Link href="/intent" className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-blue-800 hover:text-blue-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
             <ArrowLeft size={17} aria-hidden="true" /> Back to LooseMouth Workspace
           </Link>
+          <LooseMouthModelPicker selected="mini" compact />
           <Link href="/" className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline">Global Intent Company</Link>
         </nav>
 
