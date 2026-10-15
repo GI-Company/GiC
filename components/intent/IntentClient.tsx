@@ -763,7 +763,7 @@ export default function IntentClient({
     : null;
 
   return (
-    <main data-ph-mask className="ph-no-capture h-[100dvh] min-h-0 overflow-hidden bg-white text-slate-950">
+    <main data-ph-mask className="ph-no-capture h-[100dvh] min-h-0 w-full max-w-[100vw] overflow-hidden bg-white text-slate-950">
       <div className={`mx-auto grid h-full min-h-0 overflow-hidden ${accessToken && sidebarCollapsed ? 'lg:grid-cols-[minmax(0,1fr)]' : 'lg:grid-cols-[270px_minmax(0,1fr)]'}`}>
         <aside aria-label="Workspace sidebar" className={`${accessToken && sidebarCollapsed ? 'hidden' : 'hidden lg:block'} h-full min-h-0 overflow-y-auto overscroll-contain border-r border-slate-200 bg-slate-50 px-5 py-6`}>
           <div className="flex items-center justify-between gap-4 lg:block">
@@ -999,23 +999,23 @@ export default function IntentClient({
         <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
           {billingNotice && !['Your subscription trial is active.', 'Your subscription is active.'].includes(billingNotice) && <div role="status" className="border-b border-blue-200 bg-blue-50 px-4 py-1.5 text-center text-xs font-medium text-blue-800">{billingNotice}</div>}
           {accessToken && billing.tier !== 'free' && (
-            <div role="status" aria-label="Subscription status" className="flex shrink-0 items-center justify-between gap-2 border-b border-blue-200 bg-blue-50 px-4 py-1 text-[11px] leading-5 text-blue-900">
+            <div role="status" aria-label="Subscription status" className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-blue-200 bg-blue-50 px-4 py-2 text-xs leading-5 text-blue-950 sm:py-1">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2">
                 <strong>{billing.tier === 'enhanced' ? 'Enhanced active' : 'Paid active'}</strong>
                 <span className="hidden sm:inline">{billing.tier === 'enhanced' ? 'Reports & applets · 300/hour' : 'Reports · 100/hour'}</span>
                 {billing.status === 'trialing' && billing.trial_end && <span>Trial until {new Date(billing.trial_end).toLocaleDateString()}</span>}
               </div>
-              <button type="button" onClick={() => openWorkbench()} className="min-h-6 shrink-0 rounded px-2 text-[11px] font-semibold text-blue-800 underline underline-offset-2 hover:bg-blue-100">Open Workbench</button>
+              <button type="button" onClick={() => openWorkbench()} className="min-h-10 shrink-0 rounded-lg px-2 text-xs font-semibold text-blue-900 underline underline-offset-2 hover:bg-blue-100 sm:min-h-8">Open Workbench</button>
             </div>
           )}
           {upgradeNotice&&billing.tier==='free'&&<div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"><span>You have {quotaRemaining ?? 0} free requests left this hour. Paid starts with a 30-day free trial and raises the allowance to 100/hour.</span><span className="flex shrink-0 gap-2"><Link href="/pricing#plans" className="font-semibold underline">View plans</Link><button type="button" onClick={dismissUpgrade} aria-label="Dismiss upgrade notice"><X size={14}/></button></span></div>}
-          <header className="shrink-0 border-b border-slate-200 bg-white/95 px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:hidden">
+          <header className="shrink-0 border-b border-slate-200 bg-white/95 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={newChat}
                 aria-label="New session"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 <RotateCcw size={17} />
               </button>
@@ -1047,7 +1047,7 @@ export default function IntentClient({
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label="Open sessions and settings"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 <Menu size={18} />
               </button>
@@ -1252,6 +1252,7 @@ export default function IntentClient({
                   <Link href="/research" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Research</Link>
                   <Link href="/systems" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Systems</Link>
                   <Link href="/virtual-lab/demo" className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-slate-700">Virtual Lab · Paid demo</Link>
+                  <Link href="/intent?mini=1" className="col-span-2 flex min-h-11 items-center justify-center rounded-lg border border-blue-300 bg-blue-50 px-3 py-2.5 text-center text-sm font-semibold text-blue-900 hover:bg-blue-100">Test LooseMouth Mini · INTENT-F</Link>
                 </nav>
 
                 <button
@@ -1321,25 +1322,25 @@ export default function IntentClient({
               )}
 
               {availabilityChecked && availableModes.length > 0 && turns.length === 0 && (
-                <div className="mx-auto flex max-w-3xl flex-col justify-center py-4 sm:py-6">
+                <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center py-8 sm:py-10">
                   <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-200 bg-blue-50">
                       <Cpu className="h-5 w-5 text-blue-700" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">Session ready</p>
-                      <p className="text-sm text-slate-500">{accessToken ? `Signed in as ${displayName}` : 'You are using a guest session'}</p>
+                      <p className="text-sm font-semibold uppercase tracking-[0.12em] text-blue-800">Session ready</p>
+                      <p className="text-sm text-slate-700">{accessToken ? `Signed in as ${displayName}` : 'You are using a guest session'}</p>
                     </div>
                   </div>
 
-                  <h2 className="max-w-2xl text-2xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-3xl">
+                  <h2 className="max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-3xl">
                     Ask LooseMouth
                   </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
+                  <p className="mt-3 max-w-2xl text-base leading-7 text-slate-700">
                     {billing.tier !== 'free' ? 'Explore an idea, prepare a report, or turn your conversation into a useful tool. You review each draft before saving.' : 'Start a conversation or open the menu for models, search, and saved sessions.'}
                   </p>
 
-                  <div className="mt-4 grid gap-2 sm:grid-cols-3 sm:gap-3">
+                  <div className="mt-6 grid grid-cols-1 gap-3 lg:grid-cols-3">
                     {(billing.tier !== 'free' ? [
                       { label: 'Plan a project', prompt: 'Help me plan [project]. Ask for the goal, constraints and deadline before preparing a report workbench brief.', agent: true },
                       { label: 'Compare my options', prompt: 'Help me compare [options] for [goal]. Ask which criteria matter, then prepare a decision report brief.', agent: true },
@@ -1354,7 +1355,7 @@ export default function IntentClient({
                           if (suggestion.agent) { setSearch(false); setImageAttachment(null); }
                           textareaRef.current?.focus();
                         }}
-                        className="rounded-2xl border border-slate-200 bg-white p-3 text-left text-sm leading-6 text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-slate-950"
+                        className="min-h-12 rounded-xl border border-slate-300 bg-white px-4 py-3 text-left text-base font-medium leading-6 text-slate-800 transition hover:border-blue-400 hover:bg-blue-50 hover:text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 lg:text-sm"
                       >
                         {suggestion.label}
                       </button>
@@ -1676,7 +1677,7 @@ export default function IntentClient({
                     <button
                       type="submit"
                       disabled={busy || !message.trim() || !availabilityChecked || !availableModes.includes(model)}
-                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:gap-2 sm:px-4"
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-700 text-sm font-semibold text-white transition hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:gap-2 sm:px-4"
                     >
                       <span className="hidden sm:inline">Send</span><ArrowUp size={17} />
                     </button>
@@ -1685,7 +1686,7 @@ export default function IntentClient({
 
                 </div>
 
-                <div className="mt-1 flex justify-center px-1 text-[10px] text-slate-500 sm:justify-between sm:text-[11px] sm:text-slate-600">
+                <div className="mt-2 flex justify-center px-1 text-xs text-slate-600 sm:justify-between">
                   <span className="hidden sm:inline">Enter to send · Shift+Enter for newline</span>
                   <span>LooseMouth can make mistakes.</span>
                 </div>
