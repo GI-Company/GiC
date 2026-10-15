@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     ? `user:${createHash('sha256').update(user!.id).digest('hex')}`
     : `anon:${anonymousActor(request)}`;
   const tier = user ? await billingTier(user.id) : 'free';
-  const quotaLimit = !authenticated ? 5 : tier === 'enhanced' ? 300 : tier === 'paid' ? 100 : 20;
+  const quotaLimit = !authenticated ? 5 : tier === 'enhanced' ? 300 : tier === 'paid' ? 100 : 10;
   const quotaWindow = authenticated ? 3600 : 2_592_000;
   const quota = await consumeQuota(actor, quotaLimit, quotaWindow);
   if (!quota.configured) return error('Inference access is being configured. Please try again shortly.', 503);
