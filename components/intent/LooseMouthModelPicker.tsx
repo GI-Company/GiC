@@ -1,7 +1,6 @@
 'use client';
 
 import { useId } from 'react';
-import { useRouter } from 'next/navigation';
 
 type LooseMouthModel = 'standard' | 'mini';
 
@@ -17,7 +16,6 @@ export default function LooseMouthModelPicker({
   selected: LooseMouthModel;
   compact?: boolean;
 }) {
-  const router = useRouter();
   const id = useId();
 
   return (
@@ -35,7 +33,7 @@ export default function LooseMouthModelPicker({
         onChange={(event) => {
           const next = event.currentTarget.value as LooseMouthModel;
           if (next === selected) return;
-          router.push(next === 'mini' ? '/intent?mini=1' : '/intent');
+          window.location.assign(next === 'mini' ? '/intent?mini=1' : '/intent');
         }}
         className={`min-h-11 min-w-0 rounded-xl border border-slate-400 bg-white px-3 py-2 text-sm font-semibold text-slate-950 shadow-sm outline-none transition hover:border-blue-600 focus-visible:border-blue-700 focus-visible:ring-2 focus-visible:ring-blue-300 ${compact ? 'max-w-full w-full sm:w-auto' : 'w-full'}`}
       >
