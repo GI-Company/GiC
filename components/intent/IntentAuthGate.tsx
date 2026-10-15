@@ -308,7 +308,7 @@ export default function IntentAuthGate() {
           </p>
           <div className="mt-8 border-l border-blue-200 pl-5 text-sm leading-7 text-slate-500">
             <p>Guest access includes 5 messages to try the workspace. A free account includes 20 requests per hour.</p>
-            <p>Your password is handled by Supabase Auth. Hosted inference is currently provided through Groq while Global Intent Company develops private AI models and infrastructure.</p>
+            <p>Your password is handled by Supabase Auth. Hosted inference is currently provided through Gemini while Global Intent Company develops private AI models and infrastructure.</p>
           </div>
         </section>
 
