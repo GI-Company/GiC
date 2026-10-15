@@ -31,6 +31,7 @@ import AssistantMessage from '@/components/intent/AssistantMessage';
 import { setWorkspaceAnalytics } from '@/lib/workspace-privacy';
 import BrandLoader from '@/components/BrandLoader';
 import IntentPwaControls from '@/components/intent/IntentPwaControls';
+import LooseMouthModelPicker from '@/components/intent/LooseMouthModelPicker';
 import LooseMouthWorkbench from '@/components/intent/LooseMouthWorkbench';
 import WorkbenchDock, { type WorkbenchTab } from '@/components/intent/WorkbenchDock';
 import { enrichSourcesWithPyScript } from '@/lib/pyscript-search';
@@ -1053,6 +1054,9 @@ export default function IntentClient({
               </button>
             </div>
 
+            <div className="mt-3 border-t border-slate-200 pt-3">
+              <LooseMouthModelPicker selected="standard" />
+            </div>
           </header>
 
           {mobileMenuOpen && (
@@ -1292,6 +1296,9 @@ export default function IntentClient({
               </div>
               {accessToken && accountUserId && <button type="button" onClick={() => openWorkbench()} className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 text-xs font-semibold text-blue-800 hover:bg-blue-100"><FileText size={13} /> Workbenches{workbenchWindows.length ? ` (${workbenchWindows.length})` : ''}</button>}
               <span className={`h-2 w-2 shrink-0 rounded-full ${availableModes.includes(model) ? 'bg-emerald-500' : 'bg-slate-300'}`} aria-label="Model availability" />
+            </div>
+            <div className="mt-2 flex items-center justify-end border-t border-slate-100 pt-2">
+              <LooseMouthModelPicker selected="standard" compact />
             </div>
           </header>
 
