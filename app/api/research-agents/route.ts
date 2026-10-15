@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { user, entitlement, consumeWorkbenchQuota } from '@/lib/workbench-access';
 import { getResearchAgent, type ResearchAgentTier } from '@/lib/research-agent-registry';
 import { routeIntent } from '@/lib/intent-r-orchestrator';
+import { geminiModelForMode, getGeminiKey } from '@/lib/gemini-provider';
 
 export const runtime = 'nodejs';
 const noStore = { 'Cache-Control': 'no-store' };
@@ -34,24 +35,10 @@ function parseTurns(value:unknown):Turn[]|null {
  if(turns[turns.length-1].role!=='user')return null;
  return turns;
 }
-async function groq(messages:Turn[],instructions:string,signal:AbortSignal){
- const key=process.env.GROQ_API;
- if(!key)throw new Error('Provider not configured');
- const response=await fetch('https://api.groq.com/openai/v1/chat/completions',{
-  method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},
-  body:JSON.stringify({model:process.env.GIC_GROQ_AGENT_MODEL||'openai/gpt-oss-20b',messages:[{role:'system',content:instructions},...messages],temperature:0.25,max_completion_tokens:1024}),
-  cache:'no-store',signal
- });
- if(!response.ok)throw new Error('Provider unavailable');
- const result=await response.json() as {choices?:Array<{message?:{content?:string}}>};
- const answer=result.choices?.[0]?.message?.content;
- if(!answer)throw new Error('Empty provider response');
- return answer.slice(0,12000);
-}
 async function gemini(messages:Turn[],instructions:string,signal:AbortSignal){
- const key=process.env.GEMINI_API_KEY;
+ const key=getGeminiKey();
  if(!key)throw new Error('Provider not configured');
- const model=process.env.GIC_GEMINI_AGENT_MODEL||'gemini-2.5-flash';
+ const model=process.env.GIC_GEMINI_AGENT_MODEL||geminiModelForMode('medium');
  if(!/^[a-zA-Z0-9._-]{1,80}$/.test(model))throw new Error('Invalid model configuration');
  const contents=messages.map(t=>({role:t.role==='assistant'?'model':'user',parts:[{text:t.content}]}));
  const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
@@ -83,8 +70,7 @@ export async function POST(req:NextRequest){
  const routing=routeIntent(turns[turns.length-1].content,tier as ResearchAgentTier,body.agent);
  if(!routing)return error('Unknown or unavailable research assistant.',400);
  const agent=getResearchAgent(routing.agent,tier as ResearchAgentTier)!;
- if(agent.provider==='gemini'&&!process.env.GEMINI_API_KEY)return error('Gemini is not configured.',503);
- if(agent.provider==='groq'&&!process.env.GROQ_API)return error('Groq is not configured.',503);
+ if(!getGeminiKey())return error('Gemini is not configured.',503);
  const idempotencyKey=req.headers.get('idempotency-key');
  if(!idempotencyKey || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey))return error('Idempotency-Key UUID header required.',400);
  const secret=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -116,7 +102,7 @@ export async function POST(req:NextRequest){
  try{
   const timeout=AbortSignal.timeout(30000);
   const signal=AbortSignal.any([req.signal,timeout]);
-  const answer=agent.provider==='gemini'?await gemini(turns,agent.instructions,signal):await groq(turns,agent.instructions,signal);
+  const answer=await gemini(turns,agent.instructions,signal);
   const result={answer,agent:agent.id,routing,provider:agent.provider,externalInference:true,quota:{remaining:quota.remaining,resetAt:quota.resetAt}};
   await complete('completed',result);
   return NextResponse.json(result,{headers:noStore});
