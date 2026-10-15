@@ -2,19 +2,14 @@ import { createHash } from 'node:crypto';
 import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { runWorkspaceAgent } from '@/lib/workspace-agent';
+import { GEMINI_CHAT_URL, geminiModelForMode, getGeminiKey, groundedGeminiAnswer, type HostedMode } from '@/lib/gemini-provider';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
 import { buildCalculatorAgentMessage, calculatorRoutingMetadata, routeMathIntent } from '@/lib/intent-math-router';
 
 export const runtime = 'nodejs';
 
 const jsonHeaders = { 'Cache-Control': 'no-store' };
-const GROQ_BASE = 'https://api.groq.com/openai/v1';
-const GROQ_MODELS = {
-  fast: ['openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-120b'],
-  medium: ['qwen/qwen3.8-27b', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
-  enhanced: ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'],
-} as const;
-type LooseMouthMode = keyof typeof GROQ_MODELS;
+type LooseMouthMode = HostedMode;
 
 async function consumeQuota(actorKey: string, limit: number, windowSeconds: number) {
   const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -130,37 +125,16 @@ function validImageUrl(value: unknown): string | null {
   }
 }
 
-async function activeGroqModels(apiKey: string) {
-  try {
-    const response = await fetch(`${GROQ_BASE}/models`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(8_000),
-    });
-    if (!response.ok) return new Set<string>();
-    const data = await response.json() as { data?: Array<{ id?: string }> };
-    return new Set((data.data || []).map((entry) => entry.id).filter((id): id is string => Boolean(id)));
-  } catch {
-    return new Set<string>();
-  }
-}
-
 export async function GET(request: NextRequest) {
   const user = await authenticatedUser(request);
-  const groqKey = process.env.GROQ_API;
-  if (!groqKey) return error('LooseMouth hosted inference is not configured yet.', 503);
-  const active = await activeGroqModels(groqKey);
-  const availableModes = (Object.keys(GROQ_MODELS) as LooseMouthMode[]).filter((mode) =>
-    GROQ_MODELS[mode].some((model) => active.has(model))
-  );
-  if (!availableModes.length) return error('LooseMouth hosted inference is temporarily unavailable.', 502);
+  if (!getGeminiKey()) return error('LooseMouth hosted inference is not configured yet.', 503);
   return NextResponse.json({
-    models: availableModes,
+    models: ['fast', 'medium', 'enhanced'] as LooseMouthMode[],
     authenticated: Boolean(user),
     anonymousLimit: 5,
-    multimodal: active.has('qwen/qwen3.8-27b'),
-    provider: 'groq',
-    disclosure: 'Hosted inference is currently provided through Groq while Global Intent Company develops private AI infrastructure.',
+    multimodal: true,
+    provider: 'gemini',
+    disclosure: 'Hosted inference is supplied by Google Gemini. Global Intent Company independently develops its INTENT foundation models and private AI infrastructure.',
   }, { headers: jsonHeaders });
 }
 
@@ -211,15 +185,15 @@ export async function POST(request: NextRequest) {
     return response;
   }
 
-  const groqKey = process.env.GROQ_API;
-  if (!groqKey) return error('LooseMouth hosted inference is not configured yet.', 503);
+  const geminiKey = getGeminiKey();
+  if (!geminiKey) return error('LooseMouth hosted inference is not configured yet.', 503);
 
   if (body.workspace_agent === true) {
     if (tier === 'free') return error('Workspace agent actions require Paid or Enhanced access.', 403);
     if (body.search === true || body.image_url) return error('Turn off web search and remove image attachments for workspace agent mode.', 400);
     try {
-      const agent = await runWorkspaceAgent({ key: groqKey, model: tier === 'enhanced' ? 'openai/gpt-oss-120b' : 'openai/gpt-oss-20b', goal: message, context: body.conversation_context, tier });
-      const response = NextResponse.json({ session_id: typeof body.session_id === 'string' ? body.session_id : randomUUID(), answer: agent.answer, workspace_action: agent.action, activity: agent.activity, sources: [], warning: null, mode: 'fast', provider: 'groq' }, { headers: jsonHeaders });
+      const agent = await runWorkspaceAgent({ key: geminiKey, model: geminiModelForMode(tier === 'enhanced' ? 'enhanced' : 'medium'), goal: message, context: body.conversation_context, tier });
+      const response = NextResponse.json({ session_id: typeof body.session_id === 'string' ? body.session_id : randomUUID(), answer: agent.answer, workspace_action: agent.action, activity: agent.activity, sources: [], warning: null, mode: 'fast', provider: 'gemini' }, { headers: jsonHeaders });
       response.headers.set('X-RateLimit-Limit', String(quotaLimit));
       response.headers.set('X-RateLimit-Remaining', String(quota.remaining));
       if (quota.resetAt) response.headers.set('X-RateLimit-Reset', quota.resetAt);
@@ -237,27 +211,20 @@ export async function POST(request: NextRequest) {
 
   const mathRoute = routeMathIntent(message);
   const routedMessage = mathRoute.intent === 'math' ? buildCalculatorAgentMessage(message, mathRoute) : message;
-  const active = await activeGroqModels(groqKey);
-  let candidates = GROQ_MODELS[mode].filter((model) => active.has(model));
-  // Browser search is supported by both GPT-OSS models, but Chat Completions
-  // citation_options is not supported on this route. Prefer 120B for research.
-  if (searchEnabled) candidates = GROQ_MODELS.enhanced.filter((model) => model !== 'qwen/qwen3.8-27b' && active.has(model));
-  if (imageUrl) candidates = candidates.filter((model) => model === 'qwen/qwen3.8-27b');
   if (searchEnabled && imageUrl) return error('Web research and image analysis cannot be combined in the same request yet.', 400);
-  if (!candidates.length && imageUrl && active.has('qwen/qwen3.8-27b')) candidates = ['qwen/qwen3.8-27b'];
-  if (!candidates.length) return error('No compatible LooseMouth model is available right now.', 503);
+  const candidates = [geminiModelForMode(mode)];
 
   const system = [
     'You are LooseMouth, the public AI interface for Global Intent Company.',
     'Be useful, direct, accurate, and concise unless the user asks for depth.',
     'Use readable Markdown: short paragraphs, descriptive headings for longer answers, lists, and fenced code blocks with language labels. Use compact GFM tables when comparisons benefit from columns. Do not wrap the entire answer in a code fence.',
     'Do not claim that you are a model developed by Global Intent Company.',
-    'Hosted inference is currently supplied through Groq while Global Intent Company researches and develops private AI models and infrastructure.',
+    'Hosted inference is currently supplied through Google Gemini while Global Intent Company researches and develops private AI models and infrastructure.',
     'If asked about the company, distinguish current hosted inference from Global Intent Company research clearly.',
     'When web research is enabled, ground factual claims in the browser-search results. Do not invent citations or source URLs.',
   ].join(' ');
 
-  const maxTokens = searchEnabled && searchDepth === 'deep' ? 1800 : mode === 'enhanced' ? 1200 : mode === 'medium' ? 900 : 600;
+  const maxTokens = searchEnabled && searchDepth === 'deep' ? 3200 : mode === 'enhanced' ? 3200 : mode === 'medium' ? 2000 : 1200;
   let lastStatus = 502;
   let lastMessage = 'Hosted inference is temporarily unavailable.';
 
@@ -271,50 +238,44 @@ export async function POST(request: NextRequest) {
       const userContent: unknown = imageUrl
         ? [{ type: 'text', text: routedMessage }, { type: 'image_url', image_url: { url: imageUrl } }]
         : researchInstruction;
-      const payload: Record<string, unknown> = {
-        model,
-        messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }],
-        max_completion_tokens: maxTokens,
-        temperature: mode === 'fast' ? 0.6 : 0.7,
-      };
-      if (model === 'openai/gpt-oss-20b' || model === 'openai/gpt-oss-120b') {
-        payload.reasoning_effort = searchEnabled ? (searchDepth === 'deep' ? 'high' : 'low') : (mode === 'enhanced' ? 'high' : mode === 'medium' ? 'medium' : 'low');
-        if (searchEnabled) {
-          payload.tools = [{ type: 'browser_search' }];
-          if (searchDepth === 'deep') payload.parallel_tool_calls = true;
-          payload.tool_choice = 'required';
+      let answer = '';
+      let rawSearchResults: Array<{ title?: string; url?: string; content?: string; published_date?: string }> = [];
+      if (searchEnabled) {
+        const grounded = await groundedGeminiAnswer({
+          key: geminiKey, model, system, prompt: researchInstruction,
+          maxOutputTokens: maxTokens, signal: AbortSignal.timeout(90_000),
+        });
+        answer = grounded.answer;
+        rawSearchResults = grounded.sources;
+      } else {
+        const payload: Record<string, unknown> = {
+          model,
+          messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }],
+          max_completion_tokens: maxTokens,
+          temperature: mode === 'fast' ? 0.5 : 0.65,
+          reasoning_effort: mode === 'fast' ? 'low' : mode === 'medium' ? 'medium' : 'high',
+        };
+        const upstream = await fetch(GEMINI_CHAT_URL, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${geminiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(90_000),
+        });
+        if (!upstream.ok) {
+          lastStatus = upstream.status;
+          lastMessage = upstream.status === 429 ? 'Gemini rate limit reached. Please try again later.' : 'Gemini inference is unavailable.';
+          continue;
         }
-      } else if (model === 'qwen/qwen3.8-27b') {
-        payload.reasoning_effort = mode === 'enhanced' ? 'high' : mode === 'medium' ? 'medium' : 'none';
+        const data = await upstream.json() as {
+          choices?: Array<{ message?: { content?: string | Array<{ text?: string }> } }>;
+        };
+        const value = data.choices?.[0]?.message?.content;
+        answer = typeof value === 'string'
+          ? value.trim()
+          : Array.isArray(value) ? value.map((part) => part.text || '').join('').trim() : '';
       }
-
-      const upstream = await fetch(`${GROQ_BASE}/chat/completions`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        cache: 'no-store',
-        signal: AbortSignal.timeout(90_000),
-      });
-
-      const data = await upstream.json() as {
-        choices?: Array<{ message?: { content?: string; executed_tools?: Array<{ search_results?: { results?: Array<{ title?: string; url?: string; content?: string; published_date?: string }> } | Array<{ title?: string; url?: string; content?: string; published_date?: string }> }> } }>;
-        error?: { message?: string };
-      };
-      if (!upstream.ok) {
-        lastStatus = upstream.status;
-        lastMessage = data.error?.message || 'Hosted inference request failed.';
-        if (upstream.status === 429 || upstream.status >= 500) continue;
-        return error(lastMessage, upstream.status);
-      }
-
-      const answer = data.choices?.[0]?.message?.content?.trim();
       if (!answer) continue;
-
-      const rawSearchResults = (data.choices?.[0]?.message?.executed_tools || []).flatMap((tool) => {
-        const value = tool.search_results;
-        if (Array.isArray(value)) return value;
-        return value?.results || [];
-      });
       const sources = normalizeSources(rawSearchResults, searchDepth === 'deep');
 
       const responseSessionId = typeof body.session_id === 'string' ? body.session_id : randomUUID();
@@ -329,7 +290,7 @@ export async function POST(request: NextRequest) {
                 user_id: user!.id,
                 session_id: /^[0-9a-f-]{36}$/i.test(responseSessionId) ? responseSessionId : null,
                 mode,
-                provider: 'groq',
+                provider: 'gemini',
                 provider_model: model,
                 search_enabled: searchEnabled,
                 search_depth: searchEnabled ? searchDepth : null,
@@ -353,7 +314,7 @@ export async function POST(request: NextRequest) {
         warning: null,
         mode,
         model,
-        provider: 'groq',
+        provider: 'gemini',
         account_tier: tier,
         research: searchEnabled ? {
           depth: searchDepth,
