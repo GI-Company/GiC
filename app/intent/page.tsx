@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import IntentAuthGate from '@/components/intent/IntentAuthGate';
+import IntentMiniPage from '@/app/intent/mini/page';
 
 export const metadata: Metadata = {
   title: 'INTENT & LooseMouth',
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function IntentPage() {
-  return <IntentAuthGate />;
+export default async function IntentPage({ searchParams }: { searchParams: Promise<{ mini?: string }> }) {
+  const params = await searchParams;
+  return params?.mini === '1' ? <IntentMiniPage /> : <IntentAuthGate />;
 }
