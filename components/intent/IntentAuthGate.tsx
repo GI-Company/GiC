@@ -8,6 +8,7 @@ import { checkoutPlan, pricingForPlan, type CheckoutPlan } from '@/lib/checkout-
 import { trackConversion } from '@/lib/conversion-events';
 import { setWorkspaceAnalytics } from '@/lib/workspace-privacy';
 import IntentClient from '@/components/intent/IntentClient';
+import IntentMiniStudio from '@/components/intent/IntentMiniStudio';
 import IntentPwaControls from '@/components/intent/IntentPwaControls';
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from '@/lib/supabase-public';
 
@@ -49,12 +50,14 @@ export default function IntentAuthGate() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [showAuth, setShowAuth] = useState(false);
+  const [miniRequested, setMiniRequested] = useState(false);
   const [returnToLab, setReturnToLab] = useState(false);
   const [plan, setPlan] = useState<CheckoutPlan | null>(null);
   const authViewTracked = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    setMiniRequested(params.get('mini') === '1');
     setPlan(checkoutPlan(params.get('plan')));
     setReturnToLab(params.get('return_to') === 'virtual-lab-demo');
     if (params.get('signin') === '1') setShowAuth(true);
@@ -230,6 +233,10 @@ export default function IntentAuthGate() {
     } catch {
       // Local session is already cleared.
     }
+  }
+
+  if (miniRequested) {
+    return <IntentMiniStudio />;
   }
 
   if (!checked) {
