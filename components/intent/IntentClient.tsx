@@ -170,8 +170,8 @@ export default function IntentClient({
   const [enhancedMaxTokens] = useState(1200);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(accessToken?20:5);
-  const [billing,setBilling]=useState<BillingStatus>({authenticated:Boolean(accessToken),tier:'free',limit:accessToken?20:5,workbench:'none'});
+  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(accessToken?10:5);
+  const [billing,setBilling]=useState<BillingStatus>({authenticated:Boolean(accessToken),tier:'free',limit:accessToken?10:5,workbench:'none'});
   const [billingReady, setBillingReady] = useState(!accessToken);
   const [privacyReady, setPrivacyReady] = useState(!accountUserId);
   const [billingBusy,setBillingBusy]=useState(false);
@@ -1209,7 +1209,7 @@ export default function IntentClient({
 
                 <div className="mt-6 flex items-center justify-between">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Recent sessions</p>
-                  <span className="text-[10px] text-slate-500">{quotaRemaining ?? '—'} / 20 left</span>
+                  <span className="text-[10px] text-slate-500">{quotaRemaining ?? '—'} / {billing.limit} left</span>
                 </div>
 
                 <div className="mt-2 space-y-1">
