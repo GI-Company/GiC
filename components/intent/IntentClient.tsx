@@ -170,8 +170,8 @@ export default function IntentClient({
   const [enhancedMaxTokens] = useState(1200);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(accessToken?20:5);
-  const [billing,setBilling]=useState<BillingStatus>({authenticated:Boolean(accessToken),tier:'free',limit:accessToken?20:5,workbench:'none'});
+  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(accessToken?10:5);
+  const [billing,setBilling]=useState<BillingStatus>({authenticated:Boolean(accessToken),tier:'free',limit:accessToken?10:5,workbench:'none'});
   const [billingReady, setBillingReady] = useState(!accessToken);
   const [privacyReady, setPrivacyReady] = useState(!accountUserId);
   const [billingBusy,setBillingBusy]=useState(false);
@@ -947,7 +947,7 @@ export default function IntentClient({
           <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-600">
             <p className="font-semibold text-slate-900">{billing.tier === 'enhanced' ? 'Enhanced Workspace · $14.99/month' : billing.tier === 'paid' ? 'Paid Workspace · $4.99/month' : 'Support private AI R&D · $4.99/month'}</p>
             <p className="mt-1">{billing.tier === 'enhanced' ? 'Reports and runnable applet workflows are unlocked for your account.' : billing.tier === 'paid' ? 'Reports are unlocked in your Workbench. Enhanced Workspace adds runnable applets.' : 'Support helps fund Global Intent Company research into privately operated models, compute, and verifiable AI infrastructure.'}</p>
-            <p className="mt-2 text-[10px] text-slate-500">Current hosted LooseMouth inference is provided through Groq.</p>
+            <p className="mt-2 text-[10px] text-slate-500">Current hosted LooseMouth inference is provided through Google Gemini.</p>
           </div>
 
           <div className="mt-6 hidden space-y-5 lg:block">
@@ -982,7 +982,7 @@ export default function IntentClient({
                 </div>
                 <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2.5">
                   <span>Transport</span>
-                  <span className="text-emerald-700">Hosted via Groq</span>
+                  <span className="text-emerald-700">Hosted via Google Gemini</span>
                 </div>
               </div>
             </div>
@@ -1131,7 +1131,7 @@ export default function IntentClient({
                     <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
                       <label htmlFor="gic-research-agent" className="block text-xs font-semibold text-slate-700">GIC Research Agent</label>
                       <select id="gic-research-agent" value={researchAgent} disabled={busy} onChange={event => { setResearchAgent(event.target.value as typeof researchAgent); setSearch(false); }} className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-900">
-                        <option value="off">LooseMouth standard</option><option value="auto">INTENT-R automatic router</option><option value="intent_r">INTENT-R Research · Gemini</option><option value="bitvision">BitVision Research · Gemini</option><option value="plm">PLM Infrastructure · Groq</option>
+                        <option value="off">LooseMouth standard</option><option value="auto">INTENT-R automatic router</option><option value="intent_r">INTENT-R Research · Gemini</option><option value="bitvision">BitVision Research · Gemini</option><option value="plm">PLM Infrastructure · Gemini</option>
                       </select>
                       <p className="mt-2 text-xs text-slate-500">Research agents use third-party AI providers. Text only; separate hourly workbench quota applies. Web search and image generation are not available in this mode.</p>
                     </div>
@@ -1209,7 +1209,7 @@ export default function IntentClient({
 
                 <div className="mt-6 flex items-center justify-between">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Recent sessions</p>
-                  <span className="text-[10px] text-slate-500">{quotaRemaining ?? '—'} / 20 left</span>
+                  <span className="text-[10px] text-slate-500">{quotaRemaining ?? '—'} / {billing.limit} left</span>
                 </div>
 
                 <div className="mt-2 space-y-1">
@@ -1651,7 +1651,7 @@ export default function IntentClient({
                         </label>
                       )}
 
-                      {billing.tier !== 'free' && <label title="Let the Groq-powered agent read this chat and open a report or applet brief. You review, build and save in the workbench." className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-xs text-slate-600 hover:bg-slate-50"><input type="checkbox" aria-label="Workspace agent" checked={workspaceAgent} disabled={busy} onChange={(event) => { setWorkspaceAgent(event.target.checked); if (event.target.checked) { setSearch(false); setImageAttachment(null); } }} className="h-4 w-4 accent-blue-600"/>Agent</label>}
+                      {billing.tier !== 'free' && <label title="Let the Gemini-powered agent read this chat and open a report or applet brief. You review, build and save in the workbench." className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-xs text-slate-600 hover:bg-slate-50"><input type="checkbox" aria-label="Workspace agent" checked={workspaceAgent} disabled={busy} onChange={(event) => { setWorkspaceAgent(event.target.checked); if (event.target.checked) { setSearch(false); setImageAttachment(null); } }} className="h-4 w-4 accent-blue-600"/>Agent</label>}
 
                       {search && (
                         <div className="hidden rounded-lg border border-slate-200 bg-slate-50 p-1 sm:inline-flex" role="group" aria-label="Web research depth">

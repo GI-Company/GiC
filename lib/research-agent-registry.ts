@@ -35,7 +35,7 @@ export const RESEARCH_AGENTS = {
   plm: {
     id: 'plm',
     label: 'PLM Infrastructure Assistant',
-    provider: 'groq',
+    provider: 'gemini',
     minimumTier: 'paid',
     description: 'Private AI deployment planning and infrastructure review.',
     instructions: [
