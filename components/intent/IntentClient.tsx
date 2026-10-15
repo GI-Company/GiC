@@ -857,7 +857,7 @@ export default function IntentClient({
               </Link>
             </nav>
             <Link
-              href="/intent/mini"
+              href="/intent?mini=1"
               className="mt-3 flex min-h-12 items-center justify-between gap-3 rounded-xl border border-blue-300 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900 transition hover:border-blue-500 hover:bg-blue-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             >
               <span>Test LooseMouth Mini <span className="block text-xs font-normal text-slate-700">INTENT-F RLSE-v2 · experimental model + telemetry</span></span>
