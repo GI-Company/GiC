@@ -7,12 +7,17 @@ import VirtualLabWorkbench from './VirtualLabWorkbench';
 import { calculateIsotopeEnvelope, type MassSpectrum } from '@/lib/virtual-lab-mass-spec';
 import { parseInstrumentText, instrumentStatistics, type InstrumentImport } from '@/lib/virtual-lab-instruments';
 
-const StructureViewer=dynamic(()=>import('./StructureViewer'),{ssr:false,loading:()=> <div className="rounded-xl bg-slate-100 p-8 text-sm">Initializing structure viewer…</div>});
-type Tab='simulation'|'structure'|'mass'|'instrument'|'notebook';
+const MultiScaleWorld=dynamic(()=>import('./MultiScaleWorld'),{ssr:false,loading:()=> <div className="rounded-xl bg-slate-100 p-8 text-sm">Initializing world navigator…</div>});
+const RhodopsinWorkbench=dynamic(()=>import('./RhodopsinWorkbench'));
+const OpticalSandbox=dynamic(()=>import('./OpticalSandbox'));
+const EvidenceLedgerPanel=dynamic(()=>import('./EvidenceLedgerPanel'));
+type Tab='simulation'|'structure'|'rhodopsin'|'mass'|'instrument'|'optics'|'notebook';
 type Event={id:string;kind:string;state:'SIMULATED'|'UNKNOWN'|'INFERRED';summary:string;time:string;payload:unknown};
 const tabs:Array<{id:Tab;label:string;subtitle:string}>=[
- {id:'simulation',label:'Simulation & AI',subtitle:'RK4 · Google Gemini'},
- {id:'structure',label:'3D molecular world',subtitle:'Experimental coordinates'},
+ {id:'structure',label:'Multi-scale world',subtitle:'Tissue → cell → protein'},
+ {id:'rhodopsin',label:'RHO simulator',subtitle:'Assumed folding kinetics'},
+ {id:'simulation',label:'Reference & AI',subtitle:'RK4 · Google Gemini'},
+ {id:'optics',label:'Optical cockpit',subtitle:'Synthetic frames · packets'},
  {id:'mass',label:'Virtual mass spec',subtitle:'Isotope convolution'},
  {id:'instrument',label:'Instrument analysis',subtitle:'Local CSV and JSONL'},
  {id:'notebook',label:'Evidence notebook',subtitle:'Source and context'}
@@ -50,7 +55,8 @@ function ImportedSignal({data,channel}:{data:InstrumentImport;channel:string}){
  </svg><figcaption className="mt-2 text-xs text-slate-300">File-import plot · source UNKNOWN · not authenticated hardware telemetry.</figcaption></figure>;
 }
 export default function ScientificCockpit({accessToken}:{accessToken:string}){
- const [tab,setTab]=useState<Tab>('simulation');
+ const [tab,setTab]=useState<Tab>('structure');
+ const [ledgerRevision,setLedgerRevision]=useState(0);
  const [formula,setFormula]=useState('C20H28O'),[charge,setCharge]=useState(1),[spectrum,setSpectrum]=useState<MassSpectrum|null>(null),[massError,setMassError]=useState('');
  const [instrument,setInstrument]=useState<InstrumentImport|null>(null),[filename,setFilename]=useState(''),[fileHash,setFileHash]=useState(''),[channel,setChannel]=useState(''),[instrumentError,setInstrumentError]=useState('');
  const [events,setEvents]=useState<Event[]>([]),[note,setNote]=useState(''),[exportHash,setExportHash]=useState('');
@@ -84,16 +90,19 @@ export default function ScientificCockpit({accessToken}:{accessToken:string}){
   setExportHash(hash);download('gic-virtual-lab-notebook.json',JSON.stringify({payload,sha256:hash},null,2));
  }
  return <section className="min-w-0 space-y-5 text-slate-950" data-ph-mask="true" data-ph-no-capture="true">
-  <header className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-   <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Global Intent Company · Virtual Lab</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">Scientific research cockpit</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Real mathematical computation, experimental structure coordinates, instrument-file interpretation, and Gemini-assisted experiment planning in one workbench.</p></div><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold">Research beta · human review required</span></div>
-   <div className="mt-5 grid gap-2 sm:grid-cols-3"><div className="rounded-xl bg-blue-50 p-3 text-xs"><Activity size={18} className="mb-2 text-blue-600"/><strong>SIMULATED</strong><p className="mt-1 text-slate-600">Deterministic RK4 and isotope calculations</p></div><div className="rounded-xl bg-indigo-50 p-3 text-xs"><Atom size={18} className="mb-2 text-indigo-600"/><strong>REFERENCE</strong><p className="mt-1 text-slate-600">RCSB experimentally determined coordinates</p></div><div className="rounded-xl bg-amber-50 p-3 text-xs"><ShieldCheck size={18} className="mb-2 text-amber-700"/><strong>UNKNOWN</strong><p className="mt-1 text-slate-600">Imported files pending external provenance review</p></div></div>
+  <header className="rounded-2xl border border-slate-700 bg-slate-950 p-5 text-slate-100 sm:p-6">
+   <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-wider text-sky-300">Global Intent Company · Virtual Lab</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">Multi-scale biological &amp; instrument cockpit</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Explore structure, review model assumptions, approve simulations, inspect instrument files, and follow the evidence trail.</p></div><span className="rounded-full border border-sky-700 bg-sky-950 px-3 py-2 text-xs font-semibold text-sky-200">Research beta · human review required</span></div>
+   <div className="mt-5 grid gap-2 sm:grid-cols-3"><div className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs"><Activity size={18} className="mb-2 text-sky-300"/><strong>SIMULATED</strong><p className="mt-1 text-slate-300">RK4, synthetic optics and isotope calculations</p></div><div className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs"><Atom size={18} className="mb-2 text-indigo-300"/><strong>REFERENCE</strong><p className="mt-1 text-slate-300">RCSB experimental protein coordinates</p></div><div className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs"><ShieldCheck size={18} className="mb-2 text-amber-300"/><strong>UNKNOWN</strong><p className="mt-1 text-slate-300">Imported files require source verification</p></div></div>
+   <details className="mt-4 rounded-xl border border-slate-700 p-3 text-sm"><summary className="cursor-pointer font-semibold text-sky-200">Take a quick lab tour</summary><ol className="mt-3 list-decimal space-y-2 pl-5 text-slate-300"><li>Navigate tissue and cell schematics, then inspect real reference protein coordinates.</li><li>Choose assumed RHO kinetics or the original gene-expression experiment. Review settings and approve before running.</li><li>Generate synthetic optical frames, calculate isotope envelopes, or inspect your own CSV/JSONL files locally.</li><li>Use the reference workbench for bounded Gemini proposals. A proposal does not approve execution.</li><li>Open the evidence notebook to export your session, verify hashes, and test tamper detection.</li></ol></details>
   </header>
   <nav aria-label="Lab workspaces" className="flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2" role="tablist">
-   {tabs.map(t=><button key={t.id} type="button" role="tab" id={'lab-tab-'+t.id} aria-controls={'lab-panel-'+t.id} aria-selected={tab===t.id} onClick={()=>setTab(t.id)} className={'min-w-36 shrink-0 rounded-lg px-3 py-3 text-left focus-visible:outline-2 focus-visible:outline-blue-700 '+(tab===t.id?'bg-blue-700 text-white':'bg-slate-50 hover:bg-slate-100')}><strong className="block text-xs">{t.label}</strong><span className="mt-1 block text-[11px] opacity-75">{t.subtitle}</span></button>)}
+   {tabs.map(t=><button key={t.id} type="button" role="tab" id={'lab-tab-'+t.id} aria-controls={'lab-panel-'+t.id} aria-selected={tab===t.id} tabIndex={tab===t.id?0:-1} onKeyDown={e=>{const index=tabs.findIndex(item=>item.id===t.id);const next=e.key==='ArrowRight'?(index+1)%tabs.length:e.key==='ArrowLeft'?(index+tabs.length-1)%tabs.length:e.key==='Home'?0:e.key==='End'?tabs.length-1:-1;if(next>=0){e.preventDefault();setTab(tabs[next].id);document.getElementById('lab-tab-'+tabs[next].id)?.focus();}}} onClick={()=>setTab(t.id)} className={'min-w-36 shrink-0 rounded-lg px-3 py-3 text-left focus-visible:outline-2 focus-visible:outline-blue-700 '+(tab===t.id?'bg-blue-700 text-white':'bg-slate-50 hover:bg-slate-100')}><strong className="block text-xs">{t.label}</strong><span className="mt-1 block text-[11px] opacity-75">{t.subtitle}</span></button>)}
   </nav>
   <div role="tabpanel" id={'lab-panel-'+tab} aria-labelledby={'lab-tab-'+tab} className="min-w-0">
    <div hidden={tab!=='simulation'}><VirtualLabWorkbench accessToken={accessToken} onEvidence={e=>record('RK4 experiment','SIMULATED',e.protocol.parameter+' · '+e.runs+' trajectories · '+e.sha256.slice(0,12)+'…',e)}/></div>
-   {tab==='structure'&&<StructureViewer accessToken={accessToken}/>}
+   <div hidden={tab!=='structure'}><MultiScaleWorld accessToken={accessToken} onFormula={value=>{setFormula(value);setTab('mass');}}/></div>
+   <div hidden={tab!=='rhodopsin'}><RhodopsinWorkbench accessToken={accessToken} onEvidence={value=>record('RHO model','SIMULATED','Approved four-state RK4 simulation',value)}/></div>
+   <div hidden={tab!=='optics'}><OpticalSandbox onEvidence={value=>record('Optical sandbox','SIMULATED','Generated a synthetic optical frame',value)}/></div>
    {tab==='mass'&&<section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
     <h3 className="flex items-center gap-2 text-lg font-semibold"><FlaskConical size={20}/> Isotope-envelope calculator</h3>
     <p className="text-sm text-slate-600">Convolve actual isotope masses and approximate natural abundances. This calculates a molecular precursor envelope from a known formula; it cannot identify a compound in a sample.</p>
@@ -111,13 +120,14 @@ export default function ScientificCockpit({accessToken}:{accessToken:string}){
      {stats&&<div className="grid grid-cols-2 gap-2 sm:grid-cols-5">{Object.entries(stats).map(([key,val])=><div key={key} className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">{key.replaceAll('_',' ')}</p><p className="mt-1 font-mono font-semibold">{val.toPrecision(5)}</p></div>)}</div>}
      <ImportedSignal data={instrument} channel={channel}/><p className="text-xs text-slate-600">Units supplied: {instrument.units.join(', ')}. Unit conversion and source attestation are not inferred.</p></>}
    </section>}
-   {tab==='notebook'&&<section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+   <section hidden={tab!=='notebook'} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
     <h3 className="flex items-center gap-2 text-lg font-semibold"><Database size={20}/> Research notebook</h3><p className="text-sm text-slate-600">A session-level record of simulated runs, locally inspected imports and researcher notes. Exports are hashed but not signed .vlab evidence bundles.</p>
-    <div className="flex flex-wrap gap-2"><button disabled={!events.length} onClick={()=>void notebookExport()} type="button" className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Download size={16}/> Export with SHA-256</button><button type="button" onClick={()=>{setEvents([]);setExportHash('');}} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold">Clear session</button></div>
+    <div className="flex flex-wrap gap-2"><button disabled={!events.length} onClick={()=>void notebookExport()} type="button" className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Download size={16}/> Export with SHA-256</button><button type="button" onClick={()=>{setEvents([]);setExportHash('');setLedgerRevision(n=>n+1);}} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold">Clear session</button></div>
     {exportHash&&<p className="break-all font-mono text-xs">Export SHA-256: {exportHash}</p>}
     <form onSubmit={e=>{e.preventDefault();if(note.trim()){record('Research note','INFERRED',note.trim().slice(0,200),{text:note.trim()});setNote('');}}} className="space-y-2"><label className="block text-sm font-semibold">Research note<textarea rows={3} maxLength={3000} value={note} onChange={e=>setNote(e.target.value)} className="mt-2 block w-full rounded-lg border border-slate-300 p-3"/></label><button disabled={!note.trim()} className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 disabled:opacity-50" type="submit">Add note</button></form>
     {events.length===0?<p className="rounded-lg bg-slate-50 p-5 text-sm">No notebook entries yet. Run a simulation, calculate an isotope spectrum, or import data.</p>:<ol className="space-y-3">{events.slice().reverse().map(e=><li key={e.id} className="rounded-xl border border-slate-200 p-4"><div className="flex flex-wrap gap-3 text-xs"><strong className="text-blue-800">{e.kind}</strong><span className="text-amber-800">{e.state}</span><time className="text-slate-500">{e.time}</time></div><p className="mt-2 break-words text-sm">{e.summary}</p></li>)}</ol>}
-   </section>}
+    <EvidenceLedgerPanel key={ledgerRevision} entries={events}/>
+   </section>
   </div>
   <footer className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-600"><ShieldCheck size={16}/> Research status is explicit: simulated output is not measured evidence; imported data is unverified. <Sparkles size={16}/> Gemini operates only through existing authenticated, bounded approval-gated tools.</footer>
  </section>;

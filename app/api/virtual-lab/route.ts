@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { user, entitlement, consumeWorkbenchQuota } from '@/lib/workbench-access';
 import { evidenceBundle, validateProposal, experimentReport } from '@/lib/virtual-lab-demo';
+import { validateRhoProtocol, rhoEvidence } from '@/lib/virtual-lab-rhodopsin';
 import { runWorkbenchAgent } from '@/lib/virtual-lab-agent';
 import { geminiModelForMode, getGeminiKey } from '@/lib/gemini-provider';
 export const runtime = 'nodejs';
@@ -29,6 +30,13 @@ export async function POST(req:NextRequest) {
     if (text.length>24000) return fail('Request is too large.',413);
     const body=JSON.parse(text) as Record<string,unknown>;
     if (!body || typeof body!=='object' || Array.isArray(body)) return fail('Invalid request.',400);
+    if (body.action==='rho_run') {
+      const protocol=validateRhoProtocol(body.protocol);
+      const quota=await consumeWorkbenchQuota(`lab-run:${check.me.id}`);
+      if (!quota.configured) return fail('Lab access is being configured.',503);
+      if (!quota.allowed) return fail('Lab action limit reached. Try again after the hourly reset.',429);
+      return NextResponse.json({bundle:await rhoEvidence(protocol)},{headers});
+    }
     const protocol=validateProposal(body.protocol);
     if (body.action!=='run' && body.action!=='agent') return fail('Unsupported lab action.',400);
     const quota=await consumeWorkbenchQuota(`${body.action==='run'?'lab-run':'lab-agent'}:${check.me.id}`);
