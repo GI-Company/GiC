@@ -1,4 +1,4 @@
--- Align persisted preferences with the Groq-backed LooseMouth modes and add opt-out usage telemetry.
+-- Align persisted preferences with the hosted LooseMouth modes and add opt-out usage telemetry.
 alter table public.loosemouth_user_preferences
   drop constraint if exists loosemouth_user_preferences_preferred_model_check;
 
@@ -14,7 +14,7 @@ create table if not exists public.loosemouth_usage_events (
   user_id uuid references auth.users(id) on delete cascade,
   session_id uuid,
   mode text not null check (mode in ('fast','medium','enhanced')),
-  provider text not null default 'groq',
+  provider text not null default 'gemini',
   provider_model text not null,
   search_enabled boolean not null default false,
   search_depth text check (search_depth is null or search_depth in ('quick','deep')),

@@ -63,7 +63,7 @@ export default function LandingHero() {
           </div>
           <div className="mt-8 max-w-3xl rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
             <p className="font-semibold text-slate-950">Try LooseMouth: chat and web-assisted research.</p>
-            <p className="mt-1 text-sm leading-6 text-slate-600">Get an answer before creating an account. Paid adds reusable reports; Enhanced adds interactive applets. Current hosted inference uses Groq while GIC develops its own models and infrastructure.</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Get an answer before creating an account. Paid adds reusable reports; Enhanced adds interactive applets. Current hosted inference uses Google Gemini while GIC develops its own models and infrastructure.</p>
           </div>
           <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-slate-600">
             <Link href="/technology" className="hover:text-blue-700">Explore technology</Link>

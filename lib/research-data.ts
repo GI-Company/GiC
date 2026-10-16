@@ -1925,7 +1925,7 @@ export const RESEARCH_NODES: ResearchNode[] = [
     operator: 'Cory Tortorici — Founder / Independent Developer & Researcher',
     position: [-1.4, 1.6, -0.8],
     summary:
-      'Zero-dependency C++ clinical patient simulation and nursing decision engine backed by Groq AI, Argon2id cryptographic security, and a 5-plane cognitive microkernel architecture designed to make cognitive state, reasoning traces, uncertainty, and human intervention completely inspectable.',
+      'Zero-dependency C++ clinical patient simulation and nursing decision engine backed by hosted AI, Argon2id cryptographic security, and a 5-plane cognitive microkernel architecture designed to make cognitive state, reasoning traces, uncertainty, and human intervention completely inspectable.',
     researchQuestion:
       'Can AI inference and clinical simulation be structured into a zero-dependency C++ microkernel where cognitive state, reasoning traces, vital telemetry, and cryptographic boundaries remain completely inspectable and controllable?',
     repositories: [
@@ -1937,16 +1937,16 @@ export const RESEARCH_NODES: ResearchNode[] = [
         homepageUrl: 'https://optictrigeminal.vercel.app',
         visibility: 'public',
         relationship: 'primary-source',
-        description: 'Canonical public source repository: Zero-dependency C++ clinical simulation engine, Groq client, Argon2id security, and Next.js frontend.',
+        description: 'Canonical public source repository: Zero-dependency C++ clinical simulation engine, hosted inference client, Argon2id security, and Next.js frontend.',
         verificationStatus: 'verified',
       },
     ],
     architecture: {
       overview:
-        'Optic-Trigeminal implements an inspectable clinical decision substrate in zero-dependency modern C++ (C++17/20). It simulates a 6-patient intensive care cohort with physiological vital telemetry (HR, BP, SpO2, temp), handles clinical interventions via Groq Llama 3.3 70B inference, protects medical records with Argon2id cryptographic password hashing, and exposes state through an ACmK 5-plane inspectable architecture.',
+        'Optic-Trigeminal implements an inspectable clinical decision substrate in zero-dependency modern C++ (C++17/20). It simulates a 6-patient intensive care cohort with physiological vital telemetry (HR, BP, SpO2, temp), handles clinical interventions via hosted Llama 3.3 70B inference, protects medical records with Argon2id cryptographic password hashing, and exposes state through an ACmK 5-plane inspectable architecture.',
       techStack: [
         'C++ (Zero external dependencies, POSIX / OpenSSL)',
-        'Groq API (Llama 3.3 70B Versatile)',
+        'Hosted Llama 3.3 70B inference',
         'Argon2id (Cryptographic Key Derivation)',
         'Next.js 14 / TypeScript (Web Frontend)',
         'Tailwind CSS',
@@ -1961,7 +1961,7 @@ export const RESEARCH_NODES: ResearchNode[] = [
       components: [
         {
           name: 'Zero-Dependency C++ Core',
-          description: 'Custom HTTP/HTTPS client and JSON parser communicating directly with Groq API endpoints without libcurl or Boost.',
+          description: 'Custom HTTP/HTTPS client and JSON parser communicating directly with hosted inference endpoints without libcurl or Boost.',
           technology: 'C++ / POSIX Sockets',
         },
         {
@@ -2331,7 +2331,7 @@ export const RESEARCH_NODES: ResearchNode[] = [
     position: [1.2, -2.2, -0.8],
     timeline: '2026-Q1 / Paused',
     summary:
-      'An interactive metaphysical and alchemical web application ("Soul Audit") exploring quantum archetypes, esoteric consciousness models, and automated oracle synthesis. Built with React 19, Vite, Tailwind CSS, Supabase backend services, and multi-model AI synthesis via Google Gemini (Gemini 3 Pro, Gemini 2.5 Flash TTS audio, Gemini 2.5 Flash image generation) and Groq Llama 3.3 70B.',
+      'An interactive metaphysical and alchemical web application ("Soul Audit") exploring quantum archetypes, esoteric consciousness models, and automated oracle synthesis. Built with React 19, Vite, Tailwind CSS, Supabase backend services, and multi-model AI synthesis via Google Gemini (Gemini 3 Pro, Gemini 2.5 Flash TTS audio, Gemini 2.5 Flash image generation) and hosted Llama 3.3 70B.',
     productPurpose:
       'Deliver an engaging, multimodal alchemical personality assessment and esoteric oracle experience combining modern reactive frontend engineering with state-of-the-art generative AI pipelines.',
     repositories: [
@@ -2343,20 +2343,20 @@ export const RESEARCH_NODES: ResearchNode[] = [
         homepageUrl: 'https://quantumology.vercel.app',
         visibility: 'public',
         relationship: 'primary-source',
-        description: 'Canonical public source repository: React 19, Supabase, Google Gemini multimodal & Groq AI oracle application.',
+        description: 'Canonical public source repository: React 19, Supabase, Google Gemini multimodal & hosted AI oracle application.',
         verificationStatus: 'verified',
       },
     ],
     architecture: {
       overview:
-        'Engineered as a full-stack reactive application. Features a 4-phase alchemical assessment questionnaire, 5-element quantum frequency calculations, multi-model AI oracle readings via Gemini 3 Pro and Groq, synthetic voice narration via Gemini TTS, sacred geometry image generation, and persistent profile storage in Supabase PostgreSQL.',
+        'Engineered as a full-stack reactive application. Features a 4-phase alchemical assessment questionnaire, 5-element quantum frequency calculations, multi-model AI oracle readings via Gemini 3 Pro and a hosted oracle model, synthetic voice narration via Gemini TTS, sacred geometry image generation, and persistent profile storage in Supabase PostgreSQL.',
       techStack: [
         'React 19 & TypeScript',
         'Vite',
         'Tailwind CSS',
         'Supabase (PostgreSQL, Auth & Realtime)',
         'Google Gemini API (Gemini 3 Pro, 2.5 Flash TTS, 2.5 Flash Image)',
-        'Groq API (Llama 3.3 70B Versatile)',
+        'Hosted Llama 3.3 70B inference',
         'Lucide React',
         'Vercel',
       ],
@@ -2373,8 +2373,8 @@ export const RESEARCH_NODES: ResearchNode[] = [
         },
         {
           name: 'Multi-Model Oracle Synthesizer',
-          description: 'Generates deep personality audits and astrological tarot readings combining Google Gemini 3 Pro and Groq Weaver-01 Oracle.',
-          technology: 'Gemini API / Groq API',
+          description: 'Generates deep personality audits and astrological tarot readings combining Google Gemini 3 Pro and a hosted oracle model Weaver-01 Oracle.',
+          technology: 'Gemini API / hosted inference API',
         },
         {
           name: 'Multimodal Audio & Visual Studio',
@@ -2389,7 +2389,7 @@ export const RESEARCH_NODES: ResearchNode[] = [
       ],
       principles: [
         'Epistemic Clarity: Honestly characterized as creative esoteric entertainment and multimodal AI demonstration rather than empirical physical science.',
-        'Hybrid AI Routing: Combines Groq ultra-low-latency text reasoning with Google Gemini multimodal voice and image generation.',
+        'Hybrid AI Routing: Combines hosted text reasoning with Google Gemini multimodal voice and image generation.',
         'Zero-Friction User Onboarding: Allows guest exploration while offering persistent cloud history via Supabase authentication.',
       ],
       technicalDecisions: [
@@ -2400,7 +2400,7 @@ export const RESEARCH_NODES: ResearchNode[] = [
     },
     features: [
       '4-phase alchemical assessment with real-time trait score aggregation',
-      'Dual-provider AI synthesis: Google Gemini 3 Pro reasoning and Groq Llama 3.3 70B oracle',
+      'Dual-provider AI synthesis: Google Gemini 3 Pro reasoning and hosted Llama 3.3 70B oracle',
       'Spoken audio readings via Gemini 2.5 Flash TTS and dynamic sigil image generation',
       'Supabase PostgreSQL account persistence and audit archive exploration',
     ],
@@ -2528,7 +2528,7 @@ export const RESEARCH_NODES: ResearchNode[] = [
     position: [3.2, -2.0, -0.6],
     timeline: '2026-Q1 / Shipped',
     summary:
-      'A local-first, privacy-focused resume engineering platform featuring real-time document layout, F-Pattern visual hierarchy analysis, AI bullet point optimization via Groq SDK, multi-format parsing (Word DOCX, PDF, LinkedIn), headless Chromium PDF generation via Puppeteer, and Stripe subscription billing.',
+      'A local-first, privacy-focused resume engineering platform featuring real-time document layout, F-Pattern visual hierarchy analysis, AI bullet point optimization via hosted inference SDK, multi-format parsing (Word DOCX, PDF, LinkedIn), headless Chromium PDF generation via Puppeteer, and Stripe subscription billing.',
     productPurpose:
       'Provide a fast, privacy-respecting career documentation suite that optimizes resume content for human recruiters and applicant tracking systems using verified visual ergonomics and AI refinement.',
     repositories: [
@@ -2540,18 +2540,18 @@ export const RESEARCH_NODES: ResearchNode[] = [
         homepageUrl: 'https://agentrez.space',
         visibility: 'public',
         relationship: 'primary-source',
-        description: 'Canonical public source repository: Next.js 15, Groq AI bullet rewriter, Puppeteer PDF export, and Stripe billing.',
+        description: 'Canonical public source repository: Next.js 15, hosted AI bullet rewriter, Puppeteer PDF export, and Stripe billing.',
         verificationStatus: 'verified',
       },
     ],
     architecture: {
       overview:
-        'Built with Next.js 15 App Router and React 19. Combines an instant client-side document layout preview, an F-Pattern cognitive visual hierarchy heatmap overlay, server-side Groq Llama 3.3 70B bullet point rewriting via STAR methodology, serverless headless Chromium PDF generation, and multi-format document ingestion.',
+        'Built with Next.js 15 App Router and React 19. Combines an instant client-side document layout preview, an F-Pattern cognitive visual hierarchy heatmap overlay, server-side hosted Llama 3.3 70B bullet point rewriting via STAR methodology, serverless headless Chromium PDF generation, and multi-format document ingestion.',
       techStack: [
         'Next.js 15 (App Router)',
         'React 19 & TypeScript',
         'Tailwind CSS',
-        'Groq SDK (Llama 3.3 70B STAR Rewriter)',
+        'Hosted Llama 3.3 70B STAR rewriter',
         'Puppeteer & @sparticuz/chromium-min',
         'Mammoth.js (Word DOCX Ingestion)',
         'pdf-parse (PDF Text Extraction)',
@@ -2571,9 +2571,9 @@ export const RESEARCH_NODES: ResearchNode[] = [
           technology: 'HTML5 Canvas / TypeScript',
         },
         {
-          name: 'Groq STAR-Method AI Rewriter',
-          description: 'Restructures weak bullet points into high-impact Situation-Task-Action-Result metrics via Groq Llama 3.3 70B.',
-          technology: 'Groq API',
+          name: 'Hosted STAR-Method AI Rewriter',
+          description: 'Restructures weak bullet points into high-impact Situation-Task-Action-Result metrics via hosted Llama 3.3 70B.',
+          technology: 'Hosted inference API',
         },
         {
           name: 'Document Ingestion Pipeline',
@@ -2598,14 +2598,14 @@ export const RESEARCH_NODES: ResearchNode[] = [
       ],
       technicalDecisions: [
         'Upgraded to Next.js 15 App Router with React 19 for optimal server action performance.',
-        'Leveraged Groq ultra-low-latency inference for sub-second bullet point suggestions.',
+        'Leveraged hosted inference for sub-second bullet point suggestions.',
         'Maintained strictly within the Shipped Software domain as applied product engineering.',
       ],
     },
     features: [
       'Instant-render multi-template resume composer with custom typography controls',
       'Real-time F-Pattern eye-tracking heatmap scanner identifying weak visual zones',
-      'AI bullet point optimizer restructuring accomplishments into STAR format with Groq',
+      'AI bullet point optimizer restructuring accomplishments into STAR format with hosted inference',
       'Word (.docx), PDF, and LinkedIn export file ingestion with automatic field mapping',
       'Pixel-perfect vector PDF generation via headless serverless Chromium',
       'Stripe subscription integration for Pro memberships and export credits',
@@ -2641,7 +2641,7 @@ export const RESEARCH_NODES: ResearchNode[] = [
     position: [-2.2, -0.6, -0.2],
     timeline: '2026-Q1 / Active Development',
     summary:
-      'A browser-native operating environment unifying Kernos OS systems architecture with BNLM client-side machine learning inside a single tab. Features an in-browser intent classifier trained in seconds (~8k parameters) with per-character occlusion attribution, a capability-governed VFS terminal with pipes, sandboxed Pyodide Python WebAssembly execution, and Groq cloud intelligence fallback.',
+      'A browser-native operating environment unifying Kernos OS systems architecture with BNLM client-side machine learning inside a single tab. Features an in-browser intent classifier trained in seconds (~8k parameters) with per-character occlusion attribution, a capability-governed VFS terminal with pipes, sandboxed Pyodide Python WebAssembly execution, and hosted cloud intelligence fallback.',
     engineeringObjective:
       'Deliver a private, zero-install operating environment in the browser capable of training and running private intent classifiers entirely offline with explainable attribution, capability policies, and sandboxed Python execution.',
     repositories: [
@@ -2666,7 +2666,7 @@ export const RESEARCH_NODES: ResearchNode[] = [
         'BNLM Sub-Engine (JavaScript / WebGPU)',
         'Pyodide (Python WASM Worker)',
         'Tailwind CSS',
-        'Groq API (Optional Cloud Fallback)',
+        'Optional cloud inference fallback',
         'Vercel',
       ],
       components: [
@@ -2697,8 +2697,8 @@ export const RESEARCH_NODES: ResearchNode[] = [
         },
         {
           name: 'Cloud Intelligence Bridge',
-          description: 'Optional Groq API connection for synthetic dataset generation and complex queries, while intent classification stays 100% offline (lib/groqFetch.ts).',
-          technology: 'Groq Cloud API',
+          description: 'Optional hosted inference connection for synthetic dataset generation and complex queries, while intent classification stays 100% offline.',
+          technology: 'Hosted inference API',
         },
       ],
       principles: [
