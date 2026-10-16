@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function IntentPage({ searchParams }: { searchParams: Promise<{ mini?: string }> }) {
+export default async function IntentPage({ searchParams }: { searchParams: Promise<{ mini?: string; checkpoint?: string | string[] }> }) {
   const params = await searchParams;
-  return params?.mini === '1' ? <IntentMiniPage /> : <IntentAuthGate />;
+  return params?.mini === '1' ? <IntentMiniPage searchParams={searchParams} /> : <IntentAuthGate />;
 }

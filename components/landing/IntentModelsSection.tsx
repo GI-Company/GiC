@@ -17,7 +17,7 @@ export default function IntentModelsSection() {
           {[
             [Boxes,'INTENT','Compact experimental language-model architectures exploring parameter efficiency, training behavior, and reasoning under constrained compute.'],
             [Cpu,'INTENT-R','GIC’s recurrent language-model research direction, extending the INTENT model-development program.'],
-            [MessageSquareText,'LooseMouth','The public workspace for chat, web research, reports, and applets. Hosted inference currently uses Groq while GIC develops its private models and infrastructure.'],
+            [MessageSquareText,'LooseMouth','The public workspace for chat, web research, reports, and applets. Hosted inference currently uses Google Gemini while GIC develops its private models and infrastructure.'],
           ].map(([Icon,title,text]:any)=><article key={title} className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm"><Icon className="h-5 w-5 text-blue-700"/><h3 className="mt-7 text-lg font-semibold text-slate-950">{title}</h3><p className="mt-3 text-sm leading-6 text-slate-600">{text}</p></article>)}
         </div>
       </div>

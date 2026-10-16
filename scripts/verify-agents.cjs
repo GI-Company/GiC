@@ -7,7 +7,7 @@ function harness(){
   const file=path.join(root,name.replace(/^@\//,'')+'.ts');if(cache.has(file))return cache.get(file);
   const exports={};cache.set(file,exports);
   const source=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-  vm.runInNewContext(source,{exports,require:h.load,process:{env:{SUPABASE_SECRET_KEY:'test-secret',GROQ_API:'test-key'}},URL,AbortSignal,TextEncoder,crypto:webcrypto,fetch:(...args)=>h.fetch(...args)}, {filename:file});return exports;
+  vm.runInNewContext(source,{exports,require:h.load,process:{env:{SUPABASE_SECRET_KEY:'test-secret',GEMINI_API_KEY:'test-key'}},URL,AbortSignal,TextEncoder,crypto:webcrypto,fetch:(...args)=>h.fetch(...args)}, {filename:file});return exports;
  };return h;
 }
 const reply=message=>({ok:true,json:async()=>({choices:[{message}]})});
@@ -64,12 +64,12 @@ test('artifact agent rejects unchecked drafts and stops at its tool budget',asyn
  const h=harness();h.fetch=async()=>reply({tool_calls:[call('write_draft',{title:'Unchecked',markdown:'Text'})]});await assert.rejects(()=>h.load('lib/artifact-agent').runArtifactAgent({key:'test',model:'test',kind:'report',prompt:'Build',context:'',current:null,normalize:(kind,a)=>a}),/step limit/);
 });
 function accessHarness(tier='free',status='active',authenticated=true){
- const h=harness();h.count={quota:0,groq:0};h.fetch=async url=>{
+ const h=harness();h.count={quota:0,provider:0};h.fetch=async url=>{
   const u=String(url);
   if(u.includes('/auth/v1/user'))return {ok:authenticated,json:async()=>({id:'test-user'})};
   if(u.includes('billing_entitlements'))return {ok:true,json:async()=>[{tier,subscription_status:status}]};
   if(u.includes('consume_inference_quota')){h.count.quota++;return {ok:true,json:async()=>[{allowed:true,remaining:7}]};}
-  h.count.groq++;throw Error('Unexpected provider access');
+  h.count.provider++;throw Error('Unexpected provider access');
  };return h;
 }
 const {NextRequest}=require('next/server');
@@ -77,7 +77,7 @@ const request=(method='GET',body)=>new NextRequest('https://example.com/api/virt
 test('lab GET and POST reject guests, Free, cancelled and overdue subscriptions before execution',async()=>{
  for(const [tier,status,authenticated,expected] of [['free','active',false,401],['free','active',true,403],['paid','canceled',true,403],['enhanced','past_due',true,403]]){
   const h=accessHarness(tier,status,authenticated),route=h.load('app/api/virtual-lab/route'),lab=h.load('lib/virtual-lab-demo');
-  assert.equal((await route.GET(request())).status,expected);assert.equal((await route.POST(request('POST',{action:'run',protocol:lab.DEFAULT_PROPOSAL,tier:'enhanced',authorized:true}))).status,expected);assert.equal(h.count.quota,0);assert.equal(h.count.groq,0);
+  assert.equal((await route.GET(request())).status,expected);assert.equal((await route.POST(request('POST',{action:'run',protocol:lab.DEFAULT_PROPOSAL,tier:'enhanced',authorized:true}))).status,expected);assert.equal(h.count.quota,0);assert.equal(h.count.provider,0);
  }
 });
 test('active Paid and Enhanced trials can run the lab through the protected API',async()=>{
