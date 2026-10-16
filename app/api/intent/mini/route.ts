@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { consumeWorkbenchQuota } from '@/lib/workbench-access';
 import { gradioEvents, inferenceError, inferenceInput } from '@/lib/intent-hf-stream';
@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
   try {
     const queued = await fetch(endpoint, {
       method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data, session_hash: randomUUID() }),
+      // Let /call own its session ID so the result stream can find the job.
+      body: JSON.stringify({ data }),
       cache: 'no-store', redirect: 'error', signal: controller.signal,
     });
     if (!queued.ok) {
