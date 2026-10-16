@@ -18,7 +18,7 @@ function readCA(pdb:string):CA[]{
 }
 export default function StructureViewer({accessToken}:{accessToken:string}){
  const mount=useRef<HTMLDivElement>(null);
- const [id,setId]=useState('1U19'),[raw,setRaw]=useState(''),[focus,setFocus]=useState(296),[status,setStatus]=useState('Loading reference coordinates…');
+ const [id,setId]=useState('1U19'),[raw,setRaw]=useState(''),[focus,setFocus]=useState(296),[status,setStatus]=useState('Loading reference coordinates…'),[cameraRevision,setCameraRevision]=useState(0);
  useEffect(()=>{
   let cancelled=false;setRaw('');setStatus('Fetching experimental reference coordinates…');
   void fetch('/api/virtual-lab/structure?id='+id,{headers:{Authorization:'Bearer '+accessToken},cache:'no-store'})
@@ -33,7 +33,10 @@ export default function StructureViewer({accessToken}:{accessToken:string}){
   if(!ca.length){setStatus('No alpha-carbon coordinates present.');return;}
   const scene=new THREE.Scene();scene.background=new THREE.Color('#09172b');
   const camera=new THREE.PerspectiveCamera(46,1,0.1,2000);
-  const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  let renderer:THREE.WebGLRenderer;
+  try {renderer=new THREE.WebGLRenderer({antialias:true});}
+  catch {setStatus('3D graphics are unavailable in this browser. Open the source structure below or explore the tissue and cell schematics.');return;}
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   host.appendChild(renderer.domElement);
   scene.add(new THREE.HemisphereLight('#ffffff','#1b4965',2));
   const light=new THREE.DirectionalLight('#ffffff',1.7);light.position.set(6,7,10);scene.add(light);
@@ -57,10 +60,10 @@ export default function StructureViewer({accessToken}:{accessToken:string}){
   const paint=()=>{if(!running)return;frame=requestAnimationFrame(paint);controls.update();renderer.render(scene,camera);};
   paint();setStatus('Experimental reference · '+ca.length+' resolved Cα coordinates'+(mark?' · selected residue present':' · selected residue unresolved'));
   return ()=>{running=false;cancelAnimationFrame(frame);observer.disconnect();controls.dispose();scene.traverse(obj=>{if(obj instanceof THREE.Mesh){obj.geometry.dispose();if(obj.material!==material){const mats=Array.isArray(obj.material)?obj.material:[obj.material];mats.forEach(m=>m.dispose());}}});sphere.dispose();material.dispose();renderer.dispose();renderer.domElement.remove();};
- },[raw,focus]);
+ },[raw,focus,cameraRevision]);
  return <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
   <header className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-lg font-semibold">PDB reference structure viewer</h3><p className="mt-1 text-xs text-slate-600">Real Cα coordinates, not a generated cartoon model.</p></div><label className="text-sm font-semibold">Structure <select className="rounded-md border border-slate-300 p-2" value={id} onChange={e=>setId(e.target.value)}><option value="1U19">Rhodopsin 1U19</option><option value="1F88">Rhodopsin 1F88</option></select></label></header>
-  <div role="group" aria-label="Focus residue" className="my-3 flex flex-wrap gap-2">{[23,113,187,296].map(r=><button type="button" key={r} onClick={()=>setFocus(r)} className={'rounded-lg border px-3 py-2 text-xs '+(r===focus?'border-blue-600 bg-blue-600 text-white':'border-slate-300')}>Residue {r}</button>)}</div>
+  <div role="group" aria-label="Focus residue" className="my-3 flex flex-wrap gap-2">{[23,113,187,296].map(r=><button type="button" key={r} onClick={()=>setFocus(r)} className={'rounded-lg border px-3 py-2 text-xs '+(r===focus?'border-blue-600 bg-blue-600 text-white':'border-slate-300')}>Residue {r}</button>)}<button type="button" onClick={()=>setCameraRevision(v=>v+1)} className="rounded-lg border border-slate-300 px-3 py-2 text-xs">Reset camera</button></div>
   <div ref={mount} className="h-[340px] w-full overflow-hidden rounded-xl bg-slate-950 sm:h-[480px]" role="img" aria-label={'Interactive 3D alpha-carbon structure for PDB '+id}/>
   <p role="status" className="mt-3 text-xs text-slate-600">{status}</p>
   <p className="mt-2 text-xs leading-5 text-amber-900">These are bovine rhodopsin reference structures. This viewer does not model the human P23H mutation, molecular docking, rescue efficacy or clinical outcomes. Missing residues are never fabricated.</p>

@@ -105,3 +105,57 @@ test('editing a lab protocol invalidates only its approval, not the prior result
  assert.equal(lab.isApprovedProtocol(approved,null),false);assert.equal(lab.isApprovedProtocol({duration:999},approved),false);
  assert.equal(prior.length,3);assert.equal(prior[0].points.at(-1).time,24);
 });
+
+test('RHO RK4 trajectories match closed forms for the three linear protein pools',()=>{
+ const rho=harness().load('lib/virtual-lab-rhodopsin');
+ for(const preset of Object.values(rho.RHO_PRESETS)){
+  const r=rho.runRhodopsin(preset.protocol),p=r.protocol,d=p.defect*(1-.72*p.chaperone),fold=.45*(1-d),misfold=.38*d,kn=fold+misfold+.1*p.clearance,steady=p.synthesis/kn;
+  for(const point of r.points){
+   const t=point.time,n=steady+(1-steady)*Math.exp(-kn*t);
+   const pool=(rate,input,initial)=>initial*Math.exp(-rate*t)+input*steady*(1-Math.exp(-rate*t))/rate+input*(1-steady)*(Math.exp(-kn*t)-Math.exp(-rate*t))/(rate-kn);
+   assert.ok(Math.abs(point.nascent-n)<1e-7);
+   assert.ok(Math.abs(point.aggregate-pool(p.clearance,misfold,.1))<1e-7);
+   assert.ok(Math.abs(point.mature-pool(.08,fold,.2))<1e-7);
+   assert.ok(point.stress>=0&&Number.isFinite(point.stress));
+  }
+  assert.equal(r.points.length,241);assert.ok(r.matureFraction>=0&&r.matureFraction<=1);
+ }
+});
+test('RHO rejects unsupported rates and binds assumptions into reproducible evidence',async()=>{
+ const rho=harness().load('lib/virtual-lab-rhodopsin'),p=rho.RHO_PRESETS.p23h.protocol;
+ for(const change of [{synthesis:NaN},{defect:1},{chaperone:-1},{clearance:0},{duration:100},{duration:null}])assert.throws(()=>rho.runRhodopsin({...p,...change}));
+ const a=await rho.rhoEvidence(p),b=await rho.rhoEvidence(p),c=await rho.rhoEvidence({...p,chaperone:.5});
+ assert.equal(a.sha256,b.sha256);assert.notEqual(a.sha256,c.sha256);assert.equal(a.payload.output_state,'SIMULATED');
+ assert.ok(rho.runRhodopsin(rho.RHO_PRESETS.rescue.protocol).matureFraction>rho.runRhodopsin(p).matureFraction);
+});
+test('synthetic optics are deterministic, bounded, and respond to illumination',()=>{
+ const optics=harness().load('lib/virtual-lab-optics'),settings={exposure:25,laser:65,gain:1};
+ const a=optics.simulateOpticalFrame(settings,1),b=optics.simulateOpticalFrame(settings,1),dark=optics.simulateOpticalFrame({...settings,laser:0},2),saturated=optics.simulateOpticalFrame({exposure:100,laser:100,gain:8},3);
+ assert.equal(JSON.stringify(a),JSON.stringify(b));assert.equal(a.pixels.length,64*48);assert.equal(a.epistemic_state,'SIMULATED');assert.ok(a.pixels.every(v=>Number.isInteger(v)&&v>=0&&v<=255));
+ assert.ok(dark.pixels.every(v=>v===4));assert.ok(a.statistics.mean>dark.statistics.mean);assert.ok(saturated.statistics.saturated>0);
+ for(const settings of [{exposure:0,laser:10,gain:1},{exposure:2,laser:101,gain:1},{exposure:2,laser:10,gain:Infinity}])assert.throws(()=>optics.simulateOpticalFrame(settings,1));
+});
+test('ledger checks actual artifact bytes, genesis, missing artifacts and chain ordering',async()=>{
+ const ledger=harness().load('lib/virtual-lab-ledger'),entries=[{state:'SIMULATED',value:1},{state:'UNKNOWN',value:2}];
+ const pristine=await ledger.createEvidenceLedger(entries);assert.equal((await ledger.verifyEvidenceLedger(pristine)).valid,true);
+ assert.equal(pristine.root,(await ledger.createEvidenceLedger(entries)).root);
+ const change=fn=>{const b=JSON.parse(JSON.stringify(pristine));fn(b);return b;};
+ assert.equal((await ledger.verifyEvidenceLedger(change(b=>b.artifacts[0].content+=' '))).code,'HASH_MISMATCH');
+ assert.equal((await ledger.verifyEvidenceLedger(change(b=>b.events[0].previousHash='changed'))).code,'CHAIN_MISMATCH');
+ assert.equal((await ledger.verifyEvidenceLedger(change(b=>b.artifacts.pop()))).code,'MISSING_ARTIFACT');
+ assert.equal((await ledger.verifyEvidenceLedger(change(b=>b.events.reverse()))).code,'CHAIN_MISMATCH');
+ assert.equal((await ledger.verifyEvidenceLedger(change(b=>b.root='wrong'))).valid,false);
+ for(const input of [null,[],{}, {format:'gic-evidence-ledger-v1',artifacts:[null],events:[]}])assert.equal((await ledger.verifyEvidenceLedger(input)).valid,false);
+});
+test('RHO API retains subscription gates, input validation, quotas and simulated evidence',async()=>{
+ for(const [tier,authenticated,expected] of [['free',false,401],['free',true,403],['paid',true,200]]){
+  const h=accessHarness(tier,'active',authenticated),rho=h.load('lib/virtual-lab-rhodopsin'),route=h.load('app/api/virtual-lab/route');
+  const response=await route.POST(request('POST',{action:'rho_run',protocol:rho.RHO_PRESETS.p23h.protocol}));
+  assert.equal(response.status,expected);assert.equal(h.count.quota,expected===200?1:0);assert.equal(h.count.provider,0);
+  if(response.ok)assert.equal((await response.json()).bundle.payload.output_state,'SIMULATED');
+ }
+ const h=accessHarness('paid'),route=h.load('app/api/virtual-lab/route'),rho=h.load('lib/virtual-lab-rhodopsin');
+ assert.equal((await route.POST(request('POST',{action:'rho_run',protocol:{...rho.RHO_PRESETS.p23h.protocol,clearance:Infinity}}))).status,400);assert.equal(h.count.quota,0);
+ const upstream=h.fetch;h.fetch=async(...args)=>String(args[0]).includes('consume_inference_quota')?{ok:true,json:async()=>[{allowed:false,remaining:0}]}:upstream(...args);
+ assert.equal((await route.POST(request('POST',{action:'rho_run',protocol:rho.RHO_PRESETS.p23h.protocol}))).status,429);
+});
