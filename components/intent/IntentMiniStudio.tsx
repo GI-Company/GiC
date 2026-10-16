@@ -3,14 +3,13 @@
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, Cpu, FlaskConical, ShieldAlert } from 'lucide-react';
 import LooseMouthModelPicker from '@/components/intent/LooseMouthModelPicker';
+import IntentMiniChat from '@/components/intent/IntentMiniChat';
 import { INTENT_CHECKPOINTS, type IntentCheckpoint } from '@/lib/intent-models';
 
 const SPACE_URL = 'https://huggingface.co/spaces/Hdhhhgfc/INTENT-RLSE-v2';
-const EMBED_URL = 'https://hdhhhgfc-intent-rlse-v2.hf.space/';
 
 export default function IntentMiniStudio({ checkpoint = 'facts500' }: { checkpoint?: IntentCheckpoint }) {
   const info = INTENT_CHECKPOINTS[checkpoint];
-  const embedUrl = `${EMBED_URL}?checkpoint=${checkpoint}`;
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -54,23 +53,15 @@ export default function IntentMiniStudio({ checkpoint = 'facts500' }: { checkpoi
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
             <div>
               <h2 id="intent-mini-test-heading" className="text-lg font-semibold text-slate-950">Live model testing studio</h2>
-              <p className="mt-1 text-xs leading-5 text-slate-600">Chat · Recurrent telemetry · Inference profile and anti-loop controls</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">Authenticated Hugging Face connection · Adjustable decoding · Streaming output</p>
             </div>
             <a href={`${SPACE_URL}?checkpoint=${checkpoint}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-blue-300 bg-blue-50 px-4 text-sm font-semibold text-blue-900 hover:bg-blue-100">
               Open on Hugging Face <ArrowUpRight size={16} aria-hidden="true" />
             </a>
           </div>
-          <iframe
-            title="INTENT RLSE-v2 interactive chat, decoding controls and recurrent telemetry"
-            key={checkpoint}
-            src={embedUrl}
-            loading="lazy"
-            referrerPolicy="strict-origin-when-cross-origin"
-            className="block h-[900px] w-full border-0 bg-white sm:h-[980px] xl:h-[850px]"
-            allow="clipboard-write"
-          />
+          <IntentMiniChat key={checkpoint} checkpoint={checkpoint} />
         </section>
-        <p className="mt-4 pb-8 text-xs leading-5 text-slate-600">Hosted research demo and availability are controlled by Hugging Face. If the embedded studio does not load, use the direct Hugging Face link above. Access here does not require a GIC subscription.</p>
+        <p className="mt-4 pb-8 text-xs leading-5 text-slate-600">Inference runs on Hugging Face through GIC&apos;s authenticated server connection. Access here does not require a GIC subscription. The direct Hugging Face studio uses its own sign-in and quota.</p>
       </div>
     </main>
   );
