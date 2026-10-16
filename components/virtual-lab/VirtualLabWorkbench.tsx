@@ -15,7 +15,7 @@ const colors=['#2563eb','#059669','#d97706','#9333ea','#dc2626'];
 function download(name:string,type:string,text:string) {
   const url=URL.createObjectURL(new Blob([text],{type})),link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-export default function VirtualLabWorkbench({accessToken}:{accessToken:string}) {
+export default function VirtualLabWorkbench({accessToken,onEvidence}:{accessToken:string;onEvidence?:(event:{protocol:LabProposal;runs:number;sha256:string})=>void}) {
   const [parameter,setParameter]=useState<SweepParameter>(DEFAULT_PROPOSAL.parameter);
   const [values,setValues]=useState(DEFAULT_PROPOSAL.values.join(', '));
   const [duration,setDuration]=useState(DEFAULT_PROPOSAL.duration);
@@ -49,7 +49,7 @@ export default function VirtualLabWorkbench({accessToken}:{accessToken:string}) 
       const response=await fetch('/api/virtual-lab',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${accessToken}`},body:JSON.stringify({action,protocol,goal:brief,approved})});
       const data=await response.json();
       if(!response.ok)throw new Error(data.error||'Lab action failed.');
-      if(action==='run'){setBundle(data.bundle);setReport(data.report);setAgent(null);setVerified(null);setReview(null);setNotice(`Experiment complete. ${data.bundle.payload.runs.length} runs finished; your results and report are ready.`);}
+      if(action==='run'){setBundle(data.bundle);setReport(data.report);setAgent(null);setVerified(null);setReview(null);setNotice(`Experiment complete. ${data.bundle.payload.runs.length} runs finished; your results and report are ready.`);onEvidence?.({protocol:data.bundle.payload.protocol,runs:data.bundle.payload.runs.length,sha256:data.bundle.sha256});}
       else {setAgent(data);}
     }catch(cause){setError(cause instanceof Error?cause.message:'Lab action failed.');}
     finally{inFlight.current=false;setBusy(null);}

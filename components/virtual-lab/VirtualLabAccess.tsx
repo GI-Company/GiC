@@ -6,7 +6,7 @@ import { checkoutAccessToken } from '@/lib/checkout-intent';
 import { getPreferences } from '@/lib/loosemouth-persistence';
 import { AUTH_STORAGE_KEY } from '@/lib/checkout-intent';
 import { setWorkspaceAnalytics } from '@/lib/workspace-privacy';
-import VirtualLabWorkbench from './VirtualLabWorkbench';
+import ScientificCockpit from './ScientificCockpit';
 export default function VirtualLabAccess() {
   const [token,setToken]=useState<string|null>(null),[state,setState]=useState<'checking'|'guest'|'free'|'allowed'|'error'>('checking'),[error,setError]=useState(''),[attempt,setAttempt]=useState(0);
   useEffect(()=>{
@@ -31,7 +31,7 @@ export default function VirtualLabAccess() {
     }
     void check();return()=>{active=false;setWorkspaceAnalytics(null);};
   },[attempt]);
-  if(state==='allowed'&&token)return <VirtualLabWorkbench accessToken={token}/>;
+  if(state==='allowed'&&token)return <ScientificCockpit accessToken={token}/>;
   return <section className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-8 text-center" data-ph-mask="true">
     <LockKeyhole className="mx-auto text-blue-600" size={32}/><h2 className="mt-4 text-2xl font-semibold">{state==='checking'?'Checking subscription access…':'Virtual Lab is a paid experience'}</h2>
     <p className="mt-3 text-sm leading-7 text-slate-600">{state==='checking'?'Verifying your account before opening the lab.':state==='error'?error:'An active Paid or Enhanced plan unlocks the online reference experiment, comparison workbench and evidence exports. Free and guest access stays in LooseMouth.'}</p>
