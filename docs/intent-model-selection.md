@@ -37,7 +37,7 @@ The streaming `/generate` Gradio API accepts:
 The last argument is `facts500` (default) or `sft1000`.
 Both custom models currently use a 512-token serving context.
 
-The native panel defaults to temperature 9, top-K 80 and 96 output tokens.
+The native panel defaults to temperature 0.9, top-K 80 and 96 output tokens.
 It streams cumulative plain text via NDJSON, supports both checkpoints, and
 handles fragmented SSE, quota/authentication errors, interrupted streams and
 timeouts. Each prompt is independent. Stop closes the stream; a GPU job that
