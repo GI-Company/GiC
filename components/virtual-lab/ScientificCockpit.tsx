@@ -1,7 +1,8 @@
 
 'use client';
 import dynamic from 'next/dynamic';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { labSettingsHash, parseLabSettings, takeLabSettings, type SharedLabSettings } from '@/lib/lab-sharing';
 import { Activity, Atom, Database, Download, FlaskConical, Microscope, ShieldCheck, Sparkles } from 'lucide-react';
 import VirtualLabWorkbench from './VirtualLabWorkbench';
 import { calculateIsotopeEnvelope, type MassSpectrum } from '@/lib/virtual-lab-mass-spec';
@@ -56,6 +57,20 @@ function ImportedSignal({data,channel}:{data:InstrumentImport;channel:string}){
 }
 export default function ScientificCockpit({accessToken}:{accessToken:string}){
  const [tab,setTab]=useState<Tab>('structure');
+ const [shared,setShared]=useState<SharedLabSettings|null>(null);
+ const [shareError,setShareError]=useState('');
+ useEffect(()=>{
+  function apply(value:SharedLabSettings|null){
+   if(value){setShared(value);setTab(value.tool==='rho'?'rhodopsin':'optics');setShareError('');}
+   else if(window.location.hash.startsWith('#lab='))setShareError('This settings link is invalid or unsupported. Your current settings have not been changed.');
+  }
+  let value;try{value=takeLabSettings(sessionStorage,window.location.hash);}catch{value=parseLabSettings(window.location.hash);}
+  if(value){apply(value);if(!window.location.hash)window.history.replaceState(null,'',window.location.pathname+window.location.search+labSettingsHash(value));}
+  else apply(null);
+  const onHash=()=>apply(parseLabSettings(window.location.hash));
+  window.addEventListener('hashchange',onHash);
+  return()=>window.removeEventListener('hashchange',onHash);
+ },[]);
  const [ledgerRevision,setLedgerRevision]=useState(0);
  const [formula,setFormula]=useState('C20H28O'),[charge,setCharge]=useState(1),[spectrum,setSpectrum]=useState<MassSpectrum|null>(null),[massError,setMassError]=useState('');
  const [instrument,setInstrument]=useState<InstrumentImport|null>(null),[filename,setFilename]=useState(''),[fileHash,setFileHash]=useState(''),[channel,setChannel]=useState(''),[instrumentError,setInstrumentError]=useState('');
@@ -89,7 +104,8 @@ export default function ScientificCockpit({accessToken}:{accessToken:string}){
   const value=JSON.stringify(payload),hash=await sha256(value);
   setExportHash(hash);download('gic-virtual-lab-notebook.json',JSON.stringify({payload,sha256:hash},null,2));
  }
- return <section className="min-w-0 space-y-5 text-slate-950" data-ph-mask="true" data-ph-no-capture="true">
+ return <section className="ph-no-capture min-w-0 space-y-5 text-slate-950" data-ph-mask="true" data-ph-no-capture="true">
+  {shareError&&<p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">{shareError}</p>}
   <header className="rounded-2xl border border-slate-700 bg-slate-950 p-5 text-slate-100 sm:p-6">
    <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-wider text-sky-300">Global Intent Company · Virtual Lab</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">Multi-scale biological &amp; instrument cockpit</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Explore structure, review model assumptions, approve simulations, inspect instrument files, and follow the evidence trail.</p></div><span className="rounded-full border border-sky-700 bg-sky-950 px-3 py-2 text-xs font-semibold text-sky-200">Research beta · human review required</span></div>
    <div className="mt-5 grid gap-2 sm:grid-cols-3"><div className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs"><Activity size={18} className="mb-2 text-sky-300"/><strong>SIMULATED</strong><p className="mt-1 text-slate-300">RK4, synthetic optics and isotope calculations</p></div><div className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs"><Atom size={18} className="mb-2 text-indigo-300"/><strong>REFERENCE</strong><p className="mt-1 text-slate-300">RCSB experimental protein coordinates</p></div><div className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs"><ShieldCheck size={18} className="mb-2 text-amber-300"/><strong>UNKNOWN</strong><p className="mt-1 text-slate-300">Imported files require source verification</p></div></div>
@@ -101,8 +117,8 @@ export default function ScientificCockpit({accessToken}:{accessToken:string}){
   <div role="tabpanel" id={'lab-panel-'+tab} aria-labelledby={'lab-tab-'+tab} className="min-w-0">
    <div hidden={tab!=='simulation'}><VirtualLabWorkbench accessToken={accessToken} onEvidence={e=>record('RK4 experiment','SIMULATED',e.protocol.parameter+' · '+e.runs+' trajectories · '+e.sha256.slice(0,12)+'…',e)}/></div>
    <div hidden={tab!=='structure'}><MultiScaleWorld accessToken={accessToken} onFormula={value=>{setFormula(value);setTab('mass');}}/></div>
-   <div hidden={tab!=='rhodopsin'}><RhodopsinWorkbench accessToken={accessToken} onEvidence={value=>record('RHO model','SIMULATED','Approved four-state RK4 simulation',value)}/></div>
-   <div hidden={tab!=='optics'}><OpticalSandbox onEvidence={value=>record('Optical sandbox','SIMULATED','Generated a synthetic optical frame',value)}/></div>
+   <div hidden={tab!=='rhodopsin'}><RhodopsinWorkbench key={shared?.tool==='rho'?JSON.stringify(shared.settings):'default-rho'} initialSettings={shared?.tool==='rho'?shared.settings:undefined} accessToken={accessToken} onEvidence={value=>record('RHO model','SIMULATED','Approved four-state RK4 simulation',value)}/></div>
+   <div hidden={tab!=='optics'}><OpticalSandbox key={shared?.tool==='optics'?JSON.stringify(shared.settings):'default-optics'} initialSettings={shared?.tool==='optics'?shared.settings:undefined} onEvidence={value=>record('Optical sandbox','SIMULATED','Generated a synthetic optical frame',value)}/></div>
    {tab==='mass'&&<section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
     <h3 className="flex items-center gap-2 text-lg font-semibold"><FlaskConical size={20}/> Isotope-envelope calculator</h3>
     <p className="text-sm text-slate-600">Convolve actual isotope masses and approximate natural abundances. This calculates a molecular precursor envelope from a known formula; it cannot identify a compound in a sample.</p>

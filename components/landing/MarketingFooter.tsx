@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight, Github, Linkedin, Mail } from 'lucide-react';
 
 const links = [
+  { label: 'Developer quickstart', href: '/developers' },
   { label: 'Research', href: '/research' },
   { label: 'Technology', href: '/technology' },
   { label: 'Infrastructure', href: '/infrastructure' },

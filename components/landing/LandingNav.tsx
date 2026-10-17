@@ -15,6 +15,7 @@ const productLinks = [
 ];
 
 const primaryLinks = [
+  { label: 'Developers', href: '/developers' },
   { label: 'Research', href: '/research' },
   { label: 'Technology', href: '/technology' },
   { label: 'Company', href: '/company' },

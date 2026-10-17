@@ -92,3 +92,11 @@ test('analytics outages cannot block a successful signup or checkout', () => {
   const h=harness();h.load('lib/workspace-privacy').setWorkspaceAnalytics(true);h.window.posthog.capture=()=>{throw Error('SDK failure')};
   assert.doesNotThrow(()=>h.load('lib/conversion-events').trackConversion('gic_checkout_started',{plan:'enhanced'}));
 });
+
+test('tool funnel events strip content and continue respecting paid opt-out', () => {
+  const h=harness(),privacy=h.load('lib/workspace-privacy'),events=h.load('lib/conversion-events');
+  privacy.setWorkspaceAnalytics(true);
+  events.trackConversion('gic_run_completed',{tool:'facts500',prompt:'private prompt',answer:'private answer',token:'secret',settings:{secret:true}});
+  assert.deepEqual(Object.keys(h.events[0].properties),['tool']);assert.equal(h.events[0].properties.tool,'facts500');
+  privacy.setWorkspaceAnalytics(false);events.trackConversion('gic_settings_shared',{tool:'rho'});assert.equal(h.events.length,1);
+});

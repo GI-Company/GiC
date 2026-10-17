@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { INTENT_CHECKPOINTS, type IntentCheckpoint } from '@/lib/intent-models';
+import { takeEntryPrompt } from '@/lib/product-onboarding';
+import { trackConversion } from '@/lib/conversion-events';
+import InferenceExamples from './InferenceExamples';
 
 export default function IntentMiniChat({ checkpoint }: { checkpoint: IntentCheckpoint }) {
   const [prompt, setPrompt] = useState('');
@@ -10,10 +13,16 @@ export default function IntentMiniChat({ checkpoint }: { checkpoint: IntentCheck
   const [maxTokens, setMaxTokens] = useState(96);
   const [answer, setAnswer] = useState('');
   const [submitted, setSubmitted] = useState('');
+  const [runSettings, setRunSettings] = useState({ temperature: 9, topK: 80, maxTokens: 96 });
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Ready');
   const [error, setError] = useState('');
+  const [copyStatus, setCopyStatus] = useState('');
   const active = useRef<AbortController | null>(null);
+  useEffect(() => {
+    try { const draft = takeEntryPrompt(sessionStorage, checkpoint); if (draft) setPrompt(current => current || draft); }
+    catch { /* Storage restrictions must not block inference. */ }
+  }, [checkpoint]);
   useEffect(() => () => { active.current?.abort(); }, []);
 
   async function generate(event: FormEvent) {
@@ -21,7 +30,7 @@ export default function IntentMiniChat({ checkpoint }: { checkpoint: IntentCheck
     if (active.current || !prompt.trim()) return;
     const controller = new AbortController();
     active.current = controller;
-    setBusy(true); setError(''); setAnswer(''); setSubmitted(prompt.trim()); setStatus('Connecting…');
+    setBusy(true); setError(''); setAnswer(''); setSubmitted(prompt.trim()); setCopyStatus(''); setRunSettings({ temperature, topK, maxTokens }); setStatus('Connecting…');
     try {
       const response = await fetch('/api/intent/mini', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -47,7 +56,7 @@ export default function IntentMiniChat({ checkpoint }: { checkpoint: IntentCheck
             if (result.error) throw new Error(result.error);
             if (typeof result.text === 'string') { setAnswer(result.text); setStatus('Streaming…'); }
             else if (result.status) setStatus('Waiting for a GPU…');
-            if (result.done) { finished = true; setStatus('Complete'); }
+            if (result.done) { finished = true; setStatus('Complete'); trackConversion('gic_run_completed', { tool: checkpoint }); }
           }
           if (chunk.done) break;
         }
@@ -59,7 +68,13 @@ export default function IntentMiniChat({ checkpoint }: { checkpoint: IntentCheck
     } finally { active.current = null; setBusy(false); }
   }
 
-  return <div className="p-4 sm:p-6">
+  async function exportMarkdown() {
+    try {
+      await navigator.clipboard.writeText(`# GIC INTENT ${INTENT_CHECKPOINTS[checkpoint].label}\n\nExperimental model output; independently verify claims.\n\n## Prompt\n\n${submitted}\n\n## Output\n\n${answer}\n\nTemperature: ${runSettings.temperature}; top-K: ${runSettings.topK}; max new tokens: ${runSettings.maxTokens}.\n\nGenerated via Global Intent Company · https://www.globalintentcompany.space/intent/mini?checkpoint=${checkpoint}`);
+      setCopyStatus('Markdown copied.'); trackConversion('gic_result_exported', { tool: checkpoint, format: 'markdown' });
+    } catch { setCopyStatus('Clipboard unavailable. Select and copy the output.'); }
+  }
+  return <div className="ph-no-capture p-4 sm:p-6" data-ph-mask="true" data-ph-no-capture="true">
     <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
       <p className="font-semibold">{INTENT_CHECKPOINTS[checkpoint].label} · Streaming inference</p>
       <p role="status" className="text-slate-600">{status}</p>
@@ -89,7 +104,10 @@ export default function IntentMiniChat({ checkpoint }: { checkpoint: IntentCheck
     {submitted ? <section aria-label="Model response" aria-busy={busy} className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
       <p className="whitespace-pre-wrap break-words text-sm font-medium">{submitted}</p>
       <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7">{answer || (busy ? 'Waiting for the model…' : 'No text returned.')}</p>
+      {answer && !busy && status === 'Complete' ? <button type="button" onClick={() => void exportMarkdown()} className="mt-4 min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold">Copy result as Markdown</button> : null}
+      <p role="status" className="mt-2 text-xs text-slate-600">{copyStatus}</p>
     </section> : null}
     <p className="mt-4 text-xs leading-5 text-slate-500">Stopping closes your stream. A GPU task already running may still finish on Hugging Face.</p>
+    <InferenceExamples checkpoint={checkpoint} message={prompt} temperature={temperature} topK={topK} maxTokens={maxTokens}/>
   </div>;
 }

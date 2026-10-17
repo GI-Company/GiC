@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'Global Intent Company — Private AI. Owned infrastructure. Verifiable systems.';
+export const alt = 'Global Intent Company — Try the tools. Inspect the research.';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -28,15 +28,15 @@ export default function OpenGraphImage() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 1000 }}>
           <div style={{ fontSize: 70, lineHeight: 1.02, letterSpacing: '-0.04em', fontWeight: 700 }}>
-            Private AI. Owned infrastructure. Verifiable systems.
+            Try the tools. Inspect the research.
           </div>
           <div style={{ marginTop: 28, fontSize: 28, lineHeight: 1.35, color: '#475569' }}>
-            Language models · Private AI infrastructure · Scientific computing
+            AI chat · Experimental GIC models · Browser-local learning systems
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: 24, fontSize: 20, color: '#475569' }}>
-          <div>INTENT · PLM Infrastructure · Virtual Lab</div>
-          <div>globalintentcompany.space</div>
+          <div>Free playgrounds · Subscription Virtual Lab</div>
+          <div>www.globalintentcompany.space</div>
         </div>
       </div>
     ),

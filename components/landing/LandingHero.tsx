@@ -1,145 +1,64 @@
 'use client';
-
-import React from 'react';
-import { trackConversion } from '@/lib/conversion-events';
+import { useState, useTransition, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, FlaskConical, Network, Sparkles, ArrowUpRight } from 'lucide-react';
-
-const pillars = [
-  {
-    title: 'INTENT',
-    eyebrow: 'Private AI',
-    description: 'Language-model research and privately operated conversational AI, including LooseMouth.',
-    href: '/intent',
-    icon: Sparkles,
-  },
-  {
-    title: 'PLM Infrastructure',
-    eyebrow: 'Private Infrastructure',
-    description: 'Authenticated infrastructure for discovering, verifying, and operating privately hosted models.',
-    href: '/infrastructure',
-    icon: Network,
-  },
-  {
-    title: 'Virtual Lab',
-    eyebrow: 'Scientific Computing',
-    description: 'Evidence-oriented simulation, instrumentation, and reproducible scientific experimentation.',
-    href: '/virtual-lab',
-    icon: FlaskConical,
-  },
-];
-
+import { ArrowRight, Code2, FlaskConical, Cpu } from 'lucide-react';
+import { trackConversion } from '@/lib/conversion-events';
+import { ENTRY_PROMPT_KEY, saveEntryPrompt } from '@/lib/product-onboarding';
+const examples = {
+  standard: ['Explain this algorithm’s time complexity.', 'Outline an engineering validation plan.', 'Compare two approaches to local model serving.'],
+  facts500: ['The capital of France is', 'Plants convert sunlight into', 'A protein is'],
+};
 export default function LandingHero() {
-  return (
-    <section className="relative overflow-hidden border-b border-slate-200 bg-white pt-24 pb-20 sm:pt-40 sm:pb-28">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_80%_10%,rgba(37,99,235,0.08),transparent_32%),linear-gradient(to_bottom,#ffffff,#f8fafc)]" />
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold tracking-wide text-slate-600 shadow-sm">
-            <span className="h-2 w-2 rounded-full bg-blue-600" />
-            Independent AI &amp; systems engineering
-          </div>
-
-          <h1 className="mt-5 max-w-5xl text-4xl sm:mt-8 font-semibold tracking-[-0.04em] text-slate-950 sm:text-6xl lg:text-7xl leading-[1.02]">
-            Private AI. Owned infrastructure. Verifiable systems.
-          </h1>
-
-          <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600 sm:mt-7 sm:text-xl sm:leading-8">
-            Global Intent Company develops language models, private AI infrastructure, and scientific computing systems designed to provide direct control over models, compute, and data.
-          </p>
-
+  const router = useRouter();
+  const [model, setModel] = useState<'standard' | 'facts500'>('standard');
+  const [prompt, setPrompt] = useState(''), [error, setError] = useState('');
+  const [pending, startTransition] = useTransition();
+  function launch(event: FormEvent) {
+    event.preventDefault(); setError('');
+    try {
+      if (prompt.trim()) saveEntryPrompt(sessionStorage, model, prompt);
+      else { try { sessionStorage.removeItem(ENTRY_PROMPT_KEY); } catch { /* An empty draft needs no storage. */ } }
+      trackConversion('gic_tool_opened', { tool: model === 'standard' ? 'gemini' : 'facts500', placement: 'home' });
+      startTransition(() => router.push(model === 'standard' ? '/intent' : '/intent/mini?checkpoint=facts500'));
+    } catch { setError('Your browser could not keep the draft. Open the workspace below and paste your prompt there.'); }
+  }
+  return <section className="relative overflow-hidden border-b border-slate-200 bg-white pb-14 pt-28 sm:pb-20 sm:pt-36">
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(37,99,235,0.08),transparent_40%)]" />
+    <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <p className="text-xs font-bold uppercase tracking-[0.15em] text-blue-700">Global Intent Company · Independent AI &amp; systems engineering</p>
+      <div className="mt-6 grid gap-9 lg:grid-cols-2 lg:items-start lg:gap-12">
+        <div>
+          <h1 className="max-w-2xl text-4xl font-semibold leading-[1.08] tracking-[-0.04em] text-slate-950 sm:text-6xl">Try the tools.<br/><span className="text-blue-700">Inspect the research.</span><br/>Build on the evidence.</h1>
+          <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">Chat and research with LooseMouth, test GIC&apos;s experimental language models, or run a learning-system experiment in your browser.</p>
+          <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">LooseMouth uses Google Gemini. GIC&apos;s own model checkpoints run separately on Hugging Face. Private model infrastructure is an ongoing research program.</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/intent" onClick={() => trackConversion('gic_cta_clicked', { action: 'try_free', placement: 'home' })} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Try LooseMouth free <ArrowRight size={16} /></Link>
-            <Link href="/pricing" onClick={() => trackConversion('gic_cta_clicked', { action: 'view_plans', placement: 'home' })} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50">Compare plans <ArrowRight size={16} /></Link>
+            <Link href="/intent?signup=1" onClick={() => trackConversion('gic_cta_clicked', { action: 'create_account', placement: 'home' })} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-700 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-800">Create free account <ArrowRight size={16}/></Link>
+            <Link href="/pricing" onClick={() => trackConversion('gic_cta_clicked', { action: 'view_plans', placement: 'home' })} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold hover:bg-slate-50">Compare plans</Link>
           </div>
-          <p className="mt-3 text-sm text-slate-500">5 guest messages · No account or payment card needed to try.</p>
-          <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-950">Want to save conversations and use your own workspace?</p>
-              <p className="mt-1 text-xs leading-5 text-slate-600">Create a free account, or compare Paid and Enhanced workspaces for research assistants, reports and applets.</p>
-            </div>
-            <Link href="/intent" onClick={() => trackConversion('gic_cta_clicked', { action: 'create_account', placement: 'home_account_strip' })} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-blue-600 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">Create free account <ArrowUpRight size={15} /></Link>
-            <Link href="/pricing" onClick={() => trackConversion('gic_cta_clicked', { action: 'view_paid_workspaces', placement: 'home_account_strip' })} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Explore workspaces <ArrowRight size={15} /></Link>
-          </div>
-          <div className="mt-8 max-w-3xl rounded-xl border border-blue-200 bg-blue-50 px-5 py-4">
-            <p className="font-semibold text-slate-950">Try LooseMouth: chat and web-assisted research.</p>
-            <p className="mt-1 text-sm leading-6 text-slate-600">Get an answer before creating an account. Paid adds reusable reports; Enhanced adds interactive applets. Current hosted inference uses Google Gemini while GIC develops its own models and infrastructure.</p>
-          </div>
-          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-slate-600">
-            <Link href="/technology" className="hover:text-blue-700">Explore technology</Link>
-            <Link href="/research" className="hover:text-blue-700">View research</Link>
-            <Link href="/pricing#fund-research" className="hover:text-blue-700">Fund AI research &amp; development</Link>
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
-            {['Private deployment', 'Evidence-led R&D', 'Inspectable architecture'].map((item) => (
-              <span key={item} className="inline-flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                {item}
-              </span>
-            ))}
-          </div>
+          <p className="mt-3 text-xs leading-5 text-slate-500">Try chat before signing up. Create an account to save conversations.</p>
+          <Link href="/developers" className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-blue-700 underline underline-offset-4"><Code2 size={17}/>Developer quickstart and reproducible examples</Link>
         </div>
-
-        <section aria-labelledby="intent-rlse-feature" className="mt-12 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="p-6 sm:p-8 lg:p-10">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">Featured model research · experimental release</p>
-              <h2 id="intent-rlse-feature" className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">INTENT Foundation · RLSE-v2</h2>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-700">
-                A language model trained from scratch on GIC&apos;s research pipeline. RLSE-v2 combines causal Transformer blocks with a shared recurrent latent-search controller, a learned external-memory router, candidate selection, and auxiliary latent-world-model and critic objectives.
-              </p>
-              <p className="mt-4 text-sm leading-6 text-slate-600">
-                This is an early research checkpoint, not a production-grade assistant. It can produce inaccurate or fabricated statements; outputs should be independently verified.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <a href="https://huggingface.co/spaces/Hdhhhgfc/INTENT-RLSE-v2" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700">
-                  Try the experimental model <ArrowUpRight size={16} aria-hidden="true" />
-                </a>
-                <Link href="/models" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50">
-                  Explore model research <ArrowRight size={16} aria-hidden="true" />
-                </Link>
-              </div>
-              <p className="mt-3 text-xs leading-5 text-slate-500">External demo hosted on Hugging Face Spaces; access and availability depend on Hugging Face.</p>
-            </div>
-            <div className="border-t border-slate-200 bg-slate-50 p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10">
-              <h3 className="text-sm font-semibold text-slate-900">Checkpoint and architecture</h3>
-              <dl className="mt-5 grid grid-cols-2 gap-x-5 gap-y-6">
-                <div><dt className="text-xs text-slate-500">Unique parameters</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">187.3M</dd></div>
-                <div><dt className="text-xs text-slate-500">Pretraining steps</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">7,200</dd></div>
-                <div><dt className="text-xs text-slate-500">Prepared pretraining corpus</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">~350M <span className="text-sm font-medium">tokens</span></dd></div>
-                <div><dt className="text-xs text-slate-500">SFT steps</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">1,000</dd></div>
-                <div><dt className="text-xs text-slate-500">Final SFT response LM loss</dt><dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">1.7749</dd></div>
-                <div><dt className="text-xs text-slate-500">Context / vocabulary</dt><dd className="mt-1 text-lg font-semibold tracking-tight text-slate-950">1,024 / 49,152</dd></div>
-              </dl>
-              <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">
-                Step-1000 response LM loss is one training-minibatch measurement, not held-out validation loss or a model-quality benchmark. The ~350M tokens describe the prepared corpus, not a verified count of unique tokens consumed.
-              </p>
-              <div className="mt-4 border-t border-slate-200 pt-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Architecture details</p>
-                <p className="mt-2 text-sm leading-6 text-slate-700">10 encoder blocks · 4 shared recurrent core blocks · up to 4 search passes · 3 latent candidates per pass · 512 learned memory slots · grouped-query attention · 2 auxiliary world-model blocks</p>
-              </div>
-            </div>
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm sm:p-6">
+          <h2 className="text-lg font-semibold">Start with a question</h2>
+          <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label="Choose a model to try">
+            {(['standard', 'facts500'] as const).map(id => <button key={id} type="button" aria-pressed={model === id} onClick={() => { setModel(id); setPrompt(''); setError(''); }} className={`min-h-14 rounded-lg border px-3 py-2 text-left text-xs font-semibold ${model === id ? 'border-blue-700 bg-white text-blue-800 ring-1 ring-blue-700' : 'border-slate-300 text-slate-600 hover:bg-white'}`}>{id === 'standard' ? 'LooseMouth · Gemini' : 'INTENT Mini · Facts-500'}<span className="mt-1 block font-normal">{id === 'standard' ? 'General chat & research' : 'Experimental GIC checkpoint'}</span></button>)}
           </div>
-        </section>
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {pillars.map(({ title, eyebrow, description, href, icon: Icon }) => (
-            <Link key={title} href={href} className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">{eyebrow}</span>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                  <Icon className="h-5 w-5" />
-                </span>
-              </div>
-              <h2 className="mt-8 text-xl font-semibold tracking-tight text-slate-950">{title}</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
-              <span className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-slate-900">
-                Learn more <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </span>
-            </Link>
-          ))}
+          <p className="mt-3 text-xs leading-5 text-slate-600">{model === 'standard' ? '5 guest messages. No account or payment card needed to try.' : 'No login required. 8 requests per hour; shared ZeroGPU quota applies. This small research model can give incorrect answers.'}</p>
+          <form onSubmit={launch} className="ph-no-capture mt-4" data-ph-no-capture="true">
+            <label htmlFor="home-prompt" className="text-sm font-semibold">Your starting prompt</label>
+            <textarea id="home-prompt" maxLength={8000} rows={3} value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={examples[model][0]} data-ph-mask="true" className="mt-2 block w-full resize-y rounded-xl border border-slate-300 bg-white p-3 text-sm leading-6"/>
+            <button disabled={pending} type="submit" className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60">{pending ? 'Opening…' : model === 'standard' ? 'Open LooseMouth with this draft' : 'Open INTENT Mini with this draft'}<ArrowRight size={16}/></button>
+          </form>
+          <p className="mt-2 text-xs leading-5 text-slate-500">Your draft stays in this browser tab for up to 10 minutes. Review it in the workspace before sending.</p>
+          <div className="mt-4 flex flex-wrap gap-2" aria-label="Example prompts">{examples[model].map(text => <button type="button" key={text} onClick={() => setPrompt(text)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs text-slate-600 hover:border-blue-300">{text}</button>)}</div>
+          {error && <p role="alert" className="mt-3 text-sm text-red-700">{error} <Link className="underline" href={model === 'standard' ? '/intent' : '/intent/mini'}>Open workspace</Link></p>}
         </div>
       </div>
-    </section>
-  );
+      <div className="mt-10 grid gap-4 sm:grid-cols-2">
+        <Link href="/virtual-lab/bitvision-cell" onClick={() => trackConversion('gic_tool_opened', { tool: 'bitvision', placement: 'home' })} className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 hover:border-blue-400"><Cpu className="mt-1 shrink-0 text-blue-700" size={24}/><div><h2 className="font-semibold">Run BitVision Cell <span className="ml-2 text-xs font-medium text-blue-700">Free · no login</span></h2><p className="mt-2 text-sm leading-6 text-slate-600">Download the checkpoint, then run inference locally with WebGPU or WASM. Inspect actions and episode trajectories.</p></div><ArrowRight className="ml-auto mt-1 shrink-0" size={18}/></Link>
+        <Link href="/virtual-lab/demo" onClick={() => trackConversion('gic_tool_opened', { tool: 'virtual_lab', placement: 'home' })} className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 hover:border-blue-400"><FlaskConical className="mt-1 shrink-0 text-blue-700" size={24}/><div><h2 className="font-semibold">Explore the Virtual Lab <span className="ml-2 text-xs font-medium text-slate-500">Paid / Enhanced</span></h2><p className="mt-2 text-sm leading-6 text-slate-600">Review assumed kinetics, generate synthetic optics, and export evidence. An active subscription is required.</p></div><ArrowRight className="ml-auto mt-1 shrink-0" size={18}/></Link>
+      </div>
+    </div>
+  </section>;
 }
