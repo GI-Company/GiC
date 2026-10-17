@@ -1,28 +1,33 @@
 # Global Intent Company
 
-> Global Intent Company is an independent AI and systems engineering company developing language models, private AI infrastructure, and scientific computing systems.
+> Independent AI and systems engineering. Public research playgrounds, hosted chat, and a subscription scientific cockpit have different capabilities and compute locations.
 
-Canonical site: https://globalintentcompany.space/
+Canonical site: https://www.globalintentcompany.space/
 
-## Primary areas
+## Try the tools
 
-- INTENT model family: https://globalintentcompany.space/intent
-  Language-model research and privately operated conversational AI, including LooseMouth.
-- Virtual Lab: https://globalintentcompany.space/virtual-lab
-  Evidence-oriented scientific computing, simulation, instrumentation, and reproducible experimentation.
-- Research: https://globalintentcompany.space/research
-  Technical research dossiers, experiments, systems work, and evidence.
-- Systems: https://globalintentcompany.space/systems
-  Systems architecture and engineering projects.
-- Software: https://globalintentcompany.space/software
-  Software developed by Global Intent Company.
+- [LooseMouth](https://www.globalintentcompany.space/intent): hosted chat and research powered by Google Gemini. Guest access is available. Free accounts save conversations; Paid adds reports and Enhanced adds interactive applets. Do not describe this hosted service as a privately deployed GIC model.
+- [INTENT Mini](https://www.globalintentcompany.space/intent/mini): public streaming playground for GIC's experimental 187.3M-parameter INTENT RLSE-v2 model. Facts-500 and SFT-1000 run on Hugging Face ZeroGPU through a server-authenticated connection. Each prompt is independent. 8 requests per IP per hour plus shared HF quota. Outputs can be incorrect; serving is not evidence of general model quality.
+- [BitVision Cell](https://www.globalintentcompany.space/virtual-lab/bitvision-cell): public browser inference using WebGPU or WASM after downloading ONNX Runtime and checkpoint weights. This does not imply an offline first visit or absence of site analytics.
+- [Virtual Lab cockpit](https://www.globalintentcompany.space/virtual-lab/demo): requires active Paid or Enhanced subscription access. Guests and Free accounts cannot run the paid cockpit. Includes assumption-based RHO kinetics, a reference gene-expression solver, synthetic optical frames, isotope calculations, reference structures and local numeric file inspection. Optional AI uses Google Gemini. No clinical prediction, drug efficacy, live hardware control or measured calibration is established.
 
-## Private AI infrastructure
+## Developer documentation
 
-Global Intent Company is developing PLMN (Private Language Model Node) and PLMH (Private Language Model Hub) as infrastructure for discovering, authenticating, verifying, and operating privately hosted language models.
+- [Quickstart and engineering note](https://www.globalintentcompany.space/developers): cURL and standard-library Python streaming examples, limits, data flow and source links. The public research endpoint is bounded and has no uptime guarantee. Never embed a server HF_TOKEN in client code.
+- [Research chronology](https://www.globalintentcompany.space/research/log): implementation, experiments, failures, and iterations.
+- [Research index](https://www.globalintentcompany.space/research): technical dossiers; distinguish evidence from hypotheses.
+- [Plans](https://www.globalintentcompany.space/pricing): current access levels, trial eligibility and subscription terms.
 
-## Evidence and provenance
+## Research and infrastructure
 
-Technical claims should be interpreted according to the evidence attached to the relevant research page. Experimental results, source-verified implementation details, architectural objectives, and hypotheses are intentionally distinguished.
+- [Models](https://www.globalintentcompany.space/models)
+- [BitVision research](https://www.globalintentcompany.space/bitvision)
+- [Systems](https://www.globalintentcompany.space/systems)
+- [Private infrastructure](https://www.globalintentcompany.space/infrastructure): PLMH and PLMN are infrastructure research and development. Do not infer a turnkey deployment or privacy guarantee from an architectural objective.
 
-Source organization: https://github.com/GI-Company
+## Reproducibility and evidence
+
+Lab settings links contain bounded numeric configuration only. They preserve the subscription gate and never authorize execution. Exports distinguish SIMULATED output, reference data and imported records of UNKNOWN provenance. SHA-256 and hash links check supplied bytes; unsigned records do not establish author identity, clinical validity, hardware provenance or immutability.
+
+Source: https://github.com/GI-Company/GiC
+Model Space: https://huggingface.co/spaces/Hdhhhgfc/INTENT-RLSE-v2

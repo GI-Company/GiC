@@ -7,10 +7,12 @@ import { getPreferences } from '@/lib/loosemouth-persistence';
 import { AUTH_STORAGE_KEY } from '@/lib/checkout-intent';
 import { setWorkspaceAnalytics } from '@/lib/workspace-privacy';
 import ScientificCockpit from './ScientificCockpit';
+import { rememberLabSettings } from '@/lib/lab-sharing';
 export default function VirtualLabAccess() {
   const [token,setToken]=useState<string|null>(null),[state,setState]=useState<'checking'|'guest'|'free'|'allowed'|'error'>('checking'),[error,setError]=useState(''),[attempt,setAttempt]=useState(0);
   useEffect(()=>{
     let active=true;
+    try{rememberLabSettings(sessionStorage,window.location.hash);}catch{/* Direct links still work when storage is blocked. */}
     setWorkspaceAnalytics(null);
     async function check(){
       try{
@@ -34,7 +36,8 @@ export default function VirtualLabAccess() {
   if(state==='allowed'&&token)return <ScientificCockpit accessToken={token}/>;
   return <section className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-8 text-center" data-ph-mask="true">
     <LockKeyhole className="mx-auto text-blue-600" size={32}/><h2 className="mt-4 text-2xl font-semibold">{state==='checking'?'Checking subscription access…':'Virtual Lab is a paid experience'}</h2>
-    <p className="mt-3 text-sm leading-7 text-slate-600">{state==='checking'?'Verifying your account before opening the lab.':state==='error'?error:'An active Paid or Enhanced plan unlocks the online reference experiment, comparison workbench and evidence exports. Free and guest access stays in LooseMouth.'}</p>
+    <p className="mt-3 text-sm leading-7 text-slate-600">{state==='checking'?'Verifying your account before opening the lab.':state==='error'?error:'An active Paid or Enhanced plan unlocks the online reference experiment, comparison workbench and evidence exports. Public chat and model playgrounds are available without a subscription.'}</p>
     {state!=='checking'&&<div className="mt-6 flex flex-wrap justify-center gap-3"><Link href="/intent?signin=1&return_to=virtual-lab-demo" className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white">Sign in to your account</Link><Link href="/pricing#plans" className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold">Compare plans</Link><button type="button" onClick={()=>{setState('checking');setAttempt(n=>n+1);}} className="px-3 py-3 text-sm font-semibold text-blue-700">Check access again</button></div>}
+    {state!=='checking'&&<p className="mt-5 text-sm leading-7 text-slate-600">Try something public first: <Link href="/intent/mini" className="font-semibold text-blue-700 underline">INTENT Mini</Link> or <Link href="/virtual-lab/bitvision-cell" className="font-semibold text-blue-700 underline">BitVision Cell</Link>.</p>}
   </section>;
 }

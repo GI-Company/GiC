@@ -14,7 +14,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/'],
       },
     ],
-    sitemap: 'https://globalintentcompany.space/sitemap.xml',
-    host: 'https://globalintentcompany.space',
+    sitemap: 'https://www.globalintentcompany.space/sitemap.xml',
+    host: 'https://www.globalintentcompany.space',
   };
 }

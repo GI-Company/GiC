@@ -18,6 +18,7 @@ export default function EnterpriseResearchLog() {
             <p className="text-sm font-semibold text-blue-700">Research log</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Research chronology.</h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">A chronological record of implementation, experiments, results, failures, and iterations.</p>
+            <Link href="/developers#engineering-notes" className="mt-5 block text-sm font-semibold text-blue-700 underline underline-offset-4">October 16, 2026: authenticated streaming, a production session bug, and reproducible inference checks</Link>
             <Link href="/explorer" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-950">
               Interactive explorer <ExternalLink className="h-4 w-4" />
             </Link>

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import PostHogAnalytics from '@/components/PostHogAnalytics';
 import './globals.css';
 
-const siteUrl = 'https://globalintentcompany.space';
+const siteUrl = 'https://www.globalintentcompany.space';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -10,23 +10,23 @@ export const metadata: Metadata = {
     default: 'Global Intent Company — Private AI Infrastructure & Research',
     template: '%s | Global Intent Company',
   },
-  description: 'Global Intent Company develops language models, private AI infrastructure, and scientific computing systems for direct control over models, compute, and data.',
+  description: 'Try AI chat, experimental GIC models, and browser-local BitVision. Inspect the research and explore the subscription Virtual Lab.',
   icons: {
     icon: '/images/global-intent-company-icon.png',
     apple: '/images/global-intent-company-icon.png',
   },
   openGraph: {
     title: 'Global Intent Company — Private AI Infrastructure & Research',
-    description: 'Language models, private AI infrastructure, and scientific computing systems designed for ownership, verification, and control.',
+    description: 'Try AI chat, experimental GIC models, and browser-local BitVision. Inspect the research and explore the subscription Virtual Lab.',
     url: siteUrl,
     siteName: 'Global Intent Company',
     type: 'website',
-    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Global Intent Company — Private AI. Owned infrastructure. Verifiable systems.' }],
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Global Intent Company — Try the tools. Inspect the research.' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Global Intent Company — Private AI Infrastructure & Research',
-    description: 'Language models, private AI infrastructure, and scientific computing systems designed for ownership, verification, and control.',
+    description: 'Try AI chat, experimental GIC models, and browser-local BitVision. Inspect the research and explore the subscription Virtual Lab.',
     images: ['/opengraph-image'],
   },
 };

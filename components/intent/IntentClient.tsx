@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { trackConversion } from '@/lib/conversion-events';
+import { takeEntryPrompt } from '@/lib/product-onboarding';
 import AssistantMessage from '@/components/intent/AssistantMessage';
 import { setWorkspaceAnalytics } from '@/lib/workspace-privacy';
 import BrandLoader from '@/components/BrandLoader';
@@ -156,6 +157,10 @@ export default function IntentClient({
 }: IntentClientProps) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [message, setMessage] = useState('');
+  useEffect(() => {
+    try { const draft = takeEntryPrompt(sessionStorage, 'standard'); if (draft) setMessage(current => current || draft); }
+    catch { /* Storage restrictions must not block chat. */ }
+  }, []);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [search, setSearch] = useState(false);
   const [searchDepth, setSearchDepth] = useState<'quick' | 'deep'>('quick');

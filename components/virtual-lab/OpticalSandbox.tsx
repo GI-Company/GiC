@@ -4,13 +4,16 @@ import { Camera, Download } from 'lucide-react';
 import { simulateOpticalFrame, type OpticalFrame, type OpticalSettings } from '@/lib/virtual-lab-optics';
 import { contentHash } from '@/lib/virtual-lab-ledger';
 import { canonicalJson } from '@/lib/virtual-lab-demo';
+import { validateOpticalSettings } from '@/lib/virtual-lab-optics';
+import ShareLabSettings from './ShareLabSettings';
+import { trackConversion } from '@/lib/conversion-events';
 const presets = [
   { name: 'Low illumination', settings: { exposure: 10, laser: 15, gain: 1 } },
   { name: 'Reference exposure', settings: { exposure: 25, laser: 65, gain: 1 } },
   { name: 'Saturation stress test', settings: { exposure: 100, laser: 100, gain: 8 } },
 ];
-export default function OpticalSandbox({ onEvidence }: { onEvidence: (value: unknown) => void }) {
-  const [settings, setSettings] = useState<OpticalSettings>({ exposure: 25, laser: 65, gain: 1 });
+export default function OpticalSandbox({ onEvidence, initialSettings }: { onEvidence: (value: unknown) => void; initialSettings?: OpticalSettings }) {
+  const [settings, setSettings] = useState<OpticalSettings>(() => initialSettings ? validateOpticalSettings(initialSettings) : { exposure: 25, laser: 65, gain: 1 });
   const [frames, setFrames] = useState<Array<{ frame: OpticalFrame; hash: string }>>([]), [selected, setSelected] = useState(0);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const capture = frames[selected], stale = capture && canonicalJson(capture.frame.settings) !== canonicalJson(settings);
@@ -22,6 +25,7 @@ export default function OpticalSandbox({ onEvidence }: { onEvidence: (value: unk
       const hash = await contentHash(canonicalJson(frame));
       setFrames(previous => [...previous.slice(-7), { frame, hash }]); setSelected(Math.min(frames.length, 7));
       onEvidence({ frame_id: frame.frame_id, settings: frame.settings, statistics: frame.statistics, sha256: hash, state: 'SIMULATED' });
+      trackConversion('gic_run_completed', { tool: 'optics' });
     } catch (cause) { setError((cause as Error).message); }
     finally { setBusy(false); }
   }
@@ -36,6 +40,7 @@ export default function OpticalSandbox({ onEvidence }: { onEvidence: (value: unk
       <div className="space-y-4"><div className="space-y-2">{presets.map(p => <button key={p.name} type="button" disabled={busy} onClick={() => setSettings({ ...p.settings })} className="block w-full rounded-lg border border-slate-600 px-3 py-2 text-left text-sm hover:bg-slate-800">{p.name}</button>)}</div>
         {([{ key: 'exposure', label: 'Exposure', min: 1, max: 100, unit: 'ms' }, { key: 'laser', label: 'Illumination', min: 0, max: 100, unit: '%' }, { key: 'gain', label: 'Gain', min: 1, max: 8, unit: '×' }] as const).map(field => <label key={field.key} className="block rounded-lg bg-slate-900 p-3 text-sm"><span className="flex justify-between gap-3">{field.label}<output className="font-mono text-sky-300">{settings[field.key]} {field.unit}</output></span><input type="range" disabled={busy} aria-label={field.label} min={field.min} max={field.max} step={1} value={settings[field.key]} onChange={e => setSettings({ ...settings, [field.key]: Number(e.target.value) })} className="mt-3 w-full accent-sky-400"/></label>)}
         <button type="button" disabled={busy} onClick={() => void generate()} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-sky-400 p-3 font-semibold text-slate-950 disabled:opacity-50"><Camera size={17}/>{busy ? 'Generating…' : 'Generate simulated frame'}</button>
+        <ShareLabSettings value={{ tool: 'optics', settings }}/>
         {frames.length > 0 && <label className="block text-sm">Session frames<select value={selected} onChange={e => setSelected(Number(e.target.value))} className="mt-2 block w-full rounded-lg border border-slate-600 bg-slate-900 p-2">{frames.map((f, i) => <option key={f.frame.frame_id} value={i}>SIM frame #{f.frame.frame_id}</option>)}</select></label>}
       </div>
       <div className="min-w-0 space-y-4">

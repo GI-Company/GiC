@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { Download, Play, RotateCcw } from 'lucide-react';
 import { RHO_BOUNDS, RHO_LIMITATIONS, RHO_PRESETS, validateRhoProtocol, type RhoProtocol, type rhoEvidence } from '@/lib/virtual-lab-rhodopsin';
 import { canonicalJson } from '@/lib/virtual-lab-demo';
+import ShareLabSettings from './ShareLabSettings';
+import { trackConversion } from '@/lib/conversion-events';
 type Bundle = Awaited<ReturnType<typeof rhoEvidence>>;
 const fields = ['synthesis', 'defect', 'chaperone', 'clearance'] as const;
 const series = [{ key: 'nascent', label: 'Nascent pool', color: '#38bdf8' }, { key: 'aggregate', label: 'Aggregate pool', color: '#fb7185' }, { key: 'mature', label: 'Mature pool', color: '#34d399' }, { key: 'stress', label: 'Stress proxy', color: '#c084fc' }] as const;
-export default function RhodopsinWorkbench({ accessToken, onEvidence }: { accessToken: string; onEvidence: (value: unknown) => void }) {
-  const [protocol, setProtocol] = useState<RhoProtocol>({ ...RHO_PRESETS.p23h.protocol });
+export default function RhodopsinWorkbench({ accessToken, onEvidence, initialSettings }: { accessToken: string; onEvidence: (value: unknown) => void; initialSettings?: RhoProtocol }) {
+  const [protocol, setProtocol] = useState<RhoProtocol>(() => initialSettings ? validateRhoProtocol(initialSettings) : { ...RHO_PRESETS.p23h.protocol });
   const [approval, setApproval] = useState<string | null>(null), [bundle, setBundle] = useState<Bundle | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const current = canonicalJson(protocol), approved = approval === current;
@@ -23,6 +25,7 @@ export default function RhodopsinWorkbench({ accessToken, onEvidence }: { access
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Simulation unavailable.');
       setBundle(data.bundle); onEvidence(data.bundle);
+      trackConversion('gic_run_completed', { tool: 'rho' });
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Simulation failed.'); }
     finally { setBusy(false); }
   }
@@ -41,6 +44,7 @@ export default function RhodopsinWorkbench({ accessToken, onEvidence }: { access
         <label className="flex items-start gap-2 rounded-lg bg-slate-900 p-3 text-sm"><input disabled={busy} type="checkbox" checked={approved} onChange={e => { try { validateRhoProtocol(protocol); setApproval(e.target.checked ? current : null); setError(''); } catch (cause) { setError((cause as Error).message); } }} className="mt-1"/><span>I reviewed these assumed rates and approve this simulation.</span></label>
         <button type="button" disabled={!approved || busy} onClick={() => void run()} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-sky-400 px-4 py-3 font-semibold text-slate-950 disabled:opacity-40"><Play size={16}/>{busy ? 'Calculating…' : 'Run approved RHO model'}</button>
         <button type="button" disabled={busy} onClick={() => edit({ ...RHO_PRESETS.p23h.protocol })} className="flex items-center gap-2 text-xs text-slate-300"><RotateCcw size={14}/>Reset assumptions</button>
+        <ShareLabSettings value={{ tool: 'rho', settings: protocol }}/>
       </div>
       <div className="min-w-0 space-y-4">
         {error && <p role="alert" className="rounded-lg border border-rose-500/40 bg-rose-950 p-3 text-sm text-rose-100">{error}</p>}

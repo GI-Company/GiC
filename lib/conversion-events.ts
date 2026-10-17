@@ -1,7 +1,9 @@
 import { analyticsDecision, PRIVACY_EVENT } from '@/lib/workspace-privacy';
 
-type ConversionEvent = 'gic_cta_clicked' | 'gic_signup_viewed' | 'gic_auth_submitted' | 'gic_auth_success' | 'gic_email_confirmation_required' | 'gic_auth_failed' | 'gic_plan_selected' | 'gic_checkout_started' | 'gic_checkout_failed' | 'gic_answer_received' | 'gic_subscription_activated';
+type ConversionEvent = 'gic_tool_opened' | 'gic_run_completed' | 'gic_example_copied' | 'gic_settings_shared' | 'gic_result_exported' | 'gic_cta_clicked' | 'gic_signup_viewed' | 'gic_auth_submitted' | 'gic_auth_success' | 'gic_email_confirmation_required' | 'gic_auth_failed' | 'gic_plan_selected' | 'gic_checkout_started' | 'gic_checkout_failed' | 'gic_answer_received' | 'gic_subscription_activated';
 type Properties = {
+  tool?: 'gemini' | 'facts500' | 'sft1000' | 'bitvision' | 'virtual_lab' | 'rho' | 'optics';
+  format?: 'curl' | 'python' | 'markdown';
   plan?: 'paid' | 'enhanced';
   method?: 'email' | 'google';
   mode?: 'signin' | 'signup';
@@ -14,7 +16,7 @@ type Properties = {
 };
 // Only these non-content fields enter analytics; no prompts, answers, credentials,
 // user IDs, email addresses, provider error strings, or checkout session IDs.
-const fields = new Set(['plan','method','mode','placement','action','access','first_in_session','status','reason']);
+const fields = new Set(['tool','format','plan','method','mode','placement','action','access','first_in_session','status','reason']);
 const pending: { name: ConversionEvent; properties: Properties; at: number }[] = [];
 let listening = false;
 

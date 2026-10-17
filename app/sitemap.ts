@@ -2,12 +2,14 @@ import type { MetadataRoute } from 'next';
 import { RESEARCH_NODES } from '@/lib/research-data';
 import { DOMAIN_URL_PREFIXES, NODE_ID_TO_SLUG } from '@/lib/spatial-router';
 
-const base = 'https://globalintentcompany.space';
+const base = 'https://www.globalintentcompany.space';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const topLevel = [
     '',
     '/intent',
+    '/intent/mini',
+    '/developers',
     '/models',
     '/bitvision',
     '/technology',
