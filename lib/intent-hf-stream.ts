@@ -41,7 +41,7 @@ export function inferenceInput(body: unknown) {
   const b = body as Record<string, unknown>;
   if (typeof b.message !== 'string' || !b.message.trim() || b.message.length > 8000) throw new Error('Enter a prompt of 1–8000 characters.');
   if (b.checkpoint !== 'facts500' && b.checkpoint !== 'sft1000') throw new Error('Choose a supported checkpoint.');
-  const temperature = b.temperature ?? 0.9, topK = b.topK ?? 80, maxTokens = b.maxTokens ?? 96;
+  const temperature = b.temperature ?? 0.45, topK = b.topK ?? 25, maxTokens = b.maxTokens ?? 96;
   if (typeof temperature !== 'number' || !Number.isFinite(temperature) || temperature < 0 || temperature > 10) throw new Error('Temperature must be between 0 and 10.');
   if (typeof topK !== 'number' || !Number.isInteger(topK) || topK < 1 || topK > 100) throw new Error('Top-K must be an integer from 1 to 100.');
   if (typeof maxTokens !== 'number' || !Number.isInteger(maxTokens) || maxTokens < 1 || maxTokens > 128) throw new Error('Output length must be an integer from 1 to 128.');

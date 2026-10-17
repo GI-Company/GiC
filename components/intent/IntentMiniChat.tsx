@@ -8,12 +8,12 @@ import InferenceExamples from './InferenceExamples';
 
 export default function IntentMiniChat({ checkpoint }: { checkpoint: IntentCheckpoint }) {
   const [prompt, setPrompt] = useState('');
-  const [temperature, setTemperature] = useState(0.9);
-  const [topK, setTopK] = useState(80);
+  const [temperature, setTemperature] = useState(0.45);
+  const [topK, setTopK] = useState(25);
   const [maxTokens, setMaxTokens] = useState(96);
   const [answer, setAnswer] = useState('');
   const [submitted, setSubmitted] = useState('');
-  const [runSettings, setRunSettings] = useState({ temperature: 0.9, topK: 80, maxTokens: 96 });
+  const [runSettings, setRunSettings] = useState({ temperature: 0.45, topK: 25, maxTokens: 96 });
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Ready');
   const [error, setError] = useState('');

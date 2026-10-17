@@ -23,7 +23,7 @@ test('both checkpoints send private HF auth on POST and GET and stream cumulativ
     const output=await r.text(),events=output.trim().split('\n').map(JSON.parse);
     assert.equal(events.at(-1).text,'Hi 🧪');assert.equal(events.at(-1).done,true);assert.equal(h.calls.length,2);
     for(const [url,init] of h.calls){assert.equal(init.headers.Authorization,'Bearer hf_test_private');assert.ok(!url.includes('hf_test_private'));}
-    const submitted=JSON.parse(h.calls[0][1].body);assert.deepEqual(submitted.data,['Hello',0.9,80,96,checkpoint]);assert.equal(submitted.session_hash,undefined,'Gradio /call must own its session ID so completed jobs remain retrievable');assert.ok(!h.calls[0][1].body.includes('hf_test_private'));assert.ok(!output.includes('hf_test_private'));
+    const submitted=JSON.parse(h.calls[0][1].body);assert.deepEqual(submitted.data,['Hello',0.45,25,96,checkpoint]);assert.equal(submitted.session_hash,undefined,'Gradio /call must own its session ID so completed jobs remain retrievable');assert.ok(!h.calls[0][1].body.includes('hf_test_private'));assert.ok(!output.includes('hf_test_private'));
   }
 });
 test('SSE handles arbitrary byte splits, CRLF and UTF-8 boundaries',async()=>{

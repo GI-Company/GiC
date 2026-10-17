@@ -25,7 +25,7 @@ export function takeEntryPrompt(storage: Storage, model: EntryModel, now = Date.
   } catch { return ''; }
 }
 
-export function miniRequest(checkpoint: IntentCheckpoint, message = 'The capital of France is', temperature = 0.25, topK = 80, maxTokens = 32) {
+export function miniRequest(checkpoint: IntentCheckpoint, message = 'The capital of France is', temperature = 0.45, topK = 25, maxTokens = 32) {
   return { message, checkpoint, temperature, topK, maxTokens };
 }
 
