@@ -1,25 +1,39 @@
 import type { Metadata } from 'next';
-import EnterpriseDomainPage from '@/components/enterprise/EnterpriseDomainPage';
+import Link from 'next/link';
+import MarketingShell from '@/components/landing/MarketingShell';
+import { Activity, BrainCircuit, Download, FlaskConical, FolderOpen, ShieldCheck } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Virtual Lab',
-  description: 'Scientific computing, instrumentation, simulation, evidence packaging, and reproducible research workflows from Global Intent Company.',
+  title: 'VirtualLab Research — Web, Desktop and ChatGPT',
+  description: 'VirtualLab scientific workflows: web simulation, reproducible evidence, experimental desktop workstations and forthcoming ChatGPT integration.',
   alternates: { canonical: '/virtual-lab' },
 };
-
-export default function VirtualLabDomainPage() {
-  return (
-    <EnterpriseDomainPage
-      domain="virtual_lab"
-      eyebrow="Virtual Lab"
-      title="Scientific computing with evidence built into the workflow."
-      description="Virtual Lab brings simulation, instrumentation, model execution, artifact integrity, and reproducible evidence into one technical environment."
-      narrative="Virtual Lab is GIC’s primary scientific-computing product direction. The work combines simulation and model execution with sensor-linked experimentation, evidence packaging, integrity checks, and portable study artifacts so technical results can remain inspectable after an experiment ends."
-      highlights={[
-        'Simulation and scientific model execution with reusable experiment structure.',
-        'Sensor and instrumentation work designed to connect physical observations to digital studies.',
-        'Evidence packaging, artifact verification, and reproducible project exchange as first-class concerns.',
-      ]}
-    />
-  );
+const modules=[
+  {title:'Mass spectrometry',description:'Imported spectra, validation, provenance and reports in the desktop beta.',icon:Activity,status:'Desktop beta'},
+  {title:'Scientific simulation',description:'Run the current browser-based reference parameter-sweep experiment and export results.',icon:FlaskConical,status:'Web demo'},
+  {title:'Project workstations',description:'Domain-based project libraries, research context and experiment evidence.',icon:FolderOpen,status:'Desktop beta'},
+  {title:'INTENT experimental learning',description:'Guarded prediction and weight updates, distinct from verified measurements.',icon:BrainCircuit,status:'Experimental desktop'},
+];
+export default function VirtualLabPage(){
+ return <MarketingShell>
+  <section className="border-b border-slate-200 bg-slate-950 px-4 py-16 text-white sm:px-6">
+   <div className="mx-auto max-w-6xl"><p className="text-sm font-semibold uppercase tracking-[.2em] text-cyan-300">Global Intent Company / VirtualLab</p>
+    <h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-6xl">Scientific workflows with evidence at every step.</h1>
+    <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">A developing research environment spanning web-based simulations, experimental desktop workstations, reproducible artifacts and governed AI integrations. Tools are labeled by their actual availability.</p>
+    <div className="mt-8 flex flex-wrap gap-3"><Link href="/virtual-lab/demo" className="rounded-lg bg-cyan-300 px-5 py-3 font-semibold text-slate-950">Open existing web workbench</Link><Link href="/virtual-lab/plans" className="rounded-lg border border-slate-500 px-5 py-3 font-semibold">VirtualLab plans</Link><Link href="/virtual-lab/beta" className="rounded-lg border border-slate-500 px-5 py-3 font-semibold">Desktop beta & feedback</Link></div>
+   </div>
+  </section>
+  <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6"><h2 className="text-3xl font-semibold">Choose a research workflow</h2>
+    <p className="mt-3 max-w-3xl text-slate-600">The web demo currently supports an illustrative scientific simulation. Desktop features run separately and are not automatically available in the browser.</p>
+    <div className="mt-7 grid gap-4 md:grid-cols-2">{modules.map(item=><article key={item.title} className="rounded-2xl border border-slate-200 p-6">
+      <item.icon className="h-7 w-7 text-blue-700"/><p className="mt-4 text-xs font-semibold uppercase tracking-wide text-blue-700">{item.status}</p>
+      <h3 className="mt-2 text-xl font-semibold">{item.title}</h3><p className="mt-3 text-sm leading-7 text-slate-600">{item.description}</p>
+    </article>)}</div>
+  </section>
+  <section className="bg-slate-50 px-4 py-14 sm:px-6"><div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-3">
+   <div><ShieldCheck className="text-emerald-700"/><h2 className="mt-3 text-xl font-semibold">Research integrity</h2><p className="mt-2 text-sm leading-7 text-slate-600">Preserve the distinction between simulations, imported reference data and independently verified measurements.</p></div>
+   <div><Download className="text-emerald-700"/><h2 className="mt-3 text-xl font-semibold">Desktop beta & feedback</h2><p className="mt-2 text-sm leading-7 text-slate-600">A single destination for upcoming signed-off Mac builds, checksums, testing instructions and feedback.</p><Link href="/virtual-lab/beta" className="mt-3 inline-block font-semibold text-blue-700">Beta releases →</Link></div>
+   <div><BrainCircuit className="text-emerald-700"/><h2 className="mt-3 text-xl font-semibold">ChatGPT integration</h2><p className="mt-2 text-sm leading-7 text-slate-600">The planned VirtualLab MCP integration will expose approved research records and verification tools, not unrestricted computer access. Public publication is subject to plugin review.</p></div>
+  </div></section>
+ </MarketingShell>;
 }
