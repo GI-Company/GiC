@@ -7,6 +7,8 @@ create table if not exists public.virtual_lab_billing_entitlements (
   tier text not null default 'inactive' check (tier in ('inactive','researcher','laboratory')),
   subscription_status text,
   current_period_end timestamptz,
+  trial_started_at timestamptz,
+  trial_end timestamptz,
   cancel_at_period_end boolean not null default false,
   updated_at timestamptz not null default now()
 );
