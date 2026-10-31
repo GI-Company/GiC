@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { user, entitlement, consumeWorkbenchQuota } from '@/lib/workbench-access';
+import { vlabEntitlement, isActiveVirtualLab } from '@/lib/virtual-lab-billing';
 import { evidenceBundle, validateProposal, experimentReport } from '@/lib/virtual-lab-demo';
 import { validateRhoProtocol, rhoEvidence } from '@/lib/virtual-lab-rhodopsin';
 import { runWorkbenchAgent } from '@/lib/virtual-lab-agent';
@@ -10,10 +11,18 @@ const fail = (error:string,status:number) => NextResponse.json({error},{status,h
 async function access(req:NextRequest) {
   const me=await user(req);
   if (!me?.id) return {error:fail('Sign in to access the Virtual Lab demo.',401)};
-  const tier=await entitlement(me.id);
-  if (!tier) return {error:fail('Subscription access could not be verified. Try again shortly.',503)};
-  if (tier==='free') return {error:fail('The Virtual Lab demo requires an active Paid or Enhanced subscription.',403)};
-  return {me,tier};
+  // Preserve existing GIC Paid/Enhanced access while adding separate VirtualLab subscriptions.
+  const legacyTier=await entitlement(me.id);
+  if(legacyTier==='paid'||legacyTier==='enhanced')return {me,tier:legacyTier};
+  try{
+    const vlab=await vlabEntitlement(me.id);
+    if(isActiveVirtualLab(vlab))return {me,tier:vlab!.tier};
+  }catch{
+    // A billing-store error is not an entitlement and must not grant access.
+    if(!legacyTier)return {error:fail('Subscription access could not be verified. Try again shortly.',503)};
+  }
+  if(!legacyTier)return {error:fail('Subscription access could not be verified. Try again shortly.',503)};
+  return {error:fail('The VirtualLab workbench requires an active VirtualLab or qualifying existing GIC subscription.',403)};
 }
 export async function GET(req:NextRequest) {
   const check=await access(req);
