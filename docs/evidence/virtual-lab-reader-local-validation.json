@@ -1,0 +1,49 @@
+{
+  "format": "virtuallab-website-reader-review-evidence-v1",
+  "local_test_suites": {
+    "research-reader-tests": 37,
+    "conversion-tests": 8,
+    "agent-tests": 19,
+    "intent-router-tests": 11,
+    "onboarding-research-tests": 9
+  },
+  "total_local_js_tests": 84,
+  "typescript_check": "passed",
+  "next_production_build": "passed",
+  "next_version": "15.5.28",
+  "postcss_version": "8.5.28",
+  "runtime_dependency_audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "website_broker_real_engine_checks": {
+    "website_broker_and_engine_same_report": true,
+    "report_sha256_matches": true,
+    "cross_account_denial": true,
+    "anonymous_denial": true,
+    "revocation_on_both_clients": true,
+    "research_files_unchanged": true
+  },
+  "public_mcp_sdk_checks": {
+    "sdk_initialization_and_exact_tool_allowlist": true,
+    "all_fixed_presets_and_checksum_positive_negative": true,
+    "private_tool_and_invalid_preset_rejected": true,
+    "cross_origin_rejected": true
+  },
+  "source_secret_scan": {
+    "passed": true,
+    "scanner": "detect-secrets 1.5.0",
+    "offline": true,
+    "reviewed_nonsecret_matches": 11,
+    "unexpected_findings": []
+  },
+  "scope": "Local synthetic/offline qualification. GIC sign-in wiring uses an offline Supabase stub. No hosted private-project or real ChatGPT acceptance.",
+  "production_flags_changed": false,
+  "live_stripe_changes": false,
+  "production_research_data_uploaded": false,
+  "submitted_or_published": false
+}

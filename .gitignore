@@ -2,6 +2,8 @@ node_modules/
 .next/
 coverage/
 .DS_Store
+output/
+.npm-cache/
 *.log
 .env*
 !.env.example
