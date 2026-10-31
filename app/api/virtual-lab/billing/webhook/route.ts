@@ -49,18 +49,20 @@ export async function POST(req:NextRequest) {
     if(subscriptionId){
       const response=await fetch('https://api.stripe.com/v1/subscriptions/'+encodeURIComponent(subscriptionId),{headers:{Authorization:'Bearer '+stripeSecret},cache:'no-store',signal:AbortSignal.timeout(9000)});
       if(!response.ok)throw new Error('Stripe subscription lookup failed');
-      const sub=await response.json() as {id:string;status:string;customer:string;metadata?:Record<string,string>;items?:{data?:Array<{price?:{id?:string};current_period_end?:number}>};cancel_at_period_end?:boolean};
+      const sub=await response.json() as {id:string;status:string;customer:string;metadata?:Record<string,string>;items?:{data?:Array<{price?:{id?:string};current_period_end?:number}>};cancel_at_period_end?:boolean;trial_start?:number|null;trial_end?:number|null};
       const userId=sub.metadata?.vlab_user_id,plan=sub.metadata?.vlab_plan;
       if(userId&&/^[a-f0-9-]{36}$/i.test(userId)&&(plan==='researcher'||plan==='laboratory')&&
          sub.items?.data?.[0]?.price?.id===VLAB_PLANS[plan].priceId&&sub.items.data.length===1&&typeof sub.customer==='string'){
-        const current=await rest('/rest/v1/virtual_lab_billing_entitlements',{select:'stripe_subscription_id',user_id:'eq.'+userId,limit:'1'}) as Array<{stripe_subscription_id?:string}>;
+        const current=await rest('/rest/v1/virtual_lab_billing_entitlements',{select:'stripe_subscription_id,subscription_status',user_id:'eq.'+userId,limit:'1'}) as Array<{stripe_subscription_id?:string;subscription_status?:string}>;
         // Never let a delayed event from a different subscription overwrite the current entitlement.
-        if(!current[0]?.stripe_subscription_id||current[0].stripe_subscription_id===sub.id){
+        if(!current[0]?.stripe_subscription_id||current[0].stripe_subscription_id===sub.id||!['active','trialing'].includes(current[0].subscription_status||'')){
           const tier=['active','trialing'].includes(sub.status)?plan:'inactive';
           const periodEnd=sub.items.data[0].current_period_end;
           await rest('/rest/v1/virtual_lab_billing_entitlements',{on_conflict:'user_id'},'POST',{
             user_id:userId,tier,subscription_status:sub.status,stripe_customer_id:sub.customer,stripe_subscription_id:sub.id,
             current_period_end:periodEnd?new Date(periodEnd*1000).toISOString():null,
+            ...(sub.trial_start?{trial_started_at:new Date(sub.trial_start*1000).toISOString()}:{}),
+            trial_end:sub.trial_end?new Date(sub.trial_end*1000).toISOString():null,
             cancel_at_period_end:Boolean(sub.cancel_at_period_end),updated_at:new Date().toISOString(),
           });
         }
