@@ -5,15 +5,15 @@ This branch introduces a **separate product surface** for VirtualLab without cha
 ## Product areas
 
 - `/virtual-lab`: researched product overview and capability states.
-- `/virtual-lab/demo`: original approved simulation demo, kept working on existing GIC Paid/Enhanced entitlements during transition.
-- `/virtual-lab/plans`: two **VirtualLab-only** subscription plans (Researcher and Laboratory).
+- `/virtual-lab/free`: no-login browser demo with local deterministic RK4, local SHA-256 verification, evidence JSON and Markdown exports.\n- `/virtual-lab/demo`: original approved simulation demo, kept working on existing GIC Paid/Enhanced entitlements during transition.
+- `/virtual-lab/plans`: a permanent Free level plus two **VirtualLab-only** subscription plans (Researcher and Laboratory).
 - `/virtual-lab/beta`: macOS DMG download placeholder (disabled until a real release artifact, version and SHA-256 are configured) plus authenticated beta feedback.
 - `/api/virtual-lab/feedback`: Supabase-authenticated, RLS-scoped beta feedback.
 - `/api/virtual-lab/billing`: Stripe price discovery and hosted Checkout (only when configured).
 - `/api/virtual-lab/billing/webhook`: Stripe webhook synchronizing separate VirtualLab entitlements.
 - `/api/virtual-lab/billing/portal`: existing customer billing portal.
 
-## Required environment variables
+## Initial pricing and trial (proposed, not activated)\n\n- Researcher: **$9.99 per month** after a **7-day free trial**, intended for individuals.\n- Laboratory: **$29.99 per month** after a **7-day free trial**, intended for early laboratory evaluators. No team collaboration is promised yet.\n- Both are illustrative introductory price hypotheses until configured and verified in Stripe. Never create live charges without approval.\n- Checkout will require a payment method, show trial terms and automatically convert to the monthly subscription unless cancelled. One trial per VirtualLab customer/account (verified webhook records); comprehensive abuse prevention requires additional production controls.\n\n## Required environment variables
 
 - Existing: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`.
 - New: `VLAB_STRIPE_RESEARCHER_PRICE_ID`, `VLAB_STRIPE_LABORATORY_PRICE_ID`.
