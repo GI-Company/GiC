@@ -7,6 +7,6 @@ export async function GET(req:NextRequest){
   if(!me?.id)return NextResponse.json({authenticated:false,active:false},{status:401,headers:{'Cache-Control':'no-store'}});
   try{
     const row=await vlabEntitlement(me.id);
-    return NextResponse.json({authenticated:true,active:isActiveVirtualLab(row),tier:row?.tier||'inactive',status:row?.subscription_status||null},{headers:{'Cache-Control':'no-store'}});
+    return NextResponse.json({authenticated:true,active:isActiveVirtualLab(row),tier:row?.tier||'inactive',status:row?.subscription_status||null,trialEnd:row?.trial_end||null},{headers:{'Cache-Control':'no-store'}});
   }catch{return NextResponse.json({error:'Subscription status unavailable.'},{status:503,headers:{'Cache-Control':'no-store'}});}
 }
