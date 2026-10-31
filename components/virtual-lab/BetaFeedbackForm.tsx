@@ -1,11 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { checkoutAccessToken } from '@/lib/checkout-intent';
 import Link from 'next/link';
 
 export default function BetaFeedbackForm({version}:{version:string}) {
   const [category,setCategory]=useState('bug'),[details,setDetails]=useState(''),[sending,setSending]=useState(false),[status,setStatus]=useState('');
-  async function submit(event:React.FormEvent<HTMLFormElement>) {
+  async function submit(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();setStatus('');setSending(true);
     try {
       const token=await checkoutAccessToken();
