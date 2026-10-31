@@ -9,7 +9,7 @@ export async function GET(){
   const results=await Promise.all((['researcher','laboratory'] as VirtualLabPlan[]).map(async id=>{
     const config=VLAB_PLANS[id],verified=await stripePrice(id);
     const formatted=verified?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(verified.unit_amount/100):null;
-    return {id,name:config.name,description:config.description,price:formatted,available:Boolean(verified)};
+    return {id,name:config.name,description:config.description,price:formatted,proposedPrice:id==='researcher'?'$9.99': '$29.99',trialDays:7,available:Boolean(verified)};
   }));
   return NextResponse.json({plans:results},{headers:noStore});
 }
@@ -34,6 +34,12 @@ export async function POST(req:NextRequest){
     params.set('mode','subscription');params.set('line_items[0][price]',price.id);params.set('line_items[0][quantity]','1');
     params.set('client_reference_id',me.id);
     if(customer)params.set('customer',customer);
+    // Collect a payment method during Checkout so the 7-day trial can convert only with explicit checkout consent.
+    params.set('payment_method_collection','always');
+    if(!existing?.trial_started_at){
+      params.set('subscription_data[trial_period_days]','7');
+      params.set('subscription_data[trial_settings][end_behavior][missing_payment_method]','cancel');
+    }
     params.set('success_url',origin+'/virtual-lab/plans?checkout=success');
     params.set('cancel_url',origin+'/virtual-lab/plans?checkout=cancelled');
     // VirtualLab metadata is deliberately distinct from LooseMouth's webhook metadata.
