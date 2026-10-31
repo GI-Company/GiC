@@ -50,7 +50,7 @@ function isObject(value:unknown):value is Record<string,unknown>{return value!==
 function presetFrom(value:unknown):Preset|null{
  return typeof value==='string'&&Object.prototype.hasOwnProperty.call(presets,value)?value as Preset:null;
 }
-function validArgs(args:unknown,fields:string[]){
+function validArgs(args:unknown,fields:string[]):args is Record<string,unknown>{
  return isObject(args)&&Object.keys(args).every(x=>fields.includes(x));
 }
 export async function GET(){
