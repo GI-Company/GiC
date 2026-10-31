@@ -28,11 +28,11 @@ export async function vlabEntitlement(userId:string){
   const key=serviceKey();
   if(!key)throw new Error('VirtualLab entitlement store unavailable');
   const url=new URL('/rest/v1/virtual_lab_billing_entitlements',SUPABASE_URL);
-  url.searchParams.set('select','user_id,tier,subscription_status,stripe_customer_id,stripe_subscription_id');
+  url.searchParams.set('select','user_id,tier,subscription_status,stripe_customer_id,stripe_subscription_id,trial_started_at,trial_end');
   url.searchParams.set('user_id','eq.'+userId);url.searchParams.set('limit','1');
   const r=await fetch(url,{headers:{apikey:key,Authorization:'Bearer '+key},cache:'no-store',signal:AbortSignal.timeout(7000)});
   if(!r.ok)throw new Error('VirtualLab entitlement lookup unavailable');
-  const rows=await r.json() as Array<{user_id:string;tier:VirtualLabPlan;subscription_status:string;stripe_customer_id:string|null;stripe_subscription_id:string|null}>;
+  const rows=await r.json() as Array<{user_id:string;tier:VirtualLabPlan;subscription_status:string;stripe_customer_id:string|null;stripe_subscription_id:string|null;trial_started_at:string|null;trial_end:string|null}>;
   return rows[0]||null;
 }
 export async function existingGicCustomer(userId:string){
