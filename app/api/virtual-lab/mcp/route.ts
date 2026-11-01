@@ -23,10 +23,10 @@ const tools=[
     annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false},
     inputSchema:{type:'object',properties:{},additionalProperties:false}},
   {name:'run_public_reference',title:'Run public reference simulation',description:'Run one of three fixed, deterministic, uncalibrated gene-expression examples; returns numerical summaries and a software checksum. Results are SIMULATED, not measured.',
-    annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false},
+    annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false},
     inputSchema:{type:'object',properties:{preset:{type:'string',enum:['stimulus','mrna_decay','protein_decay']}},required:['preset'],additionalProperties:false}},
   {name:'verify_public_reference',title:'Verify public reference digest',description:'Recompute the SHA-256 hash for a selected fixed public simulation and compare it with the caller-supplied digest; no validation of biological measurements.',
-    annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false},
+    annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false},
     inputSchema:{type:'object',properties:{preset:{type:'string',enum:['stimulus','mrna_decay','protein_decay']},sha256:{type:'string',pattern:'^[a-fA-F0-9]{64}$'}},required:['preset','sha256'],additionalProperties:false}},
 ];
 const info={
