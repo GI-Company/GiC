@@ -95,7 +95,17 @@ class Memory:
         # exact structural support from thresholding correlated columns.
         reg=self.lam*np.eye(N_FEATURE);reg[0,0]=0.001
         c=np.linalg.solve(self.xtx+reg,self.xty)
-        c[np.abs(c)<0.0005]=0
+        # Keep intercept and at most 8 independently selected explanatory
+        # terms per predicted quantity. Compression is a model-class bias,
+        # not proof the recovered terms match physical causality.
+        for col in range(N_TARGET):
+            magnitudes=np.abs(c[1:,col])
+            keep=np.argsort(magnitudes)[-8:]+1
+            mask=np.ones(N_FEATURE,dtype=bool)
+            mask[0]=False
+            mask[keep]=False
+            c[mask,col]=0
+        c[np.abs(c)<0.001]=0
         return c
     def save(self):
         self.path.parent.mkdir(parents=True,exist_ok=True)
@@ -214,7 +224,7 @@ def main():
     if verdict["promote"]:
         memory.champion={"type":"sparse_mpc","promotion_step":memory.episodes,
           "heldout_rmse":conf,"mean_delta":verdict["mean_delta"],
-          "lower_bound":verdict["lower_bound"]}
+          "lower_bound":verdict["lower_bound"],"coefficients":coeff.tolist(),"validation_rmse":conf}
     # Failed candidates keep frozen PPO as champion; still retain learned
     # experience for future improvement attempts.
     memory.history.append({"epoch":a.epoch,"episodes":memory.episodes,
