@@ -1,0 +1,28 @@
+name: BitVision-Cell real ONNX sparse-agent benchmark
+on:
+  push:
+    branches: ['research/bitvision-sparse-real-onnx-20261031']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-checkpoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install inference dependencies
+        run: python -m pip install numpy==2.2.6 onnxruntime==1.22.1
+      - name: Execute real ONNX PPO and sparse learner
+        run: |
+          python research/bitvision-cell/sparse-agent/benchmark.py --out bitvision_sparse_results.json --seeds 3 --max-steps 100
+      - name: Upload result JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitvision-sparse-real-onnx-results
+          path: bitvision_sparse_results.json
+          if-no-files-found: warn
