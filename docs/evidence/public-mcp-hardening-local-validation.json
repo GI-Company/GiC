@@ -1,0 +1,69 @@
+{
+  "format": "virtuallab-public-mcp-hardening-local-validation-v1",
+  "validated_at_utc": "2026-11-01T01:42:18.358796+00:00",
+  "base_commit": "f7b67be60f71e0ff4edb4c36be7e04fc109a0158",
+  "javascript_tests": {
+    "passed": 92,
+    "research_boundary": 45,
+    "other_regression": 47,
+    "public_mcp_adversarial": 20,
+    "failed": 0
+  },
+  "typescript": "passed after build generated its route types",
+  "next_production_build": "passed",
+  "http_qualification": {
+    "format": "virtuallab-public-mcp-qualification-v1",
+    "passed": true,
+    "checks": {
+      "sdk_initialization_and_exact_tool_allowlist": true,
+      "all_fixed_presets_and_checksum_positive_negative": true,
+      "complete_report_positive_and_altered_numbers_text_negative": true,
+      "uppercase_accepted_and_all_cross_preset_digests_rejected": true,
+      "private_tool_and_invalid_preset_rejected": true,
+      "cross_origin_rejected": true,
+      "raw_http_invalid_inputs_rejected_independent_of_client_schema": true,
+      "raw_http_byte_limit_and_chunked_body_rejection": true
+    },
+    "protocol_version": "2025-11-25",
+    "python_mcp_sdk": "1.30.0",
+    "actual_chatgpt_tested": false,
+    "rate_limiting_verified": false,
+    "scope": "SDK and raw HTTP qualification of fixed public simulated reference tools; not a load test, rate-limit qualification, digital signature, OpenAI tool scan, domain verification or ChatGPT acceptance."
+  },
+  "source_secret_scan": {
+    "passed": true,
+    "scanner": "detect-secrets 1.5.0",
+    "offline": true,
+    "reviewed_nonsecret_matches": 16,
+    "unexpected_findings": []
+  },
+  "negative_secret_probe": {
+    "generated_dummy_credential_rejected": true,
+    "credential_provider_verification": false,
+    "candidate_values_logged": false
+  },
+  "plugin_package": {
+    "version": "0.1.2",
+    "files": 6,
+    "zip_roundtrip": "passed",
+    "sha256": "16b6c24b18799434ef8f39cd28277bb53f7d926391de82cd67a63a3041b1062c",
+    "openai_portal_validation": "not run"
+  },
+  "firewall": {
+    "active_config_read": "404 Seawall Config not found",
+    "draft_config_read": "404 Seawall Config not found",
+    "targeted_rule_insert": "404 Seawall Config not found",
+    "full_config_initialization": "rejected by automatic approval review: could replace project-wide configuration",
+    "applied": false,
+    "production_throttling_verified": false,
+    "user_decision": "Keep it unapplied for now"
+  },
+  "production_changed": false,
+  "revised_server_chatgpt_acceptance": false,
+  "hosted_ci": "not claimed; recorded local tests available for manual review",
+  "limitations": [
+    "Fixed public reference only; no custom experiment or private project access.",
+    "Complete-report verification covers supplied JSON against the server reference, not outside prose, digital signatures or scientific truth.",
+    "WAF rollout and independent production verification remain open."
+  ]
+}

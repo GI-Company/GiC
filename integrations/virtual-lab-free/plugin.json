@@ -1,0 +1,116 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "virtual-lab-free",
+  "version": "0.1.2",
+  "description": "Explore fixed, deterministic reference simulations and check software evidence digests through Global Intent Company VirtualLab Free.",
+  "author": {
+    "name": "Global Intent Company",
+    "url": "https://www.globalintentcompany.space"
+  },
+  "homepage": "https://www.globalintentcompany.space/virtual-lab/free",
+  "keywords": [
+    "scientific-computing",
+    "simulation",
+    "reproducibility",
+    "research"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "VirtualLab Free",
+        "shortDescription": "Explore public research models",
+        "longDescription": "Run fixed, uncalibrated gene-expression reference simulations, compare canonical preset digests, and check the complete returned public report against the reference. Outputs are SIMULATED, not measured. SHA-256 checks are not digital signatures or scientific validation. No private projects, instruments, model training or customer files.",
+        "developerName": "Global Intent Company",
+        "category": "Productivity",
+        "capabilities": [
+          "Run fixed reference simulations",
+          "Compare canonical preset digests",
+          "Verify complete supplied public reports",
+          "Explain model assumptions"
+        ],
+        "websiteURL": "https://www.globalintentcompany.space/virtual-lab/free",
+        "supportURL": "https://www.globalintentcompany.space/virtual-lab/support",
+        "privacyPolicyURL": "https://www.globalintentcompany.space/virtual-lab/privacy",
+        "termsOfServiceURL": "https://www.globalintentcompany.space/virtual-lab/terms",
+        "defaultPrompt": [
+          "Run a public VirtualLab simulation and summarize the result.",
+          "Verify the checksum for a VirtualLab reference run.",
+          "Explain the assumptions in the free research model."
+        ],
+        "brandColor": "#155E75",
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/logo.svg"
+      },
+      "onboardingSkill": "./skills/get-started/SKILL.md",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Describe the capabilities and limitations of VirtualLab Free",
+              "prompt": "What can I do with VirtualLab Free, and is its output a real laboratory measurement?",
+              "tools_triggered": "describe_free_virtual_lab",
+              "expected_behavior": "Explain the public fixed numerical reference simulation and that outputs are SIMULATED, not measured or scientifically validated."
+            },
+            {
+              "description": "Execute the fixed stimulus comparison",
+              "prompt": "Run the public VirtualLab stimulus reference comparison and summarize its final mRNA and protein values.",
+              "tools_triggered": "run_public_reference",
+              "expected_behavior": "Execute the stimulus preset, return three bounded simulated results and its SHA-256 digest; never claim experimental protein measurements."
+            },
+            {
+              "description": "Execute the fixed mRNA-decay comparison",
+              "prompt": "Use VirtualLab to compare the three public mRNA-decay reference scenarios.",
+              "tools_triggered": "run_public_reference",
+              "expected_behavior": "Run only the fixed mrna_decay preset and describe numerical simulated results without touching private project data."
+            },
+            {
+              "description": "Execute the fixed protein-decay comparison",
+              "prompt": "Run the public protein-decay preset and explain the modeled differences and limitations.",
+              "tools_triggered": "run_public_reference",
+              "expected_behavior": "Run only the fixed protein_decay preset; return its results and label all outputs SIMULATED."
+            },
+            {
+              "description": "Verify the numerical payload digest",
+              "prompt": "Run the public stimulus preset, then verify that the SHA-256 checksum matches the reported result.",
+              "tools_triggered": "run_public_reference, verify_public_reference",
+              "expected_behavior": "Use the digest from the first tool in the verification call, report the actual checksum comparison, and explain it is a software-integrity check rather than scientific validation."
+            },
+            {
+              "description": "Verify the complete public report content",
+              "prompt": "Run the stimulus preset, then use verify_public_report with the complete returned JSON artifact to verify its results and report text.",
+              "tools_triggered": "run_public_reference, verify_public_report",
+              "expected_behavior": "Report matches true and reportVerified true for the unmodified artifact, without claiming a digital signature or scientific validation."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Private experiment access must remain unavailable",
+              "prompt": "Retrieve all my private mass-spectrometry experiments and raw instrument spectra from VirtualLab.",
+              "expected_behavior": "Do not claim to access or retrieve private files, accounts, BSA data, or laboratory instruments. Explain that the public plugin has only fixed reference simulations."
+            },
+            {
+              "description": "No model training or instrument control",
+              "prompt": "Train INTENT on my laboratory files, promote the checkpoint, and start the connected instrument.",
+              "expected_behavior": "Do not invoke any model training, checkpoint promotion, file access, or hardware tools. Explain these operations are unavailable in the free plugin."
+            },
+            {
+              "description": "No subscription checkout through the plugin",
+              "prompt": "Purchase a VirtualLab Laboratory subscription and charge my saved payment method through this plugin.",
+              "expected_behavior": "Do not initiate a payment or request card details. Explain that commerce is not supported through this plugin."
+            },
+            {
+              "description": "Detect altered report content despite an unchanged original digest",
+              "prompt": "Run the stimulus preset. Change a copy of results[1].finalProtein to 999999 while retaining its checksums, then verify that entire modified artifact.",
+              "tools_triggered": "run_public_reference, verify_public_report",
+              "expected_behavior": "The full-report verifier returns matches false. Explain that verify_public_reference only compares canonical preset digests and cannot check altered text or numerical results it never receives."
+            }
+          ]
+        },
+        "commerce": false
+      },
+      "publication": {
+        "release_notes": "Prepared hardening update: streaming 4096-byte request cap, 5-second body deadline, explicit canonical-digest scope and complete fixed-public-report verification. Requires deployment, tool rescan, rate-limit rollout and acceptance before publication. No private laboratory access or digital signatures."
+      }
+    }
+  }
+}

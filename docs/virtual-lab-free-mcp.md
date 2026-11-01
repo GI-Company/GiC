@@ -1,6 +1,6 @@
 # VirtualLab Free — Browser demo and public MCP prototype
 
-**Status: staged and disabled by default.** This does not establish ChatGPT connectivity, plugin approval, verified scientific performance, or authenticated laboratory access.
+**Status: defaults off in code; the production three-tool Free plugin has been exercised through the installed connector and ChatGPT.** This branch prepares a four-tool hardening update; it does not deploy that update, establish production rate limiting, public directory approval, verified scientific performance, or authenticated laboratory access. See `virtual-lab-public-mcp-hardening.md` for the current verification scope and remaining gates.
 
 ## Product access
 
@@ -14,7 +14,8 @@ The MCP prototype currently targets **2025-11-25** JSON-RPC Streamable HTTP, acc
 
 - `describe_free_virtual_lab`: describes the public demo and scientific limits.
 - `run_public_reference`: returns a bounded deterministic report for one preset (`stimulus`, `mrna_decay`, `protein_decay`).
-- `verify_public_reference`: recomputes the SHA-256 of a selected fixed payload and compares it with a caller-supplied digest.
+- `verify_public_reference`: compares a supplied digest with the canonical fixed-preset digest. It does not receive report content and returns `reportVerified: false`.
+- `verify_public_report` (prepared 0.1.2 update): accepts the complete returned report object, verifies `reportSha256` and compares all content against the recomputed public reference. This is not a digital signature or scientific validation.
 
 There is no billing or subscription sales action inside the MCP endpoint. **Anonymous means public**: never add customer-specific tools to this endpoint.
 

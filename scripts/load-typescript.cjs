@@ -14,7 +14,7 @@ module.exports = function load(relative, env = {}, fetch = () => { throw Error('
     vm.runInNewContext(js, { module: mod, exports: mod.exports,
       require: id => id.startsWith('@/') ? read(id.slice(2) + '.ts') : require(id),
       process: { env }, Request, Response, Headers, URL, AbortSignal, Buffer, fetch,
-      crypto: webcrypto, TextEncoder, TextDecoder, ReadableStream, console,
+      crypto: webcrypto, TextEncoder, TextDecoder, ReadableStream, setTimeout, clearTimeout, console,
     }, { filename: name });
     return mod.exports;
   }
