@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
-PATHS=['app','components','lib','scripts','docs','supabase','.github','.env.example','README.md','package.json','next.config.ts']
+PATHS=['app','components','lib','scripts','docs','integrations','supabase','.github','.env.example','README.md','package.json','next.config.ts']
 
 
 def main():
