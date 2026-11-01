@@ -102,8 +102,19 @@ def calibrate(env,focus,base,seed):
       "sparse_message":{"basis":"walsh_residual_action","n_train":30,"n_test":10,
         "coeffs":[{"S":list(TERMS[i]),"c":round(float(c),7)} for i,c in zip(chosen,beta)]}}
 
-def run(Env,stream,sess,seed,use_sparse,max_steps=100):
+def apply_stress(env,seed):
+    # Deterministic synthetic challenge: more initial infected/virion sites.
+    # This changes INITIAL CONDITIONS ONLY, not simulator dynamics or rewards.
+    rng=np.random.default_rng(seed+911)
+    sites=rng.choice(env.n,size=min(24,env.n),replace=False)
+    env.i[sites]=np.maximum(env.i[sites],0.15)
+    env.v[sites]=np.maximum(env.v[sites],0.10)
+    env.h[:]=np.maximum(0.0,1.0-env.i-env.d)
+    return float(np.mean(env.i))
+
+def run(Env,stream,sess,seed,use_sparse,max_steps=100,stress=False):
     random.seed(seed);env=Env(stream)
+    if stress:apply_stress(env,seed)
     scans=[];changes=0;probe_steps=0;last=None
     start=time.time()
     for t in range(max_steps):
@@ -120,7 +131,7 @@ def run(Env,stream,sess,seed,use_sparse,max_steps=100):
         last=info
         if term or trunc:break
     return {"variant":"sparse_residual" if use_sparse else "frozen_ppo",
-      "seed":seed,"return":round(float(env.cumulative_reward),6),"steps":env.t,
+      "seed":seed,"stress":stress,"return":round(float(env.cumulative_reward),6),"steps":env.t,
       "eradicated":bool(last["eradicated"]),"failed":bool(last["failed"]),
       "healthy":float(last["healthy"]),"toxicity":float(last["toxicity"]),
       "changes":changes,"probe_env_steps":probe_steps,
@@ -131,24 +142,26 @@ def main():
     ap=argparse.ArgumentParser();ap.add_argument("--seeds",type=int,default=3)
     ap.add_argument("--max-steps",type=int,default=100)
     ap.add_argument("--out",default="bitvision_sparse_results.json")
+    ap.add_argument("--stress",action="store_true")
     a=ap.parse_args()
     Env=simulator();stream=structure();session,sha=load_checkpoint()
     runs=[]
     for j in range(a.seeds):
         seed=31001+j
         for sparse in [False,True]:
-            row=run(Env,stream,session,seed,sparse,a.max_steps)
+            row=run(Env,stream,session,seed,sparse,a.max_steps,stress=a.stress)
             runs.append(row)
             print(row["variant"],seed,"return",row["return"],"steps",row["steps"],"changes",row["changes"],flush=True)
     deltas=[runs[2*i+1]["return"]-runs[2*i]["return"] for i in range(a.seeds)]
     report={"status":"SIMULATED","model":"real GIC BitVision-Cell v0.2 update-500 ONNX",
-      "sha256":sha,"seeds":a.seeds,"paired_return_deltas":deltas,
+      "sha256":sha,"seeds":a.seeds,"stress_initial_conditions":a.stress,"paired_return_deltas":deltas,
       "mean_paired_delta":float(np.mean(deltas)),"episodes":runs,
       "protocol":"Real ONNX PPO vs sparse Walsh OMP one-step residual, 30 train/10 heldout, 8 terms, calibrate every 20 steps; 3 paired initial seeds.",
       "limitations":["Synthetic simulator only, not biological evidence.",
         "Published P28482 browser geometry reused; missing original amino-acid feature approximated as 0.5.",
         "Counterfactual simulator queries and an exact one-step gate are PRIVILEGED ORACLE access: this is NOT a deployable general agent.",
         "Identical initial seeds do not force identical future stochastic trajectories after policy actions diverge.",
+        "Stress condition deterministically raises initial infected and virion sites while retaining the original synthetic transition equations.",
         "Probe calls cost environment computation and are counted separately; this is not an online-regret guarantee."]}
     Path(a.out).write_text(json.dumps(report,indent=2))
     print("RESULT_FILE="+str(Path(a.out).resolve()),flush=True)
