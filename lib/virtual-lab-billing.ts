@@ -44,4 +44,6 @@ export async function existingGicCustomer(userId:string){
   const rows=await r.json() as Array<{stripe_customer_id:string|null}>;
   return rows[0]?.stripe_customer_id||null;
 }
-export function isActiveVirtualLab(row:{subscription_status:string}|null){return row!==null&&['active','trialing'].includes(row.subscription_status);}
+export function isActiveVirtualLab(row:{subscription_status:string;tier?:string}|null){
+  return row!==null&&['researcher','laboratory'].includes(row.tier||'')&&['active','trialing'].includes(row.subscription_status);
+}
