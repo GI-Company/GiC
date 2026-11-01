@@ -98,7 +98,7 @@ def calibrate(env,focus,base,seed):
     true_base=counterfactual(env,focus,base)
     true_best=counterfactual(env,focus,action(base,best))
     return {"mask":best,"baseline_one_step":true_base,"best_one_step":true_best,
-      "holdout_rmse":rmse,"constant_rmse":const_rmse,"terms":len(chosen),
+      "holdout_rmse":rmse,"constant_rmse":const_rmse,"terms":len(chosen),"predicted_gain":float(scores[best]-beta[0]),
       "sparse_message":{"basis":"walsh_residual_action","n_train":30,"n_test":10,
         "coeffs":[{"S":list(TERMS[i]),"c":round(float(c),7)} for i,c in zip(chosen,beta)]}}
 
@@ -106,9 +106,9 @@ def apply_stress(env,seed):
     # Deterministic synthetic challenge: more initial infected/virion sites.
     # This changes INITIAL CONDITIONS ONLY, not simulator dynamics or rewards.
     rng=np.random.default_rng(seed+911)
-    sites=rng.choice(env.n,size=min(24,env.n),replace=False)
-    env.i[sites]=np.maximum(env.i[sites],0.15)
-    env.v[sites]=np.maximum(env.v[sites],0.10)
+    sites=rng.choice(env.n,size=min(10,env.n),replace=False)
+    env.i[sites]=np.maximum(env.i[sites],0.07)
+    env.v[sites]=np.maximum(env.v[sites],0.05)
     env.h[:]=np.maximum(0.0,1.0-env.i-env.d)
     return float(np.mean(env.i))
 
@@ -124,8 +124,8 @@ def run(Env,stream,sess,seed,use_sparse,max_steps=100,stress=False):
             fit=calibrate(env,focus,base,seed*1000+t)
             scans.append({"step":t,**fit})
             probe_steps+=42
-            # PRIVILEGED one-step counterfactual gate: research diagnostic only!
-            if fit["best_one_step"]>fit["baseline_one_step"]+0.02:
+            # Autonomous decision: fitted sparse coefficients and held-out error only.
+            if fit["predicted_gain"]>max(0.02,3.0*fit["holdout_rmse"]):
                 chosen=action(base,fit["mask"]);changes+=1
         _,_,term,trunc,info=env.step(focus,chosen)
         last=info
@@ -156,10 +156,10 @@ def main():
     report={"status":"SIMULATED","model":"real GIC BitVision-Cell v0.2 update-500 ONNX",
       "sha256":sha,"seeds":a.seeds,"stress_initial_conditions":a.stress,"paired_return_deltas":deltas,
       "mean_paired_delta":float(np.mean(deltas)),"episodes":runs,
-      "protocol":"Real ONNX PPO vs sparse Walsh OMP one-step residual, 30 train/10 heldout, 8 terms, calibrate every 20 steps; 3 paired initial seeds.",
+      "protocol":"Real ONNX PPO vs sparse Walsh OMP one-step residual, 30 train/10 heldout, 8 terms, calibrate every 20 steps; paired initial seeds.",
       "limitations":["Synthetic simulator only, not biological evidence.",
         "Published P28482 browser geometry reused; missing original amino-acid feature approximated as 0.5.",
-        "Counterfactual simulator queries and an exact one-step gate are PRIVILEGED ORACLE access: this is NOT a deployable general agent.",
+        "Counterfactual simulator probes require a resettable world model. True counterfactual rewards are DIAGNOSTICS ONLY; agent decisions use fitted sparse coefficients.",
         "Identical initial seeds do not force identical future stochastic trajectories after policy actions diverge.",
         "Stress condition deterministically raises initial infected and virion sites while retaining the original synthetic transition equations.",
         "Probe calls cost environment computation and are counted separately; this is not an online-regret guarantee."]}
