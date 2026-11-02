@@ -176,7 +176,7 @@ test('read-only campaign inspection uses a narrow allowlist and verified service
     'https://research.invalid/v1/' + prefix + '/campaign-a/results',
   ]);
   for (const path of [prefix + '?offset=-1', prefix + '?limit=101', prefix + '/campaign-a/start',
-    prefix + '/campaign-a/cancel', prefix + '/campaign-a/results/extra', prefix + '/%2e%2e/results']) {
+    prefix + '/campaign-a/cancel', prefix + '/campaign-a/results/extra', prefix + '/%2f/results']) {
     const response = await read(request(path));
     assert.ok([400, 404].includes(response.status));
   }
