@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const modules=[
   {title:'Mass spectrometry',description:'Imported spectra, validation, provenance and reports in the desktop beta.',icon:Activity,status:'Desktop beta'},
   {title:'Scientific simulation',description:'Try a free, no-login numerical reference simulation and export results; expanded cockpit requires a qualifying subscription.',icon:FlaskConical,status:'Web demo'},
-  {title:'Project workstations',description:'Domain-based project libraries, research context and experiment evidence.',icon:FolderOpen,status:'Desktop beta'},
+  {title:'Project workstations',description:'Domain-based project libraries and experiment evidence. A separate, read-only private web workspace is under review and disabled until a hosted research service is qualified.',icon:FolderOpen,status:'Desktop beta / Private review'},
   {title:'INTENT experimental learning',description:'Guarded prediction and weight updates, distinct from verified measurements.',icon:BrainCircuit,status:'Experimental desktop'},
 ];
 export default function VirtualLabPage(){
@@ -20,7 +20,7 @@ export default function VirtualLabPage(){
    <div className="mx-auto max-w-6xl"><p className="text-sm font-semibold uppercase tracking-[.2em] text-cyan-300">Global Intent Company / VirtualLab</p>
     <h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-tight sm:text-6xl">Scientific workflows with evidence at every step.</h1>
     <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">A developing research environment spanning web-based simulations, experimental desktop workstations, reproducible artifacts and governed AI integrations. Tools are labeled by their actual availability.</p>
-    <div className="mt-8 flex flex-wrap gap-3"><Link href="/virtual-lab/free" className="rounded-lg bg-cyan-300 px-5 py-3 font-semibold text-slate-950">Try VirtualLab free</Link><Link href="/virtual-lab/demo" className="rounded-lg border border-slate-500 px-5 py-3 font-semibold">Paid scientific cockpit</Link><Link href="/virtual-lab/plans" className="rounded-lg border border-slate-500 px-5 py-3 font-semibold">VirtualLab plans</Link><Link href="/virtual-lab/beta" className="rounded-lg border border-slate-500 px-5 py-3 font-semibold">Desktop beta & feedback</Link></div>
+    <div className="mt-8 flex flex-wrap gap-3"><Link href="/virtual-lab/free" className="rounded-lg bg-cyan-300 px-5 py-3 font-semibold text-slate-950">Try VirtualLab free</Link><Link href="/virtual-lab/demo" className="rounded-lg border border-slate-500 px-5 py-3 font-semibold">Paid scientific cockpit</Link><Link href="/virtual-lab/plans" className="rounded-lg border border-slate-500 px-5 py-3 font-semibold">VirtualLab plans</Link><Link href="/virtual-lab/research" className="rounded-lg border border-slate-500 px-5 py-3 font-semibold">Private research (review preview)</Link><Link href="/virtual-lab/beta" className="rounded-lg border border-slate-500 px-5 py-3 font-semibold">Desktop beta & feedback</Link></div>
    </div>
   </section>
   <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6"><h2 className="text-3xl font-semibold">Choose a research workflow</h2>
