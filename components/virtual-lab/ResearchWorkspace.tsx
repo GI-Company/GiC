@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { checkoutAccessToken } from '@/lib/checkout-intent';
 
 type Project = { id: string; instance_id: string; name: string; domain_id: string };
@@ -112,6 +112,8 @@ export default function ResearchWorkspace() {
   const [moreObservations, setMoreObservations] = useState(false);
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState('');
+  const selectionRef = useRef({ token, projectKey, experimentId });
+  selectionRef.current = { token, projectKey, experimentId };
 
   const reset = useCallback((state: ViewState) => {
     setView(state);
@@ -206,6 +208,10 @@ export default function ResearchWorkspace() {
     if (!token || !selectedProject) return;
     const project = selectedProject;
     const experiment = selectedExperiment;
+    const selection = { token, projectKey, experimentId };
+    const stillSelected = () => selectionRef.current.token === selection.token &&
+      selectionRef.current.projectKey === selection.projectKey &&
+      selectionRef.current.experimentId === selection.experimentId;
     setBusy(section); setNotice('');
     try {
       const path = section === 'experiments'
@@ -217,27 +223,35 @@ export default function ResearchWorkspace() {
       if (!path) return;
       if (section === 'experiments') {
         const r = await readResearch<Page<{experiments: Experiment[]}>>(token, path);
+        if (!stillSelected()) return;
         setExperiments(value => [...value, ...safeList<Experiment>(r.data.experiments).filter(item => ID.test(item.id))]);
         setMoreExperiments(r.data.has_more === true);
       } else if (section === 'campaigns') {
         const r = await readResearch<Page<{campaigns: Campaign[]}>>(token, path);
+        if (!stillSelected()) return;
         setCampaigns(value => [...value, ...safeList<Campaign>(r.data.campaigns).filter(item => ID.test(item.id))]);
         setMoreCampaigns(r.data.has_more === true);
       } else {
         const r = await readResearch<Page<{observations: Observation[]}>>(token, path);
+        if (!stillSelected()) return;
         setObservations(value => [...value, ...safeList<Observation>(r.data.observations).filter(item => ID.test(item.observation_id))]);
         setMoreObservations(r.data.has_more === true);
       }
-    } catch (cause) { fail(cause); } finally { setBusy(''); }
+    } catch (cause) { if (stillSelected()) fail(cause); } finally { setBusy(''); }
   };
   const getDownload = async (suffix: string, filename: string) => {
     if (!token || !selectedProject || !selectedExperiment) return;
+    const selection = { token, projectKey, experimentId };
+    const stillSelected = () => selectionRef.current.token === selection.token &&
+      selectionRef.current.projectKey === selection.projectKey &&
+      selectionRef.current.experimentId === selection.experimentId;
     setBusy(filename); setNotice('');
     try {
       const result = await readResearch<unknown>(token, experimentPath(selectedProject, selectedExperiment) + suffix);
+      if (!stillSelected()) return;
       downloadJson(result.bytes, filename);
       setNotice('Verified exact-byte SHA-256 and downloaded ' + filename + '. This does not establish scientific validity.');
-    } catch (cause) { fail(cause); } finally { setBusy(''); }
+    } catch (cause) { if (stillSelected()) fail(cause); } finally { setBusy(''); }
   };
 
   return <section className="space-y-6" data-ph-mask="true">
