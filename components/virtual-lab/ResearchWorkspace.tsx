@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { checkoutAccessToken } from '@/lib/checkout-intent';
+import { campaignReadDisposition } from '@/lib/virtual-lab-research-view';
 
 type Project = { id: string; instance_id: string; name: string; domain_id: string };
 type Experiment = { id: string; label: string; research_question: string; status: string; created_at: string };
@@ -186,7 +187,7 @@ export default function ResearchWorkspace() {
         if (observationsResult.status === 'rejected') { fail(observationsResult.reason); return; }
         if (campaignsResult.status === 'rejected') {
           const kind = asResearchError(campaignsResult.reason).kind;
-          if (kind === 'signed-out' || kind === 'denied' || kind === 'integrity') {
+          if (campaignReadDisposition(kind) === 'deny') {
             fail(campaignsResult.reason);
             return;
           }
