@@ -51,7 +51,7 @@ export default function IntentAuthGate() {
   const [error, setError] = useState('');
   const [showAuth, setShowAuth] = useState(false);
   const [miniRequested, setMiniRequested] = useState(false);
-  const [returnToLab, setReturnToLab] = useState(false);
+  const [returnToLab, setReturnToLab] = useState<'' | 'virtual-lab-demo' | 'virtual-lab-research'>('');
   const [plan, setPlan] = useState<CheckoutPlan | null>(null);
   const authViewTracked = useRef(false);
 
@@ -59,7 +59,8 @@ export default function IntentAuthGate() {
     const params = new URLSearchParams(window.location.search);
     setMiniRequested(params.get('mini') === '1');
     setPlan(checkoutPlan(params.get('plan')));
-    setReturnToLab(params.get('return_to') === 'virtual-lab-demo');
+    setReturnToLab(params.get('return_to') === 'virtual-lab-demo' ? 'virtual-lab-demo'
+      : params.get('return_to') === 'virtual-lab-research' ? 'virtual-lab-research' : '');
     if (params.get('signin') === '1') setShowAuth(true);
     if (params.get('signup') === '1') {
       setMode('signup');
@@ -152,7 +153,7 @@ export default function IntentAuthGate() {
   useEffect(() => {
     if (checked && session?.access_token) {
       if (plan) window.location.replace(pricingForPlan(plan));
-      else if (returnToLab) window.location.replace('/virtual-lab/demo');
+      else if (returnToLab) window.location.replace(returnToLab === 'virtual-lab-research' ? '/virtual-lab/research' : '/virtual-lab/demo');
     }
   }, [checked, session?.access_token, plan, returnToLab]);
 
@@ -162,7 +163,7 @@ export default function IntentAuthGate() {
       ? 'https://globalintentcompany.space' : window.location.origin;
     const url = new URL('/intent', origin);
     if (plan) url.searchParams.set('plan', plan);
-    if (returnToLab) url.searchParams.set('return_to', 'virtual-lab-demo');
+    if (returnToLab) url.searchParams.set('return_to', returnToLab);
     return url.toString();
   }
 
