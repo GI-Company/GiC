@@ -160,3 +160,43 @@ test('VirtualLab entitlement requires a recognized tier and active/trial status'
   for (const tier of ['free','paid','enhanced','administrator',undefined]) assert.equal(isActiveVirtualLab({ tier, subscription_status: 'active' }), false);
   assert.equal(isActiveVirtualLab(null), false);
 });
+
+
+test('read-only campaign inspection uses a narrow allowlist and verified service identity', async () => {
+  const { read, calls } = fixture();
+  const prefix = 'instances/instance-a/projects/project-a/experiments/experiment-a/campaigns';
+  for (const path of [prefix + '?limit=50&offset=0', prefix + '/campaign-a', prefix + '/campaign-a/results']) {
+    const response = await read(request(path));
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('x-content-sha256'), digest);
+  }
+  assert.deepEqual(calls.map(c => c.url), [
+    'https://research.invalid/v1/' + prefix + '?limit=50&offset=0',
+    'https://research.invalid/v1/' + prefix + '/campaign-a',
+    'https://research.invalid/v1/' + prefix + '/campaign-a/results',
+  ]);
+  for (const path of [prefix + '?offset=-1', prefix + '?limit=101', prefix + '/campaign-a/start',
+    prefix + '/campaign-a/cancel', prefix + '/campaign-a/results/extra', prefix + '/%2e%2e/results']) {
+    const response = await read(request(path));
+    assert.ok([400, 404].includes(response.status));
+  }
+  assert.equal(calls.length, 3, 'Rejected routes must not reach the private service');
+});
+
+test('revoking GIC access between campaign reads denies future results and sends no new upstream call', async () => {
+  let allowed = true;
+  const { read, calls } = fixture({ accountAccess: async () => allowed });
+  const path = 'instances/instance-a/projects/project-a/experiments/experiment-a/campaigns/campaign-a/results';
+  assert.equal((await read(request(path))).status, 200);
+  allowed = false;
+  assert.equal((await read(request(path))).status, 403);
+  assert.equal(calls.length, 1);
+});
+
+test('campaign inspection has no POST relay, even with a valid session', async () => {
+  const { read, calls } = fixture();
+  const path = 'instances/instance-a/projects/project-a/experiments/experiment-a/campaigns';
+  const response = await read(request(path, { method: 'POST', body: '{"configs":[]}' }));
+  assert.equal(response.status, 405);
+  assert.equal(calls.length, 0);
+});
