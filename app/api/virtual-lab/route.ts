@@ -13,14 +13,21 @@ async function access(req:NextRequest) {
   if (!me?.id) return {error:fail('Sign in to access the Virtual Lab demo.',401)};
   // Preserve existing GIC Paid/Enhanced access while adding separate VirtualLab subscriptions.
   const legacyTier=await entitlement(me.id);
-  if(legacyTier==='paid'||legacyTier==='enhanced')return {me,tier:legacyTier};
+  // A separate active VirtualLab subscription can upgrade a legacy paid user
+  // without modifying their original GIC subscription or Stripe customer.
+  // Keep the legacy Enhanced AI model entitlement independently.
   try{
     const vlab=await vlabEntitlement(me.id);
-    if(isActiveVirtualLab(vlab))return {me,tier:vlab!.tier};
+    if(isActiveVirtualLab(vlab))return {
+      me,tier:vlab!.tier,aiTier:legacyTier==='enhanced'?'enhanced':vlab!.tier,
+    };
   }catch{
-    // A billing-store error is not an entitlement and must not grant access.
-    if(!legacyTier)return {error:fail('Subscription access could not be verified. Try again shortly.',503)};
+    // If the separate billing store is unavailable, existing paid users
+    // retain their verified GIC access; unknown users fail closed.
+    if(legacyTier!=='paid'&&legacyTier!=='enhanced')
+      return {error:fail('Subscription access could not be verified. Try again shortly.',503)};
   }
+  if(legacyTier==='paid'||legacyTier==='enhanced')return {me,tier:legacyTier,aiTier:legacyTier};
   if(!legacyTier)return {error:fail('Subscription access could not be verified. Try again shortly.',503)};
   return {error:fail('The VirtualLab workbench requires an active VirtualLab or qualifying existing GIC subscription.',403)};
 }
@@ -59,7 +66,7 @@ export async function POST(req:NextRequest) {
     if (!key) return fail('AI assistance is not configured. You can still approve and run the reference experiment.',503);
     if (typeof body.goal!=='string' || !body.goal.trim() || body.goal.length>4000) return fail('Use an AI brief of 1–4000 characters.',400);
     try {
-      const agent=await runWorkbenchAgent({goal:body.goal,context:{protocol,approved:body.approved===true},key,model:geminiModelForMode(check.tier==='enhanced'?'enhanced':'medium'),signal:req.signal});
+      const agent=await runWorkbenchAgent({goal:body.goal,context:{protocol,approved:body.approved===true},key,model:geminiModelForMode(check.aiTier==='enhanced'?'enhanced':'medium'),signal:req.signal});
       return NextResponse.json(agent,{headers});
     } catch { return fail('AI assistance is temporarily unavailable. Your approved protocol and outputs are unchanged.',503); }
   } catch(cause) {

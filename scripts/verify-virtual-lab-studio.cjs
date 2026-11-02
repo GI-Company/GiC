@@ -63,3 +63,14 @@ test('the actual /virtual-lab/demo page uses the unified studio entry and server
   assert.match(studio, /<LaboratoryPilotPlanner/);
   assert.match(studio, /setWorkspaceAnalytics\(false\)/);
 });
+
+test('server access checks separate active VirtualLab tiers without revoking legacy GIC Paid/Enhanced', () => {
+  const root=path.join(__dirname,'..');
+  const route=fs.readFileSync(path.join(root,'app/api/virtual-lab/route.ts'),'utf8');
+  assert.match(route, /const legacyTier=await entitlement\(me\.id\)/);
+  assert.match(route, /if\(isActiveVirtualLab\(vlab\)\)return/);
+  assert.match(route, /if\(legacyTier==='paid'\|\|legacyTier==='enhanced'\)return/);
+  assert.match(route, /aiTier:legacyTier==='enhanced'\?'enhanced'/);
+  assert.match(route, /check\.aiTier==='enhanced'/);
+  assert.doesNotMatch(route, /await.*update.*entitlement/i);
+});

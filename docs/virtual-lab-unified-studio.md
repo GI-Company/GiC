@@ -45,3 +45,7 @@ Manual browser acceptance on the preview deployment:
 6. Verify mobile navigation, keyboard focus, screen reader tab names, empty/error messages, and source-label clarity.
 
 No merge into `main`, live backend enablement, or academic/student deployment is implied by opening this draft PR.
+
+## Stripe live account verification (Nov 2026)
+
+The connected GIC live Stripe account presently contains existing LooseMouth Paid ($4.99/month) and Enhanced ($14.99/month) products. No separate VirtualLab Researcher or Laboratory products/prices were present at inspection. The site's proposed $9.99 / $29.99 amounts remain **proposed**, not approved live prices; checkout remains unavailable until explicit price/product configuration is completed. No Stripe objects, customer records or active subscriptions were changed as part of this UI release. The Supabase VirtualLab entitlement/Stripe event/feedback tables were added with an additive migration; existing GIC billing records were not modified. Existing GIC Paid/Enhanced accounts continue to access the Researcher-level scientific tools; only an independently active Laboratory entitlement opens the Laboratory planner.

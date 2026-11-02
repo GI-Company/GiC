@@ -129,7 +129,7 @@ export default function VirtualLabStudio({
           </nav>
           <div className="hidden rounded-xl bg-slate-50 p-4 text-xs leading-5 text-slate-600 lg:block">
             <ShieldCheck size={18} className="mb-2 text-emerald-700"/>
-            **Research integrity**
+            <strong>Research integrity</strong>
             <p className="mt-1">SIMULATED is not MEASURED. Imported data remains unverified until its source is established.</p>
           </div>
         </aside>
