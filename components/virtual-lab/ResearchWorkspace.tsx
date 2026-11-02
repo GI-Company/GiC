@@ -107,6 +107,7 @@ export default function ResearchWorkspace() {
   const [observations, setObservations] = useState<Observation[]>([]);
   const [campaignId, setCampaignId] = useState('');
   const [campaignDetail, setCampaignDetail] = useState<CampaignDetail | null>(null);
+  const [campaignNotice, setCampaignNotice] = useState('');
   const [moreExperiments, setMoreExperiments] = useState(false);
   const [moreCampaigns, setMoreCampaigns] = useState(false);
   const [moreObservations, setMoreObservations] = useState(false);
@@ -119,7 +120,7 @@ export default function ResearchWorkspace() {
     setView(state);
     setToken(null); setProjects([]); setProjectKey('');
     setExperiments([]); setExperimentId(''); setCampaigns([]);
-    setCampaignId(''); setCampaignDetail(null); setObservations([]);
+    setCampaignId(''); setCampaignDetail(null); setCampaignNotice(''); setObservations([]);
     setMoreExperiments(false); setMoreCampaigns(false); setMoreObservations(false);
   }, []);
   const fail = useCallback((cause: unknown) => {
@@ -150,7 +151,7 @@ export default function ResearchWorkspace() {
 
   useEffect(() => {
     setExperiments([]); setExperimentId(''); setCampaigns([]);
-    setObservations([]); setCampaignDetail(null); setCampaignId('');
+    setObservations([]); setCampaignDetail(null); setCampaignId(''); setCampaignNotice('');
     setMoreExperiments(false); setMoreCampaigns(false); setMoreObservations(false);
     if (!token || !selectedProject) return;
     const controller = new AbortController();
@@ -168,23 +169,36 @@ export default function ResearchWorkspace() {
   }, [token, projectKey, fail]); // Project membership is always checked server-side.
 
   useEffect(() => {
-    setCampaigns([]); setObservations([]); setCampaignDetail(null); setCampaignId('');
+    setCampaigns([]); setObservations([]); setCampaignDetail(null); setCampaignId(''); setCampaignNotice('');
     setMoreCampaigns(false); setMoreObservations(false);
     if (!token || !selectedProject || !selectedExperiment) return;
     const controller = new AbortController();
     void (async () => {
       try {
         const prefix = experimentPath(selectedProject, selectedExperiment);
-        const [c, o] = await Promise.all([
-          readResearch<Page<{campaigns: Campaign[]}>>(token, prefix + '/campaigns?limit=50&offset=0', controller.signal),
+        // Campaign endpoints require the separate opt-in campaign host. A 404
+        // for campaigns must not block independently authorized observation reads.
+        const [observationsResult, campaignsResult] = await Promise.allSettled([
           readResearch<Page<{observations: Observation[]}>>(token, prefix + '/observations?limit=50&offset=0', controller.signal),
+          readResearch<Page<{campaigns: Campaign[]}>>(token, prefix + '/campaigns?limit=50&offset=0', controller.signal),
         ]);
-        if (!controller.signal.aborted) {
-          setCampaigns(safeList<Campaign>(c.data.campaigns).filter(item => ID.test(item.id)));
-          setObservations(safeList<Observation>(o.data.observations).filter(item => ID.test(item.observation_id)));
-          setMoreCampaigns(c.data.has_more === true);
-          setMoreObservations(o.data.has_more === true);
+        if (controller.signal.aborted) return;
+        if (observationsResult.status === 'rejected') { fail(observationsResult.reason); return; }
+        if (campaignsResult.status === 'rejected') {
+          const kind = asResearchError(campaignsResult.reason).kind;
+          if (kind === 'signed-out' || kind === 'denied' || kind === 'integrity') {
+            fail(campaignsResult.reason);
+            return;
+          }
+          setCampaignNotice(kind === 'revoked'
+            ? 'Campaign inspection is not enabled or shared for this experiment.'
+            : 'Campaign inspection is temporarily unavailable; observation reports remain accessible.');
+        } else {
+          setCampaigns(safeList<Campaign>(campaignsResult.value.data.campaigns).filter(item => ID.test(item.id)));
+          setMoreCampaigns(campaignsResult.value.data.has_more === true);
         }
+        setObservations(safeList<Observation>(observationsResult.value.data.observations).filter(item => ID.test(item.observation_id)));
+        setMoreObservations(observationsResult.value.data.has_more === true);
       } catch (cause) { if (!controller.signal.aborted) fail(cause); }
     })();
     return () => controller.abort();
@@ -312,7 +326,8 @@ export default function ResearchWorkspace() {
             <option value="">Select a campaign</option>
             {campaigns.map(c => <option value={c.id} key={c.id}>{c.id} — {c.state} ({c.next_step}/{c.total_steps})</option>)}
           </select>
-          {campaigns.length === 0 && <p className="mt-3 text-sm text-slate-600">No campaigns returned for this experiment.</p>}
+          {campaignNotice && <p role="status" className="mt-3 text-sm text-slate-600">{campaignNotice}</p>}
+          {!campaignNotice && campaigns.length === 0 && <p className="mt-3 text-sm text-slate-600">No campaigns returned for this experiment.</p>}
           {moreCampaigns && <button disabled={Boolean(busy)} onClick={() => void loadMore('campaigns')} className="mt-3 text-sm font-semibold text-blue-700">Load more campaigns</button>}
           {campaignDetail && <div className="mt-5 rounded-xl bg-slate-50 p-4 text-sm">
             <p><strong>State:</strong> {campaignDetail.state}</p>
