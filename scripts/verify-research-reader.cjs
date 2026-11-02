@@ -200,3 +200,25 @@ test('campaign inspection has no POST relay, even with a valid session', async (
   assert.equal(response.status, 405);
   assert.equal(calls.length, 0);
 });
+
+test('optional campaign host denial never hides identity, entitlement or report-integrity failures', () => {
+  const { campaignReadDisposition } = load('lib/virtual-lab-research-view.ts');
+  for (const kind of ['signed-out', 'denied', 'integrity']) {
+    assert.equal(campaignReadDisposition(kind), 'deny', kind);
+  }
+  for (const kind of ['revoked', 'unavailable']) {
+    assert.equal(campaignReadDisposition(kind), 'show-observations', kind);
+  }
+});
+
+test('unsupported campaign read does not affect a separately authorized observation route', async () => {
+  const prefix = 'instances/instance-a/projects/project-a/experiments/experiment-a/';
+  const { read, calls } = fixture({ fetch: async (url, init) => {
+    calls.push({ url: String(url), init });
+    if (String(url).includes('/campaigns')) return new Response('private', { status: 404 });
+    return new Response(body, { headers: { 'Content-Type': 'application/json', 'X-Content-SHA256': digest } });
+  }});
+  assert.equal((await read(request(prefix + 'campaigns'))).status, 404);
+  assert.equal((await read(request(prefix + 'observations'))).status, 200);
+  assert.equal(calls.length, 2);
+});
