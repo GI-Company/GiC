@@ -72,3 +72,25 @@ Regression tests also exposed that `isActiveVirtualLab` accepted an active malfo
 - [ ] Complete full workspace parity and mutation consistency before claiming the full application is shared.
 
 The free public-reference plugin remains a separate release. PR #16's legal/domain-verification pages, real ChatGPT connection/tool scan, a walkthrough recording, domain and developer verification, and owner submission attestations still govern that publication. This branch neither activates public MCP nor submits or publishes a plugin.
+
+
+## Read-only research workspace (review branch)
+
+The GIC website includes a private research preview at `/virtual-lab/research` under the existing VirtualLab feature, **not a separate website**. This route is a UI over the server-owned `GET /api/virtual-lab/research/...` identity bridge and remains nonfunctional while `VLAB_RESEARCH_READER_ENABLED` is false. It is not a hosted or deployed integration by itself.
+
+- The visitor signs in using the existing GIC Supabase sign-in flow. The return destination is a fixed allowlisted value, including OAuth/email sign-in; never an arbitrary redirect URL.
+- After authorization, the UI discovers only projects the private engine permits that principal to inspect. Selecting a project lists experiments. Selecting an experiment lists campaign summaries and observation metadata, and allows inspecting one campaign. Lists use bounded pagination.
+- Campaign list, detail and results routes are newly allowlisted **GET only**. The website cannot create, start, pause or cancel campaigns. The corresponding Python host must be explicitly started with `--enable-campaigns` for those views to exist, and project `campaign_read` access must be granted.
+- Downloaded campaign results and MS reports are independently verified in the browser against the exact server-forwarded `X-Content-SHA256`; the website server also verifies the upstream bytes before forwarding them. A hash only establishes byte integrity; results remain `SIMULATED` or retain their actual epistemic classifications.
+- The private workspace disables behavioral analytics. The UI distinguishes sign-out, account/subscription denial, inaccessible project/revocation, integrity failure and unavailable host. Reopening/refocusing the page or refreshing access causes a fresh read; current project authorization is rechecked on each new request.
+- No Supabase authorization flags or user metadata are supplied as service grants. No public Free tools, billing flows, entitlement tables, source instruments or native workspace files are modified.
+
+### Qualification before enabling
+
+1. Merge and independently review the Python service branches (#13 and #14) **before** provisioning a supervised private host with durable backup and audited policy. This web branch does not include the service.
+2. Keep `VLAB_RESEARCH_READER_ENABLED=false` until the server issuer/public key, service TLS host, entitlement checks, service Settings and tenant/project grants have been reviewed and configured.
+3. Run `npm run test:research`, `npx tsc --noEmit --incremental false`, `npm run build` and the separate-process Python service qualification against a synthetic fixture.
+4. Sign in with actual GIC User A with an approved project; verify project, experiment, campaign and report. Sign in as unrelated User B, attempt known private IDs and confirm 404/403 with no leaks; revoke User A and confirm new calls fail. Confirm logout/session invalidation policy and all end-to-end audit records.
+5. Only then enable in a private nonproduction environment. Do not advertise public hosted campaign execution or ChatGPT OAuth until separately tested.
+
+This branch adds a browser read surface; **long-lived unattended campaign delegation, private ChatGPT OAuth, desktop pairing and campaign writes from GIC accounts remain out of scope**.
