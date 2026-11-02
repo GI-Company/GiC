@@ -12,7 +12,8 @@ const MultiScaleWorld=dynamic(()=>import('./MultiScaleWorld'),{ssr:false,loading
 const RhodopsinWorkbench=dynamic(()=>import('./RhodopsinWorkbench'));
 const OpticalSandbox=dynamic(()=>import('./OpticalSandbox'));
 const EvidenceLedgerPanel=dynamic(()=>import('./EvidenceLedgerPanel'));
-type Tab='simulation'|'structure'|'rhodopsin'|'mass'|'instrument'|'optics'|'notebook';
+export type CockpitTab='simulation'|'structure'|'rhodopsin'|'mass'|'instrument'|'optics'|'notebook';
+type Tab = CockpitTab;
 type Event={id:string;kind:string;state:'SIMULATED'|'UNKNOWN'|'INFERRED';summary:string;time:string;payload:unknown};
 const tabs:Array<{id:Tab;label:string;subtitle:string}>=[
  {id:'structure',label:'Multi-scale world',subtitle:'Tissue → cell → protein'},
@@ -55,8 +56,11 @@ function ImportedSignal({data,channel}:{data:InstrumentImport;channel:string}){
   <text x="43" y="30" textAnchor="end" fontSize="11" fill="#cbd5e1">{maxY.toPrecision(3)}</text>
  </svg><figcaption className="mt-2 text-xs text-slate-300">File-import plot · source UNKNOWN · not authenticated hardware telemetry.</figcaption></figure>;
 }
-export default function ScientificCockpit({accessToken}:{accessToken:string}){
- const [tab,setTab]=useState<Tab>('structure');
+export default function ScientificCockpit({accessToken, activeTab, embedded=false, onTabChange}:{
+ accessToken:string; activeTab?:CockpitTab; embedded?:boolean; onTabChange?:(tab:CockpitTab)=>void;
+}){
+ const [tab,setTab]=useState<Tab>(activeTab || 'structure');
+ useEffect(()=>{if(activeTab)setTab(activeTab);},[activeTab]);
  const [shared,setShared]=useState<SharedLabSettings|null>(null);
  const [shareError,setShareError]=useState('');
  useEffect(()=>{
@@ -106,17 +110,17 @@ export default function ScientificCockpit({accessToken}:{accessToken:string}){
  }
  return <section className="ph-no-capture min-w-0 space-y-5 text-slate-950" data-ph-mask="true" data-ph-no-capture="true">
   {shareError&&<p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">{shareError}</p>}
-  <header className="rounded-2xl border border-slate-700 bg-slate-950 p-5 text-slate-100 sm:p-6">
+  {!embedded && <header className="rounded-2xl border border-slate-700 bg-slate-950 p-5 text-slate-100 sm:p-6">
    <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-wider text-sky-300">Global Intent Company · Virtual Lab</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">Multi-scale biological &amp; instrument cockpit</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Explore structure, review model assumptions, approve simulations, inspect instrument files, and follow the evidence trail.</p></div><span className="rounded-full border border-sky-700 bg-sky-950 px-3 py-2 text-xs font-semibold text-sky-200">Research beta · human review required</span></div>
    <div className="mt-5 grid gap-2 sm:grid-cols-3"><div className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs"><Activity size={18} className="mb-2 text-sky-300"/><strong>SIMULATED</strong><p className="mt-1 text-slate-300">RK4, synthetic optics and isotope calculations</p></div><div className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs"><Atom size={18} className="mb-2 text-indigo-300"/><strong>REFERENCE</strong><p className="mt-1 text-slate-300">RCSB experimental protein coordinates</p></div><div className="rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs"><ShieldCheck size={18} className="mb-2 text-amber-300"/><strong>UNKNOWN</strong><p className="mt-1 text-slate-300">Imported files require source verification</p></div></div>
    <details className="mt-4 rounded-xl border border-slate-700 p-3 text-sm"><summary className="cursor-pointer font-semibold text-sky-200">Take a quick lab tour</summary><ol className="mt-3 list-decimal space-y-2 pl-5 text-slate-300"><li>Navigate tissue and cell schematics, then inspect real reference protein coordinates.</li><li>Choose assumed RHO kinetics or the original gene-expression experiment. Review settings and approve before running.</li><li>Generate synthetic optical frames, calculate isotope envelopes, or inspect your own CSV/JSONL files locally.</li><li>Use the reference workbench for bounded Gemini proposals. A proposal does not approve execution.</li><li>Open the evidence notebook to export your session, verify hashes, and test tamper detection.</li></ol></details>
-  </header>
-  <nav aria-label="Lab workspaces" className="flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2" role="tablist">
+  </header>}
+  {!embedded && <nav aria-label="Lab workspaces" className="flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2" role="tablist">
    {tabs.map(t=><button key={t.id} type="button" role="tab" id={'lab-tab-'+t.id} aria-controls={'lab-panel-'+t.id} aria-selected={tab===t.id} tabIndex={tab===t.id?0:-1} onKeyDown={e=>{const index=tabs.findIndex(item=>item.id===t.id);const next=e.key==='ArrowRight'?(index+1)%tabs.length:e.key==='ArrowLeft'?(index+tabs.length-1)%tabs.length:e.key==='Home'?0:e.key==='End'?tabs.length-1:-1;if(next>=0){e.preventDefault();setTab(tabs[next].id);document.getElementById('lab-tab-'+tabs[next].id)?.focus();}}} onClick={()=>setTab(t.id)} className={'min-w-36 shrink-0 rounded-lg px-3 py-3 text-left focus-visible:outline-2 focus-visible:outline-blue-700 '+(tab===t.id?'bg-blue-700 text-white':'bg-slate-50 hover:bg-slate-100')}><strong className="block text-xs">{t.label}</strong><span className="mt-1 block text-[11px] opacity-75">{t.subtitle}</span></button>)}
-  </nav>
-  <div role="tabpanel" id={'lab-panel-'+tab} aria-labelledby={'lab-tab-'+tab} className="min-w-0">
+  </nav>}
+  <div role="tabpanel" aria-label={embedded ? tabs.find(item=>item.id===tab)?.label : undefined} id={'lab-panel-'+tab} aria-labelledby={embedded ? undefined : 'lab-tab-'+tab} className="min-w-0">
    <div hidden={tab!=='simulation'}><VirtualLabWorkbench accessToken={accessToken} onEvidence={e=>record('RK4 experiment','SIMULATED',e.protocol.parameter+' · '+e.runs+' trajectories · '+e.sha256.slice(0,12)+'…',e)}/></div>
-   <div hidden={tab!=='structure'}><MultiScaleWorld accessToken={accessToken} onFormula={value=>{setFormula(value);setTab('mass');}}/></div>
+   <div hidden={tab!=='structure'}><MultiScaleWorld accessToken={accessToken} onFormula={value=>{setFormula(value);setTab('mass');onTabChange?.('mass');}}/></div>
    <div hidden={tab!=='rhodopsin'}><RhodopsinWorkbench key={shared?.tool==='rho'?JSON.stringify(shared.settings):'default-rho'} initialSettings={shared?.tool==='rho'?shared.settings:undefined} accessToken={accessToken} onEvidence={value=>record('RHO model','SIMULATED','Approved four-state RK4 simulation',value)}/></div>
    <div hidden={tab!=='optics'}><OpticalSandbox key={shared?.tool==='optics'?JSON.stringify(shared.settings):'default-optics'} initialSettings={shared?.tool==='optics'?shared.settings:undefined} onEvidence={value=>record('Optical sandbox','SIMULATED','Generated a synthetic optical frame',value)}/></div>
    {tab==='mass'&&<section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
@@ -145,6 +149,6 @@ export default function ScientificCockpit({accessToken}:{accessToken:string}){
     <EvidenceLedgerPanel key={ledgerRevision} entries={events}/>
    </section>
   </div>
-  <footer className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-600"><ShieldCheck size={16}/> Research status is explicit: simulated output is not measured evidence; imported data is unverified. <Sparkles size={16}/> Gemini operates only through existing authenticated, bounded approval-gated tools.</footer>
+  {!embedded && <footer className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 text-xs leading-5 text-slate-600"><ShieldCheck size={16}/> Research status is explicit: simulated output is not measured evidence; imported data is unverified. <Sparkles size={16}/> Gemini operates only through existing authenticated, bounded approval-gated tools.</footer>}
  </section>;
 }

@@ -5,8 +5,8 @@ import { checkoutAccessToken } from '@/lib/checkout-intent';
 
 type Plan = { id: 'researcher'|'laboratory'; name: string; description: string; price: string|null; proposedPrice?: string; trialDays?: number; available: boolean; features: string[] };
 const features: Record<'researcher'|'laboratory',string[]> = {
-  researcher: ['Access to the current web simulation workbench', 'Evidence and report exports in the existing demo', 'Desktop beta releases when published', 'Beta feedback channel'],
-  laboratory: ['All current Researcher capabilities', 'Dedicated laboratory workflow discovery', 'Priority review of beta feedback', 'Future team and private deployment features require separate validation'],
+  researcher: ['Unified light-mode scientific workspace and reference simulations', 'Multi-scale, RHO, optics, isotope and local numeric-file tools', 'Session evidence notebook and checksum-bearing exports', 'Desktop beta releases when published'],
+  laboratory: ['All currently available Researcher tools', 'Local pilot workflow planner with JSON draft export (not hosted execution)', 'Laboratory workflow discovery and priority beta feedback', 'Private host, teams and instruments remain subject to separate qualification'],
 };
 export default function VirtualLabPlans() {
   const [plans,setPlans]=useState<Plan[]>([

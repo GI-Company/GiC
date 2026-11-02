@@ -1,5 +1,16 @@
 import type { Metadata } from 'next';
 import MarketingShell from '@/components/landing/MarketingShell';
 import VirtualLabAccess from '@/components/virtual-lab/VirtualLabAccess';
-export const metadata:Metadata={title:'Virtual Lab Online Demo',description:'A subscription-only scientific workbench adapted from VirtualLab: review protocols, compare simulated trajectories and export evidence.',alternates:{canonical:'/virtual-lab/demo'}};
-export default function LabDemoPage(){return <MarketingShell><section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8"><p className="text-xs font-semibold uppercase tracking-wide text-blue-700">VirtualLab · Research Workbench</p><h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">A research environment you can operate.</h1><p className="mt-4 mb-8 max-w-3xl text-sm leading-7 text-slate-600">Explore multiple scales, review kinetic assumptions, approve simulation, inspect synthetic frames and instrument files, and verify exported evidence. This online adaptation demonstrates the VirtualLab workflow; it does not run the desktop application, connect to instruments or use a GIC-trained model. Optional AI assistance is powered by Google Gemini. Protein coordinates come from curated RCSB PDB reference structures; isotope-envelopes are calculated, and imported instrument records remain unverified until their provenance is established.</p><VirtualLabAccess/></section></MarketingShell>;}
+
+export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'VirtualLab Research Studio — Scientific Workspace',
+  description: 'Explore VirtualLab Free, Researcher and Laboratory workspaces with scientific simulations, evidence review and desktop-inspired navigation inside Global Intent Company.',
+  alternates: { canonical: '/virtual-lab/demo' },
+};
+
+export default function VirtualLabDemoPage() {
+  return <MarketingShell>
+    <VirtualLabAccess privateReaderEnabled={process.env.VLAB_RESEARCH_READER_ENABLED === 'true'}/>
+  </MarketingShell>;
+}

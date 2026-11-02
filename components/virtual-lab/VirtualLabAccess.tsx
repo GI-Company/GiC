@@ -1,43 +1,79 @@
 'use client';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { LockKeyhole } from 'lucide-react';
-import { checkoutAccessToken } from '@/lib/checkout-intent';
+import { checkoutAccessToken, AUTH_STORAGE_KEY } from '@/lib/checkout-intent';
 import { getPreferences } from '@/lib/loosemouth-persistence';
-import { AUTH_STORAGE_KEY } from '@/lib/checkout-intent';
 import { setWorkspaceAnalytics } from '@/lib/workspace-privacy';
-import ScientificCockpit from './ScientificCockpit';
 import { rememberLabSettings } from '@/lib/lab-sharing';
-export default function VirtualLabAccess() {
-  const [token,setToken]=useState<string|null>(null),[state,setState]=useState<'checking'|'guest'|'free'|'allowed'|'error'>('checking'),[error,setError]=useState(''),[attempt,setAttempt]=useState(0);
+import { studioTierFromEntitlement, type StudioTier } from '@/lib/virtual-lab-studio';
+import VirtualLabStudio from './VirtualLabStudio';
+
+type AccountState = 'checking' | 'guest' | 'free' | 'allowed' | 'error';
+export default function VirtualLabAccess({privateReaderEnabled=false}:{
+  privateReaderEnabled?:boolean;
+}) {
+  const [token,setToken] = useState<string|null>(null);
+  const [tier,setTier] = useState<StudioTier>('free');
+  const [state,setState] = useState<AccountState>('checking');
+  const [error,setError] = useState('');
+  const [attempt,setAttempt] = useState(0);
+
   useEffect(()=>{
     let active=true;
-    try{rememberLabSettings(sessionStorage,window.location.hash);}catch{/* Direct links still work when storage is blocked. */}
+    try { rememberLabSettings(sessionStorage,window.location.hash); }
+    catch { /* Direct shared links still work without session storage. */ }
     setWorkspaceAnalytics(null);
-    async function check(){
-      try{
-        const accessToken=await checkoutAccessToken();
-        if(!active)return;
-        if(!accessToken){setState('guest');setWorkspaceAnalytics(true);return;}
-        const response=await fetch('/api/virtual-lab',{headers:{Authorization:`Bearer ${accessToken}`},cache:'no-store'});
-        if(!active)return;
-        if(response.status===401){setState('guest');setWorkspaceAnalytics(true);return;}
-        if(response.status===403){setState('free');setWorkspaceAnalytics(true);return;}
-        if(!response.ok)throw new Error('Subscription access could not be checked. Try again shortly.');
-        const data=await response.json();
-        if(data.authorized!==true)throw new Error('Access could not be verified.');
-        // Resolve the same paid privacy preference as the general workspace.
-        try{const saved=JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY)||'null');const preferences=saved?.user?.id?await getPreferences(accessToken,saved.user.id):null;if(active)setWorkspaceAnalytics(preferences?.data_collection_enabled!==false);}catch{if(active)setWorkspaceAnalytics(false);}
-        if(active){setToken(accessToken);setState('allowed');}
-      }catch(cause){if(active){setState('error');setError(cause instanceof Error?cause.message:'Lab access unavailable.');}}
+    async function check() {
+      try {
+        const accessToken = await checkoutAccessToken();
+        if (!active) return;
+        if (!accessToken) {
+          setToken(null); setTier('free'); setState('guest');
+          setWorkspaceAnalytics(true); return;
+        }
+        const response=await fetch('/api/virtual-lab',{
+          method:'GET',headers:{Authorization:'Bearer '+accessToken},cache:'no-store',
+        });
+        if (!active) return;
+        if (response.status===401) {
+          setToken(null);setTier('free');setState('guest');
+          setWorkspaceAnalytics(true);return;
+        }
+        if (response.status===403) {
+          setToken(null);setTier('free');setState('free');
+          setWorkspaceAnalytics(true);return;
+        }
+        if (!response.ok) throw new Error('Your paid VirtualLab access could not be verified. Refresh access to retry.');
+        const data=await response.json() as {authorized?:boolean;tier?:string};
+        if (data.authorized!==true) throw new Error('The lab subscription response was not authorized.');
+        // Privacy is resolved independently of tier. Browser metadata is never
+        // used for server-side authorization or research project membership.
+        try {
+          const stored=JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY)||'null');
+          const preferences=stored?.user?.id?await getPreferences(accessToken,stored.user.id):null;
+          if (active) setWorkspaceAnalytics(preferences?.data_collection_enabled===true);
+        } catch {
+          if (active) setWorkspaceAnalytics(false);
+        }
+        if (active) {
+          setToken(accessToken);setTier(studioTierFromEntitlement(data.tier));
+          setError('');setState('allowed');
+        }
+      } catch(cause) {
+        if(active) {
+          setToken(null);setTier('free');setState('error');
+          setError(cause instanceof Error?cause.message:'Subscription verification is temporarily unavailable.');
+          setWorkspaceAnalytics(false);
+        }
+      }
     }
-    void check();return()=>{active=false;setWorkspaceAnalytics(null);};
+    void check();
+    return ()=>{active=false;setWorkspaceAnalytics(null);};
   },[attempt]);
-  if(state==='allowed'&&token)return <ScientificCockpit accessToken={token}/>;
-  return <section className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-8 text-center" data-ph-mask="true">
-    <LockKeyhole className="mx-auto text-blue-600" size={32}/><h2 className="mt-4 text-2xl font-semibold">{state==='checking'?'Checking subscription access…':'Virtual Lab is a paid experience'}</h2>
-    <p className="mt-3 text-sm leading-7 text-slate-600">{state==='checking'?'Verifying your account before opening the lab.':state==='error'?error:'An active VirtualLab Researcher or Laboratory subscription, or a qualifying existing GIC subscription, unlocks this online research workbench.'}</p>
-    {state!=='checking'&&<div className="mt-6 flex flex-wrap justify-center gap-3"><Link href="/intent?signin=1&return_to=virtual-lab-demo" className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white">Sign in to your account</Link><Link href="/virtual-lab/plans" className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold">VirtualLab plans</Link><button type="button" onClick={()=>{setState('checking');setAttempt(n=>n+1);}} className="px-3 py-3 text-sm font-semibold text-blue-700">Check access again</button></div>}
-    {state!=='checking'&&<p className="mt-5 text-sm leading-7 text-slate-600">Try something public first: <Link href="/intent/mini" className="font-semibold text-blue-700 underline">INTENT Mini</Link> or <Link href="/virtual-lab/bitvision-cell" className="font-semibold text-blue-700 underline">BitVision Cell</Link>.</p>}
-  </section>;
+
+  if(state==='checking')return <div role="status" aria-busy="true" className="mx-auto max-w-6xl px-6 py-20 text-center text-sm text-slate-600">
+    Checking your GIC session and available research tools…
+  </div>;
+  return <VirtualLabStudio tier={tier}
+    accountState={state} accessToken={token}
+    privateReaderEnabled={privateReaderEnabled} accessError={error}/>;
 }
