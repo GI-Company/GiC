@@ -11,7 +11,7 @@
     "test:conversion": "node --test scripts/verify-conversion.cjs",
     "test:agents": "node --test scripts/verify-agents.cjs",
     "test:intent-router": "node --test scripts/verify-intent-router.cjs",
-    "test:research": "node --test scripts/verify-research-reader.cjs scripts/verify-public-mcp.cjs"
+    "test:research": "node --test scripts/verify-research-reader.cjs scripts/verify-public-mcp.cjs scripts/verify-virtual-lab-studio.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
