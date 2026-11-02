@@ -160,3 +160,65 @@ test('VirtualLab entitlement requires a recognized tier and active/trial status'
   for (const tier of ['free','paid','enhanced','administrator',undefined]) assert.equal(isActiveVirtualLab({ tier, subscription_status: 'active' }), false);
   assert.equal(isActiveVirtualLab(null), false);
 });
+
+
+test('read-only campaign inspection uses a narrow allowlist and verified service identity', async () => {
+  const { read, calls } = fixture();
+  const prefix = 'instances/instance-a/projects/project-a/experiments/experiment-a/campaigns';
+  for (const path of [prefix + '?limit=50&offset=0', prefix + '/campaign-a', prefix + '/campaign-a/results']) {
+    const response = await read(request(path));
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('x-content-sha256'), digest);
+  }
+  assert.deepEqual(calls.map(c => c.url), [
+    'https://research.invalid/v1/' + prefix + '?limit=50&offset=0',
+    'https://research.invalid/v1/' + prefix + '/campaign-a',
+    'https://research.invalid/v1/' + prefix + '/campaign-a/results',
+  ]);
+  for (const path of [prefix + '?offset=-1', prefix + '?limit=101', prefix + '/campaign-a/start',
+    prefix + '/campaign-a/cancel', prefix + '/campaign-a/results/extra', prefix + '/%2f/results']) {
+    const response = await read(request(path));
+    assert.ok([400, 404].includes(response.status));
+  }
+  assert.equal(calls.length, 3, 'Rejected routes must not reach the private service');
+});
+
+test('revoking GIC access between campaign reads denies future results and sends no new upstream call', async () => {
+  let allowed = true;
+  const { read, calls } = fixture({ accountAccess: async () => allowed });
+  const path = 'instances/instance-a/projects/project-a/experiments/experiment-a/campaigns/campaign-a/results';
+  assert.equal((await read(request(path))).status, 200);
+  allowed = false;
+  assert.equal((await read(request(path))).status, 403);
+  assert.equal(calls.length, 1);
+});
+
+test('campaign inspection has no POST relay, even with a valid session', async () => {
+  const { read, calls } = fixture();
+  const path = 'instances/instance-a/projects/project-a/experiments/experiment-a/campaigns';
+  const response = await read(request(path, { method: 'POST', body: '{"configs":[]}' }));
+  assert.equal(response.status, 405);
+  assert.equal(calls.length, 0);
+});
+
+test('optional campaign host denial never hides identity, entitlement or report-integrity failures', () => {
+  const { campaignReadDisposition } = load('lib/virtual-lab-research-view.ts');
+  for (const kind of ['signed-out', 'denied', 'integrity']) {
+    assert.equal(campaignReadDisposition(kind), 'deny', kind);
+  }
+  for (const kind of ['revoked', 'unavailable']) {
+    assert.equal(campaignReadDisposition(kind), 'show-observations', kind);
+  }
+});
+
+test('unsupported campaign read does not affect a separately authorized observation route', async () => {
+  const prefix = 'instances/instance-a/projects/project-a/experiments/experiment-a/';
+  const { read, calls } = fixture({ fetch: async (url, init) => {
+    calls.push({ url: String(url), init });
+    if (String(url).includes('/campaigns')) return new Response('private', { status: 404 });
+    return new Response(body, { headers: { 'Content-Type': 'application/json', 'X-Content-SHA256': digest } });
+  }});
+  assert.equal((await read(request(prefix + 'campaigns'))).status, 404);
+  assert.equal((await read(request(prefix + 'observations'))).status, 200);
+  assert.equal(calls.length, 2);
+});

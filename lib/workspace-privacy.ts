@@ -15,6 +15,7 @@ export function setWorkspaceAnalytics(enabled: boolean | null) {
 
 export function analyticsDecision(): boolean | null {
   if (typeof window === 'undefined') return false;
+  if (window.location.pathname === '/virtual-lab/research') return false; // Project/experiment records are private and not analytics events.
   if (/^\/intent(?:\/|$)/.test(window.location.pathname) || window.location.pathname === '/virtual-lab/demo') return workspaceEnabled;
   try { return localStorage.getItem('gic-posthog-opt-out') !== '1'; }
   catch { return false; }

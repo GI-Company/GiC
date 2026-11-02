@@ -32,9 +32,15 @@ function queryFields(parts: string[]): string[] | null {
   if (parts.length === 5) return ['offset', 'limit'];
   if (!id(parts[5] || '')) return null;
   if (parts.length === 6) return [];
+  if (parts[6] === 'campaigns') {
+    if (parts.length === 7) return ['offset', 'limit'];
+    if (!id(parts[7] || '')) return null;
+    if (parts.length === 8) return [];
+    return parts.length === 9 && parts[8] === 'results' ? [] : null;
+  }
   if (parts[6] !== 'observations') return null;
   if (parts.length === 7) return ['offset', 'limit'];
-  if (parts.length !== 9 || !id(parts[7]) || !['report', 'spectrum'].includes(parts[8])) return null;
+  if (parts.length !== 9 || !id(parts[7] || '') || !['report', 'spectrum'].includes(parts[8])) return null;
   return parts[8] === 'spectrum' ? ['offset', 'limit'] : [];
 }
 
